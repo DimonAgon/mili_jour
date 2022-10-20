@@ -2,9 +2,11 @@ from aiogram import types
 from .dispatcher import dp
 from ..models import *
 from datetime import date
+from ..forms import *
+
 
 @dp.message_handler(
-    commands=['start', 'last', 'on_date', 'new_journal', 'presence_reco']
+    commands=['start', 'last', 'on_date', 'presence_reco']
 )
 
 async def start(message: types.Message):
@@ -15,15 +17,19 @@ async def start(message: types.Message):
 
     await message.reply(mess)
 
-async def new_journal(message: types.Message, squadron):
-    pass
-
 async def presence_reco(message:types.Message):
     today = date.today()
     await message.answer_poll(question=today, options=["Так", "Ні"], type='quiz', correct_option_id=1, is_anonymous=False)
-    JournalEntry(journal=)
 
 async def on_date(message:types.Message, requested_date):
     await message.reply()
+
+async def register(message:types.Message, name):
+    Profile.objects.create(external_id=message.from_user.username, name=name, journal_id=message.chat.id)
+    await message.reply("Ви були зареєстровані")
+
+async def last(message:types.Message):
+    JournalEntry.objects.earliest('date')
+
 
 
