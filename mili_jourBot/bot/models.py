@@ -22,4 +22,4 @@ class Profile(models.Model):
 class JournalEntry(models.Model):
     date = models.DateField()
     name = models.ForeignKey(to='Profile', on_delete=models.CASCADE)
-    journal_id = models.CharField()
+    journal_id = models.CharField(max_length=180)

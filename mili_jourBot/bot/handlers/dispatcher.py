@@ -14,7 +14,7 @@ from telebot import TeleBot
 #pyTelegramBotAPI
 
 #bot
-from ..models import Journal, JournalEntry, Profile
+from ..models import *
 #bot
 
 

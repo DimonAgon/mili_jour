@@ -24,9 +24,18 @@ async def presence_reco(message:types.Message):
 async def on_date(message:types.Message, requested_date):
     await message.reply()
 
-async def register(message:types.Message, name):
-    Profile.objects.create(external_id=message.from_user.username, name=name, journal_id=message.chat.id)
+async def register(message:types.Message):
+    await message.reply(ProfileForm._meta.labels['name'])
+    # wait for input + write into var
+    # validate name
+    # todo:
+    # insert name into user by user id
+    #
+    profile = ProfileForm()
+    if profile.is_valid():
+        Profile.objects.create(external_id=message.from_user.username, name=name, journal_id=message.chat.id)
     await message.reply("Ви були зареєстровані")
+
 
 async def last(message:types.Message):
     JournalEntry.objects.earliest('date')
