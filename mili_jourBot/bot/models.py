@@ -3,9 +3,11 @@ from django.urls import reverse_lazy
 
 
 class Profile(models.Model):
-    external_id = models.CharField(verbose_name="тег", max_length=65)
+
     name = models.CharField(verbose_name="Ім'я, Прізвище", max_length=65)
-    journal_id = models.CharField(verbose_name="Журнал", max_length=65)
+    journal = models.ForeignKey(to='Journal', on_delete=models.CASCADE)
+    ordinal = models.CharField(verbose_name="Номер в списку", max_length=2)
+    external_id = models.CharField(verbose_name='Telegram id', max_length=65)
 
     def get_absolute_url(self):
         return reverse_lazy('profile', kwargs={'news_id': self.pk})
@@ -19,7 +21,12 @@ class Profile(models.Model):
 
 
 
+class Journal(models.Model):
+    external_id = models.CharField(verbose_name="Chat id", max_length=65)
+    number = models.CharField(verbose_name="Номер взводу", max_length=3)
+
+
 class JournalEntry(models.Model):
     date = models.DateField()
     name = models.ForeignKey(to='Profile', on_delete=models.CASCADE)
-    journal_id = models.CharField(max_length=180)
+    journal = models.CharField(max_length=180)

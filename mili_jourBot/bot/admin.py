@@ -4,5 +4,5 @@ from .models import Profile
 
 @admin.register(Profile)
 class AdminProfile(admin.ModelAdmin):
-    list_display = ('id', 'external_id', 'name')
+    list_display = ('journal_id', 'name')
 

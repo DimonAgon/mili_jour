@@ -1,5 +1,5 @@
 from django.core.management.base import BaseCommand
-from aiogram import executor
+from aiogram.utils import executor
 from bot.handlers.dispatcher import dp
 
 class Command(BaseCommand):
