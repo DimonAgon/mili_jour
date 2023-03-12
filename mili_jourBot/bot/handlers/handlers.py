@@ -1,36 +1,37 @@
 
 from aiogram import types
-from .dispatcher import dp
+from aiogram.filters import Command
+from .dispatcher import dp, router
 from ..models import *
 import datetime
 from ..forms import *
 
-@dp.message_handler(commands='start')
+@router.message(Command(commands='start'))
 async def start(message: types.Message):  # Self-presintation of the bot
 
-    greeting = "Привіт, я mili_jour (як Military Journal) бот  я можу робити дві справи: " \
-           "а) Створити журнал для вашого взводу," \
+    greeting = "Привіт, я mili_jour (як Military Journal) бот  я можу робити дві справи: \n" \
+           "а) Створити журнал для вашого взводу,\n" \
            "б) Допомогати вам слідкувати за відвідуванням занять без зайвих зусиль, " \
-           "Користуйтесь)" \
-               "Будь ласка ЗАРЕЕСТРУЙТЕСЬ, якщо цього не робили. Для цього зайдіть у бот та викличте команду 'register'" \
-               "Усі команди викликаються /{команда}"
+           "Користуйтесь)"
+
     await message.reply(greeting)
 
 
-@dp.message_handler(commands='help')
+@router.message(Command(commands='help'))
 async def help(message: types.Message):
 
-    HELPFUL_REPLY = "я mili_jour (як Military Journal) бот  я можу робити дві справи: " \
-           "а) Створити журнал для вашого взводу," \
-           "б) Допомогати вам слідкувати за відвідуванням занять без зайвих зусиль"
+    HELPFUL_REPLY = "Будь ласка ЗАРЕЕСТРУЙТЕСЬ, якщо цього не робили. Для цього зайдіть у бот та викличте команду 'register'" \
+               "(Усі команди викликаються /{команда})\n" \
+                    "Крайньо не рекомендується знаходитись у групі чужого взводу." \
+                    "Заборонено " #TODO: what's forbidden?
 
     #TODO: on_update_info
 
     await message.reply(HELPFUL_REPLY)
 
 
-
-@dp.message_handler(commands='who_s_present')
+ 
+@router.message(Command(commands='who_s_present'))
 async def who_s_present(message :types.Message):  # Checks who's present
     today = datetime.date.today()
     # deadline = datetime.timedelta(hours=8, minutes=5)
@@ -42,7 +43,7 @@ async def who_s_present(message :types.Message):  # Checks who's present
 
 
 
-@dp.message_handler(commands='register')
+@router.message(Command(commands='register'))
 async def register(message:types.Message):
     chat_id = message.chat.id
 

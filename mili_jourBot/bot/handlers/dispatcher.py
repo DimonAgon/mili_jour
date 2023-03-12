@@ -1,5 +1,5 @@
 #aiogram
-from aiogram import Bot, Dispatcher
+from aiogram import Bot, Dispatcher, Router
 #aiogram
 
 #django
@@ -14,11 +14,14 @@ from telebot import TeleBot
 #pyTelegramBotAPI
 
 #bot
-from ..models import *
+
 #bot
 
+TOKEN = settings.TELEGRAM_BOT_API_KEY
 
-bot = Bot(token=settings.TELEGRAM_BOT_API_KEY)
-dp = Dispatcher(bot)
 
+bot = Bot(token=TOKEN)
+dp = Dispatcher()
+router = Router()
+dp.include_router(router)
 
