@@ -1,8 +1,8 @@
+#TODO: add a security measurement: for only authorized journals allow commands
 
-import pause
 from aiogram import types
-from aiogram.filters import Command
-from aiogram.filters.state import State, StatesGroup
+from aiogram.filters import Command, StateFilter
+from .filters import CurrentUserFilter
 from aiogram.fsm.context import FSMContext
 
 from .dispatcher import dp, router, bot
@@ -13,7 +13,7 @@ import datetime
 import asyncio
 
 @router.message(Command(commands='start'))
-async def start(message: types.Message):  # Self-presintation of the bot
+async def start_commnad(message: types.Message):  # Self-presintation of the bot
 
     greeting = "Привіт, я mili_jour (як Military Journal) бот  я можу робити дві справи: \n" \
            "а) Створити журнал для вашого взводу,\n" \
@@ -24,7 +24,7 @@ async def start(message: types.Message):  # Self-presintation of the bot
 
 
 @router.message(Command(commands='help'))
-async def help(message: types.Message):
+async def help_command(message: types.Message):
 
     HELPFUL_REPLY = "Будь ласка ЗАРЕЕСТРУЙТЕСЬ, якщо цього не робили. Для цього зайдіть у бот та викличте команду 'register'" \
                "(Усі команди викликаються /{команда})\n" \
@@ -36,33 +36,42 @@ async def help(message: types.Message):
     await message.reply(HELPFUL_REPLY)
 
 
- 
+
 @router.message(Command(commands='who_s_present'))
-async def who_s_present(message: types.Message):  # Checks who's present
+async def who_s_present_command(message: types.Message):  # Checks who's present
     now = datetime.datetime.now()
     today = now.date()
-    deadline = now + datetime.timedelta(hours=8, minutes=5)
-    deadline_timestamp = int(deadline.timestamp())
+    deadline_time = datetime.time(hour=17, minute=5)
+    deadline = now.replace(hour=deadline_time.hour, minute=deadline_time.minute)
+    till_deadline = deadline - now
 
     question = str(today) + " Присутні"
 
     poll_message = await message.answer_poll(question=question, options=["Я", "Відсутній"], type='quiz', correct_option_id=0,
                               is_anonymous=False, allows_multiple_answers=False, protect_content=True)
 
-    await pause.until(deadline_timestamp) #TODO: stop on time, not sleep till
+    await asyncio.sleep(300)#till_deadline.total_seconds())
     await bot.stop_poll(chat_id=poll_message.chat.id, message_id=poll_message.message_id)
-    # JournalEntry.objects.create(journal=message.chat.id, date=today, name=message.from_user.id)
 
 
 
 @router.message(Command(commands='register'))
-async def register(message: types.Message, forms: FormsManager):
+async def register_command(message: types.Message, forms: FormsManager):
+
 
     await message.reply(text='ініціюю реєстрацію')
     await asyncio.sleep(3)
     await forms.show('profileform')
 
 
+@router.poll_answer()  # TODO: add a flag for vote-answer mode
+def handle_who_s_present(poll_answer: types.poll_answer):
+    now = datetime.datetime.now()  # TODO: use time for schedule control, use date for entry's date
+
+    user_id = poll_answer.user.id
+    profile = Profile.objects.get(external_id=user_id)
+    selected_option = poll_answer.option_ids[0]
+    journal = Journal.objects.get(name=profile.journal)
 
 # async def last(message:types.Message):
 #
@@ -82,12 +91,13 @@ async def register(message: types.Message, forms: FormsManager):
 
 
 
-# @dp.poll_answer_handler()
-# async def presence_poll_answer_handler(poll_answer:types.PollAnswer):
-#     answer_id = poll_answer.option_ids
-#     user_id = poll_answer.user.id
-#     poll_id = poll_answer.poll_id
-#     entry = JournalEntry(date=date.today(), journal_id=types.chat.Chat.id
+#@dp.poll_answer_handler()
+#async def presence_poll_answer_handler(poll_answer:types.PollAnswer):
+#   answer_id = poll_answer.option_ids
+#   user_id = poll_answer.user.id
+#   poll_id = poll_answer.poll_id
 
+    
 
 #TODO: craete a chat leave command
+
