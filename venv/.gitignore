@@ -109,3 +109,7 @@ Control.ca-list
 Control.ca-bundle
 Control.system-ca-bundle
 GitHub.sublime-settings
+
+#specified by dev (me)
+db.sqlite3
+mili_jourBot/settings.py

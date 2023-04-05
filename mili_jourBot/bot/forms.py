@@ -2,8 +2,10 @@
 from aiogram_forms import Form, fields, dispatcher, FormsManager
 from aiogram_forms.errors import ValidationError
 from aiogram import types
+from aiogram.filters.state import StatesGroup, State
 import regex
 from .views import *
+
 
 
 def validate_name_format(value: str):
@@ -47,9 +49,33 @@ class ProfileForm(Form):
 
         data = await forms.get_data(ProfileForm)
         user_id = message.from_user.id
+        if not Profile.objects.get(external_id=user_id):
 
-        await add_profile(data, user_id)
+            try:
 
-        await message.answer(text="Ви були успішно зареєстровані")
+                await add_profile(data, user_id)
+                await message.answer(text="Ви були успішно зареєстровані")
+
+            except Exception as e:
+
+                await message.answer(text="При реєстрації виникла помилка, спробуйте ще раз пізніше")
+
+        else:
+            await message.answer(text="Користувач с даним tg-id вже існує")
+
+
+
+class JournalForm(StatesGroup):
+
+    current_user_id = State()
+    name = State()
+
+    label = "Номер взводу"
+    сallback_text = "Журнал відвідувань до взводу створено!"
+    on_registration_fail_text = "Під час реєстраціі взводу виникла помилка, спробуєте ще раз пізніше"
+
+
+
+
 
 

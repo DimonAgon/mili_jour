@@ -23,6 +23,7 @@ async def start(message: types.Message):  # Self-presintation of the bot
     await message.reply(greeting)
 
 
+
 @router.message(Command(commands='help'))
 async def help(message: types.Message):
 
@@ -64,6 +65,33 @@ async def register(message: types.Message, forms: FormsManager):
 
 
 
+@router.message(Command(commands='register_journal'))
+async def initiate_register_journal_command(message: types.Message, state: FSMContext):
+
+    current_user_id = message.from_user.id
+    await message.reply(text="Ініціюю реєстрацію взводу")
+    # await asyncio.sleep(3)
+    await message.reply(text=JournalForm.label)
+    await state.set_state(JournalForm.current_user_id)
+    await state.update_data(current_user_id=current_user_id) #worked fine
+    await state.set_state(JournalForm.name)
+
+
+
+@router.message(JournalForm.name) # , CurrentUserFilter(JournalForm.current_user_id))
+async def handle_registered_journal_data(message: types.Message, state: FSMContext):
+    name = message.text
+
+    if not Journal.objects.get(name=name):
+        await state.update_data(name=name)
+        group_id = message.chat.id
+        await add_journal(name, group_id)
+        await state.clear()
+    else:
+        await message.reply(text="Помилка: За заданим взводом вже cтворено журнал")
+
+
+
 # async def last(message:types.Message):
 #
 #     entries = JournalEntry.objects.filter(date=date)
@@ -91,3 +119,4 @@ async def register(message: types.Message, forms: FormsManager):
 
 
 #TODO: craete a chat leave command
+
