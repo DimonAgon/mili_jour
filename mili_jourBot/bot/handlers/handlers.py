@@ -70,7 +70,7 @@ async def register(message: types.Message, forms: FormsManager):
 
 
 
-@router.message(Command(commands='register_journal'))
+@router.message(Command(commands='register_journal'), F.chat.type.in_({'group'}))
 async def initiate_register_journal_command(message: types.Message, state: FSMContext):
 
     current_user_id = message.from_user.id
@@ -83,19 +83,26 @@ async def initiate_register_journal_command(message: types.Message, state: FSMCo
 
 
 
-@router.message(CurrentUserFilter(current_user_id=FSMContext.get_data('current_user_id')), JournalForm.name)
+@router.message(JournalForm.name)#,CurrentUserFilter)
 async def handle_registered_journal_data(message: types.Message, state: FSMContext):
     name = message.text
 
     if not Journal.objects.get(name=name):
         await state.update_data(name=name)
-        state_name = state.get_data('name')
+        state_name = await state.get_data('name')
         group_id = message.chat.id
         datetime = message.date.now()
         await message.reply(add_journal(state_name, group_id, datetime))
         await state.clear()
     else:
-        await message.reply(text="Помилка: За заданим взводом вже cтворено журнал")
+        await message.reply(text="Помилка: За заданим взводом вже cтворено журнал", disable_notification=True)
+
+
+
+@router.message(Command(commands='terminate_reg'))
+async def terminate_registration_command(message: types.Message, state: FSMContext):
+    state.clear()
+    message.reply(text="Процес реєстрації було перервано", disable_notification=True)
 
 
 
