@@ -23,7 +23,8 @@ class Profile(models.Model):
 
 class Journal(models.Model):
     external_id = models.IntegerField(verbose_name="Chat id")
-    number = models.CharField(verbose_name="Номер взводу", max_length=3)
+    name = models.CharField(verbose_name="Номер взводу", max_length=3)
+
 
 
 class JournalEntry(models.Model):

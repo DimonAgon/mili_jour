@@ -101,8 +101,8 @@ async def handle_registered_journal_data(message: types.Message, state: FSMConte
 
 @router.message(Command(commands='terminate_reg'))
 async def terminate_registration_command(message: types.Message, state: FSMContext):
-    state.clear()
-    message.reply(text="Процес реєстрації було перервано", disable_notification=True)
+    await state.clear()
+    await message.reply(text="Процес реєстрації було перервано")
 
 
 
