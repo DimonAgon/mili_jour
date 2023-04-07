@@ -61,7 +61,7 @@ class ProfileForm(Form):
                 await message.answer(text="При реєстрації виникла помилка, спробуйте ще раз пізніше")
 
         else:
-            await message.answer(text="Користувач с даним tg-id вже існує")
+            await message.answer(text="Користувач с даним telegram-ID вже існує")
 
 
 

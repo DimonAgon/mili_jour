@@ -3,6 +3,8 @@ import pause
 from aiogram import types
 from aiogram.filters import Command
 from aiogram.filters.state import State, StatesGroup
+from aiogram import F
+from .filters import CurrentUserFilter
 from aiogram.fsm.context import FSMContext
 
 from .dispatcher import dp, router, bot
@@ -11,6 +13,8 @@ from ..forms import *
 from ..views import *
 import datetime
 import asyncio
+
+
 
 @router.message(Command(commands='start'))
 async def start(message: types.Message):  # Self-presintation of the bot
@@ -56,11 +60,12 @@ async def who_s_present(message: types.Message):  # Checks who's present
 
 
 
-@router.message(Command(commands='register'))
+@router.message(Command(commands='register'), F.chat.type.in_({'private'}))
 async def register(message: types.Message, forms: FormsManager):
 
     await message.reply(text='ініціюю реєстрацію')
     await asyncio.sleep(3)
+
     await forms.show('profileform')
 
 
@@ -78,14 +83,16 @@ async def initiate_register_journal_command(message: types.Message, state: FSMCo
 
 
 
-@router.message(JournalForm.name) # , CurrentUserFilter(JournalForm.current_user_id))
+@router.message(CurrentUserFilter(current_user_id=FSMContext.get_data('current_user_id')), JournalForm.name)
 async def handle_registered_journal_data(message: types.Message, state: FSMContext):
     name = message.text
 
     if not Journal.objects.get(name=name):
         await state.update_data(name=name)
+        state_name = state.get_data('name')
         group_id = message.chat.id
-        await add_journal(name, group_id)
+        datetime = message.date.now()
+        await message.reply(add_journal(state_name, group_id, datetime))
         await state.clear()
     else:
         await message.reply(text="Помилка: За заданим взводом вже cтворено журнал")
