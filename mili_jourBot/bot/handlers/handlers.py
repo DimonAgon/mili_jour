@@ -53,7 +53,14 @@ async def who_s_present_command(message: types.Message):  # Checks who's present
     await asyncio.sleep(300)#till_deadline.total_seconds())
     await bot.stop_poll(chat_id=poll_message.chat.id, message_id=poll_message.message_id)
 
-
+@router.poll_answer()  # TODO: add a flag for vote-answer mode
+def handle_who_s_present(poll_answer: types.poll_answer):
+    now = datetime.datetime.now()  # TODO: use time for schedule control, use date for entry's date
+    #TODO: add a constants for schedule
+    user_id = poll_answer.user.id
+    profile = Profile.objects.get(external_id=user_id)
+    selected_option = poll_answer.option_ids[0]
+    journal = Journal.objects.get(name=profile.journal)
 
 @router.message(Command(commands='register'))
 async def register_command(message: types.Message, forms: FormsManager):
