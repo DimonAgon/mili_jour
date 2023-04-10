@@ -4,7 +4,6 @@ from aiogram import types
 from aiogram.filters import Command
 from aiogram.filters.state import State, StatesGroup
 from aiogram import F
-from .filters import CurrentUserFilter
 from aiogram.fsm.context import FSMContext
 
 from .dispatcher import dp, router, bot
@@ -61,7 +60,7 @@ async def who_s_present(message: types.Message):  # Checks who's present
 
 
 @router.message(Command(commands='register'), F.chat.type.in_({'private'}))
-async def register(message: types.Message, forms: FormsManager):
+async def register_commnad(message: types.Message, forms: FormsManager):
 
     await message.reply(text='ініціюю реєстрацію')
     await asyncio.sleep(3)
@@ -71,31 +70,52 @@ async def register(message: types.Message, forms: FormsManager):
 
 
 @router.message(Command(commands='register_journal'), F.chat.type.in_({'group'}))
-async def initiate_register_journal_command(message: types.Message, state: FSMContext):
+async def register_journal_command(message: types.Message, forms: FormsManager):
 
-    current_user_id = message.from_user.id
     await message.reply(text="Ініціюю реєстрацію взводу")
-    # await asyncio.sleep(3)
-    await message.reply(text=JournalForm.label)
-    await state.set_state(JournalForm.current_user_id)
-    await state.update_data(current_user_id=current_user_id) #worked fine
-    await state.set_state(JournalForm.name)
+    await asyncio.sleep(3)
+
+    await forms.show('journalform')
 
 
 
-@router.message(JournalForm.name)#,CurrentUserFilter)
-async def handle_registered_journal_data(message: types.Message, state: FSMContext):
-    name = message.text
 
-    if not Journal.objects.get(name=name):
-        await state.update_data(name=name)
-        state_name = await state.get_data('name')
-        group_id = message.chat.id
-        datetime = message.date.now()
-        await message.reply(add_journal(state_name, group_id, datetime))
-        await state.clear()
-    else:
-        await message.reply(text="Помилка: За заданим взводом вже cтворено журнал", disable_notification=True)
+
+
+# @router.message(JournalForm.name)#,CurrentUserFilter)
+# async def handle_registered_journal_name(message: types.Message, state: FSMContext):
+#     name = message.text
+#
+#     if not Journal.objects.get(name=name):
+#         await state.update_data(name=name)
+#         await state.set_state('strength')
+#         await message.reply(JournalForm.strength_label)
+#     else:
+#         await message.reply(text="Помилка: За заданим взводом вже cтворено журнал", disable_notification=True)
+
+
+
+# @router.message(JournalForm.strength)# ,CurrentUserFilter)
+# async def handle_registered_journal_strength(message: types.Message, state: FSMContext):
+#     strength = message.text
+#
+#     await state.update_data(strength=strength)
+#     await state.set_state('initial')
+
+
+
+# @router.message(Command(commands='register'),JournalForm.initial)  # ,CurrentUserFilter)
+# async def register_journal(message: types.message, state: FSMContext):
+#
+#         group_id = await state.get_state('group_id')
+#         name = await state.get_data('name')
+#         strength = await state.get_data('strength')
+#
+#         await message.reply(add_journal(state_name, group_id))
+#         await state.clear()
+#
+#     else:
+#         await message.reply(text="Помилка: За заданим взводом вже cтворено журнал", disable_notification=True)
 
 
 
