@@ -9,10 +9,11 @@ from ..models import *
 from ..forms import *
 from ..views import *
 
-import intervals
 import datetime
+import portion as P
 
 import asyncio
+
 
 
 @router.message(Command(commands='start'))
@@ -53,22 +54,29 @@ async def who_s_present_command(message: types.Message):  # Checks who's present
     await bot.stop_poll(chat_id=poll_message.chat.id, message_id=poll_message.message_id)
 
 
-class Schedule:
-    first_lesson = intervals.Interval('[08:20, 10:00]')
-    second_lesson = intervals.Interval('[10:15, 11:50]')
-    third_lesson = intervals.Interval('[12:10, 13:50]')
-    fourth_lesson = intervals.Interval('[14:05, 15:45]')
-    fifth_lesson = intervals.Interval('[15:55, 17:35]')
+class Schedule: #Do not try to decieve the poll
+    first_lesson = P.openclosed(datetime.time(8, 25, 0), datetime.time(10, 0, 0))
+    second_lesson = P.openclosed(datetime.time(10, 20, 0), datetime.time(11, 55, 0))
+    third_lesson = P.openclosed(datetime.time(12, 15, 0), datetime.time(13, 50, 0))
+    fourth_lesson = P.openclosed(datetime.time(14, 10, 0), datetime.time(15, 45, 0))
+    fifth_lesson = P.openclosed(datetime.time(16, 5, 0), datetime.time(17, 30, 0))
 
     lessons = {1: first_lesson, 2: second_lesson, 3: third_lesson, 4: fourth_lesson, 5: fifth_lesson}
 
 
 @router.poll_answer()  # TODO: add a flag for vote-answer mode
 def handle_who_s_present(poll_answer: types.poll_answer):  # TODO: add an every-lesson mode
-    now = datetime.datetime.now()  # TODO: use time for schedule control, use date for entry's date
+    now = datetime.datetime.now()# TODO: use time for schedule control, use date for entry's date
+    now_time = now.time()
+    now_date = now.date()
+
+    lessons = Schedule.lessons
+    for l in lessons:
+        if lessons[l].contains(now_time):
+            lesson = l
     user_id = poll_answer.user.id
     profile = Profile.objects.get(external_id=user_id)
-    selected_option = poll_answer.option_ids[0]
+    selected_option = poll_answer.option_ids[0] #TODO: add selected option filter
     journal = Journal.objects.get(name=profile.journal)
 
 
