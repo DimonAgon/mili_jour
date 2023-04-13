@@ -27,7 +27,8 @@ class Journal(models.Model):
 
 
 class JournalEntry(models.Model):
-    datetime = models.DateTimeField()
+    date = models.DateField()
     name = models.ForeignKey(to='Profile', on_delete=models.CASCADE)
+    lesson = models.IntegerField(max_length=1)
     journal = models.CharField(max_length=180)
 
