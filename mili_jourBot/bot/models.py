@@ -29,6 +29,6 @@ class Journal(models.Model):
 class JournalEntry(models.Model):
     date = models.DateField()
     name = models.ForeignKey(to='Profile', on_delete=models.CASCADE)
-    lesson = models.IntegerField(max_length=1)
+    lesson = models.IntegerField()
     journal = models.CharField(max_length=180)
-
+    status = models.BooleanField(verbose_name="Присутність")
