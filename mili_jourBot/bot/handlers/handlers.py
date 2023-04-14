@@ -2,9 +2,9 @@
 from aiogram import F
 from aiogram import types
 from aiogram.filters import Command
-from aiogram.filters.state import State, StatesGroup
-from aiogram import F
 from aiogram.fsm.context import FSMContext
+from aiogram.filters.state import State, StatesGroup
+
 
 from .dispatcher import dp, router, bot
 from ..models import *
