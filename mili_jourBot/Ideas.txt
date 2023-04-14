@@ -2,3 +2,15 @@
 async def stop_poll(message:types.Message): #Makes a poll inactive
     dp.bot.stop_poll()
     pass
+
+from aiogram.filters import Filter
+from aiogram import types
+
+class QuizOptionFilter(Filter):
+    key = 'poll_answer'
+
+    def __init__(self, id_):
+        self.target_option_id = id_
+
+    async def __call__(self, poll_answer: types.poll_answer) -> bool:
+        return poll_answer.option_ids == self.target_option_id
