@@ -32,3 +32,6 @@ async def add_journal(group_id, name, strength):
 
 
 
+async def add_journal_entry(initial):
+
+    JournalEntry.objects.create(**initial)

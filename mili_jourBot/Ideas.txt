@@ -3,130 +3,14 @@ async def stop_poll(message:types.Message): #Makes a poll inactive
     dp.bot.stop_poll()
     pass
 
+from aiogram.filters import Filter
+from aiogram import types
 
+class QuizOptionFilter(Filter):
+    key = 'poll_answer'
 
-await message.reply(ProfileForm._meta.labels['ordinal'])
-
-name_response = await message
-ordinal = message.text
-
-await message.reply(ProfileForm._meta.labels['platoon'])
-
-platoon = Journal.objects.get(name=message.text)
-
-initial_data = {'name':name, 'ordinal': ordinal, 'platoon': platoon}
-
-profile = ProfileForm(initial=initial_data)
-
-#if profile.is_valid():
-#     Profile.objects.create(external_id=message.from_user.username, name=, journal_id=message.chat.id)
-await message.reply("Ви були зареєстровані", disable_notification=True)
-
-
-
-class ProfileForm(forms.ModelForm):
-
-
-    class Meta:
-        model = Profile
-        fields = ['name', 'journal', 'ordinal', 'external_id']
-
-        labels = {
-            'name': "Ваше Прізвище та Ім'я",
-            'ordinal': "Ваш номер у списку",
-            'journal': "Номер вашого взводу"
-        }
-
-        name_rePattern = "\p{L}*\s\p{Lu}{1}\p{L}+(?:[- ])?\p{Lu}{1}\p{L}+"
-        journal_rePattern = "(?!0)\d{3}"
-        ordinal_rePattern = "(?!0)\d{1,2}"
-
-
-        def clean_name(self):
-
-            name = self. cleaned_data['name']
-
-            if regex.match(pattern=self.name_repattern, string=name):
-
-                raise exceptions.ValidationError("Введіть ім'я коректно")
-
-            return name
-
-        def clean_journal(self):
-
-            journal = self.clean_data['journal']
-
-            if regex.match(pattern=self.ordinal_rePattern, string=journal):
-
-                raise exceptions.ValidationError("Введіть номер журнала коректно")
-
-            return
-
-        def clean_ordinal(self):
-
-            ordinal = self.clean_data['ordinal']
-
-            if regex.match(pattern=self.ordinal_rePattern, string=ordinal):
-
-                raise exceptions.ValidationError("Введіть номер журнала коректно")
-
-            return
-
-
-
-class ProfileStatesGroup(StatesGroup):
-
-    name = State()
-    journal = State()
-    ordinal = State()
-
-
-
-@dispatcher.register('profileform')
-class ProfileForm(Form):
-    name = fields.TextField(label="Прізвище та Ім'я", help_text="Ваше Прізвище та Ім'я")
-    journal = fields.TextField(label="Номер взводу", help_text="Номер вашого взводу")
-    ordinal = fields.TextField(label="Hомер у списку", help_text="Ваш номер у списку")
-
-
-def check_name(name):
-
-    name_rePattern = "\p{L}*\s\p{Lu}{1}\p{L}+(?:[- ])?\p{Lu}{1}\p{L}+"
-
-    if regex.match(pattern=name_rePattern, string=name):
-
-        raise exceptions.ValidationError("Введіть ім'я коректно")
-
-    return name
-
-
-def check_journal(journal):
-
-    journal_rePattern = "(?!0)\d{3}"
-
-    if regex.match(pattern=journal_rePattern, string=journal):
-
-        raise exceptions.ValidationError("Введіть номер взводу коректно")
-
-    return journal
-
-
-def check_ordinal(ordinal):
-
-    ordinal_rePattern = "(?!0)\d{1,2}"
-
-    if regex.match(pattern=ordinal_rePattern, string=ordinal):
-
-        raise exceptions.ValidationError("Введіть номер коректно")
-
-    return ordinal
-
-
-@dispatcher.register('example')
-class ExampleForm(Form):
-    example_field = fields.TextField(label="example")
-
-
+    def __init__(self, id_):
+        self.target_option_id = id_
 
 class ProfileForm(forms.ModelForm):
 
