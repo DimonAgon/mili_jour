@@ -13,8 +13,9 @@ from ..views import *
 import datetime
 import portion as P
 
-import asyncio
+import  prettytable
 
+import asyncio
 
 
 @router.message(Command(commands='start'))
@@ -77,11 +78,12 @@ def handle_who_s_present(poll_answer: types.poll_answer):  # TODO: add an every-
             lesson = l
 
     if lesson:
+        #TODO: change django functions to async
         user_id = poll_answer.user.id
         profile = Profile.objects.get(external_id=user_id)
         journal = Journal.objects.get(name=profile.journal)
         initial = {'journal': journal, 'profile': profile,  'date': now_date, 'lesson': lesson, 'status': True}
-        #add_journal_entry(initial)
+        add_journal_entry(initial)
 
 
 @router.message(Command(commands='register'))
@@ -93,29 +95,30 @@ async def register_command(message: types.Message, forms: FormsManager):
 # TODO: reports should be able in both group and private chat
     # TODO: when printing a report: use sort by a lesson and then by ordinal
 
+async def report(date, message:types.Message):
+    table = prettytable.PrettyTable(["Студент", "Заняття №", "Присутність"])
+    group_id = message.chat.id
+    journal = Profile.objects.get(external_id=group_id)
+    profiles = Profile.objects.filter(journal=journal)
+    entries = JournalEntry.objects.filter(date=date)
 
+    for profile in profiles:
+        try:
+            for entry in entries:
+                if entry.objects.filter(profile=profile, date=date):
+                    table.add_row(str(profile), entry.lesson, "·")
 
-# async def last(message: types.Message):
-#
-#     entries = JournalEntry.objects.filter(date=date)
-#     # entries_list = list(map(lambda x: x.))
-#     # attendance_list =
-#
-#     # await message.reply(entry.)
-#
-# dp.poll_handler()
+        except:
+            initial = {'journal': journal, 'profile': profile, 'date': date, 'status': False}
+            add_journal_entry(initial)
+            table.add_row(str(profile), "", "н/б")
 
+@router.message(Command(commands='today'))
+async def report_today_command(message: types.Message):
+    today = datetime.datetime.today().date()
 
-# async def on_date(message:types.Message, date):
-#
-#     await message.reply()
+    message.answer(report())
 
-
-# @dp.poll_answer_handler()
-# async def presence_poll_answer_handler(poll_answer:types.PollAnswer):
-#   answer_id = poll_answer.option_ids
-#   user_id = poll_answer.user.id
-#   poll_id = poll_answer.poll_id
 
 
 # TODO: craete a chat leave command
