@@ -1,5 +1,3 @@
-# TODO: add an "authorized" field
-
 from django.db import models
 from django.urls import reverse_lazy
 
@@ -36,6 +34,8 @@ class Journal(models.Model):
 
 
 class JournalEntry(models.Model):
-    date = models.DateField()
-    name = models.ForeignKey(to='Profile', on_delete=models.CASCADE)
     journal = models.CharField(max_length=180)
+    profile = models.ForeignKey(to='Profile', on_delete=models.CASCADE)
+    date = models.DateField()
+    lesson = models.IntegerField(null=True)
+    status = models.BooleanField(verbose_name="Присутність")
