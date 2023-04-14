@@ -80,6 +80,8 @@ def handle_who_s_present(poll_answer: types.poll_answer):  # TODO: add an every-
         user_id = poll_answer.user.id
         profile = Profile.objects.get(external_id=user_id)
         journal = Journal.objects.get(name=profile.journal)
+        initial = {'journal': journal, 'profile': profile,  'date': now_date, 'lesson': lesson, 'status': True}
+        #add_journal_entry(initial)
 
 
 @router.message(Command(commands='register'))
@@ -90,7 +92,10 @@ async def register_command(message: types.Message, forms: FormsManager):
 
 # TODO: reports should be able in both group and private chat
     # TODO: when printing a report: use sort by a lesson and then by ordinal
-# async def last(message:types.Message):
+
+
+
+# async def last(message: types.Message):
 #
 #     entries = JournalEntry.objects.filter(date=date)
 #     # entries_list = list(map(lambda x: x.))

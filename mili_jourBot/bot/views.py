@@ -11,3 +11,6 @@ async def add_profile(data, user_id):
 
 
 
+async def add_journal_entry(initial):
+
+    JournalEntry.objects.create(**initial)
