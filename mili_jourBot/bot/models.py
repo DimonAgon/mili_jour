@@ -3,11 +3,10 @@ from django.urls import reverse_lazy
 
 
 class Profile(models.Model):
-
     name = models.CharField(verbose_name="Ім'я, Прізвище", max_length=65)
-    journal = models.ForeignKey(to='Journal', on_delete=models.CASCADE)
     ordinal = models.CharField(verbose_name="Номер в списку", max_length=2)
-    external_id = models.IntegerField(verbose_name='Telegram id')
+    journal = models.ForeignKey(to='Journal', on_delete=models.CASCADE, verbose_name="Журнал")
+    external_id = models.PositiveIntegerField(verbose_name='Telegram id')
 
     def get_absolute_url(self):
         return reverse_lazy('profile', kwargs={'news_id': self.pk})
@@ -17,16 +16,26 @@ class Profile(models.Model):
 
     class Meta:
         verbose_name = "Профіль"
-        ordering = ['-name']
-
+        ordering = ['name']
 
 
 class Journal(models.Model):
-    external_id = models.IntegerField(verbose_name="Chat id")
-    number = models.CharField(verbose_name="Номер взводу", max_length=3)
+    name = models.CharField(verbose_name="Номер взводу", max_length=3, db_index=True)
+    strength = models.CharField(verbose_name="Чисельність взводу", max_length=2)
+    external_id = models.PositiveIntegerField(verbose_name="Chat id")
+
+    def __str__(self):
+        return self.name
+
+    class Meta:
+        verbose_name = "Взвод"
+        verbose_name_plural = "Взводи"
+        ordering = ['-name']
 
 
 class JournalEntry(models.Model):
-    date = models.DateField()
-    name = models.ForeignKey(to='Profile', on_delete=models.CASCADE)
     journal = models.CharField(max_length=180)
+    profile = models.ForeignKey(to='Profile', on_delete=models.CASCADE)
+    date = models.DateField()
+    lesson = models.IntegerField(null=True)
+    status = models.BooleanField(verbose_name="Присутність")

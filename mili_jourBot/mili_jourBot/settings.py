@@ -43,8 +43,6 @@ INSTALLED_APPS = [
 ]
 
 MIDDLEWARE = [
-    'telebot'
-    'news.apps.NewsConfig',
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
