@@ -1,5 +1,6 @@
 # TODO: add a security measurement: for only authorized journals allow commands
 
+from aiogram import F
 from aiogram import types
 from aiogram.filters import Command
 from aiogram.fsm.context import FSMContext
@@ -64,7 +65,7 @@ class Schedule: #Do not try to decieve the poll
     lessons = {1: first_lesson, 2: second_lesson, 3: third_lesson, 4: fourth_lesson, 5: fifth_lesson}
 
 
-@router.poll_answer()  # TODO: add a flag for vote-answer mode
+@router.poll_answer(F.option_ids.contains(0))  # TODO: add a flag for vote-answer mode
 def handle_who_s_present(poll_answer: types.poll_answer):  # TODO: add an every-lesson mode
     now = datetime.datetime.now()# TODO: use time for schedule control, use date for entry's date
     now_time = now.time()
@@ -74,10 +75,11 @@ def handle_who_s_present(poll_answer: types.poll_answer):  # TODO: add an every-
     for l in lessons:
         if lessons[l].contains(now_time):
             lesson = l
-    user_id = poll_answer.user.id
-    profile = Profile.objects.get(external_id=user_id)
-    selected_option = poll_answer.option_ids[0] #TODO: add selected option filter
-    journal = Journal.objects.get(name=profile.journal)
+
+    if lesson:
+        user_id = poll_answer.user.id
+        profile = Profile.objects.get(external_id=user_id)
+        journal = Journal.objects.get(name=profile.journal)
 
 
 @router.message(Command(commands='register'))
