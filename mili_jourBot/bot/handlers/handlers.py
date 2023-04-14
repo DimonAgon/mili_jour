@@ -3,6 +3,7 @@
 from aiogram import F
 from aiogram import types
 from aiogram.filters import Command
+from aiogram.filters.state import State, StatesGroup
 from aiogram.fsm.context import FSMContext
 
 from .dispatcher import dp, router, bot
@@ -86,10 +87,12 @@ def handle_who_s_present(poll_answer: types.poll_answer):  # TODO: add an every-
         add_journal_entry(initial)
 
 
-@router.message(Command(commands='register'))
-async def register_command(message: types.Message, forms: FormsManager):
+@router.message(Command(commands='register'), F.chat.type.in_({'private'}))
+async def register(message: types.Message, forms: FormsManager):
+
     await message.reply(text='ініціюю реєстрацію')
     await asyncio.sleep(3)
+
     await forms.show('profileform')
 
 # TODO: reports should be able in both group and private chat
