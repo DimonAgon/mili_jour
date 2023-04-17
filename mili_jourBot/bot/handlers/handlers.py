@@ -96,7 +96,7 @@ def handle_who_s_present(poll_answer: types.poll_answer):  # TODO: add an every-
 
 
 @router.message(Command(commands='register'), F.chat.type.in_({'private'}))
-async def register_commnad(message: types.Message, forms: FormsManager):
+async def register_command(message: types.Message, forms: FormsManager):
 
     await message.reply(text='ініціюю реєстрацію')
     await asyncio.sleep(3)
