@@ -22,20 +22,28 @@ import asyncio
 @router.message(Command(commands='start'))
 async def start_command(message: types.Message):  # Self-presintation of the bot
 
-    greeting = "Привіт, я mili_jour (як Military Journal) бот  я можу робити дві справи: \n" \
-               "а) Створити журнал для вашого взводу,\n" \
-               "б) Допомогати вам слідкувати за відвідуванням занять без зайвих зусиль, " \
-               "Користуйтесь)"
+    greeting = "Mili_jour (Military Journal)." \
+               " Бота створено для підтримки роботи командирського складу учбових взводів." \
+               " Надано можливість ведення журналу відвідувань через команди. Проект на стадії розробки." \
+               " Дійовість деяких аспектів буде перевірена та перероблена за необхідності."
 
     await message.reply(greeting)
 
 
 @router.message(Command(commands='help'))
 async def help_command(message: types.Message):
-    HELPFUL_REPLY = "Будь ласка ЗАРЕЕСТРУЙТЕСЬ, якщо цього не робили. Для цього зайдіть у бот та викличте команду 'register'" \
-                    "(Усі команди викликаються /{команда})\n" \
-                    "Крайньо не рекомендується знаходитись у групі чужого взводу.\n" \
-                    "Заборонено запрошувати бот не у групи-взводи"
+    HELPFUL_REPLY = f"Для роботи необхідно виконати реєстрацію журналу взводу та ЗАРЕЕСТРУВАТИСЬ." \
+                    "\nПодальше, право на взаємодію із ботом покладається на командирський склад." \
+                    "\nСписок команд наведено нижче:" \
+                    "\n/start– введення у бот" \
+                    "\n/help– інструкція до взаємодії із ботом" \
+                    "\n/register– реєструвати профілю" \
+                    "\n/register_journal– створити журнал відвідувань" \
+                    "\n/cancel_registration– відмінити реєстрацію" \
+                    "\n/who_s_present– створити опитування щодо присутності" \
+                    "\n/report_today– викликати звіт за сьогоднішній день" \
+                    "\n/report_last– викликати останній звіт" \
+                    "\n/report_on_date– викликати звіт за датою"
 
     # TODO: on_update_info
 
@@ -106,8 +114,8 @@ async def register_journal_command(message: types.Message, forms: FormsManager):
     await forms.show('journalform')
 
 
-@router.message(Command(commands='terminate_reg'))
-async def terminate_registration_command(message: types.Message, state: FSMContext):
+@router.message(Command(commands='cancel_registration'))
+async def cancel_registration_command(message: types.Message, state: FSMContext):
     await state.clear()
     await message.reply(text="Процес реєстрації було перервано")
 # TODO: reports should be able in both group and private chat
