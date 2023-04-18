@@ -144,3 +144,7 @@ class CurrentUserFilter(Filter):
 #
 #     else:
 #         await message.reply(text="Помилка: За заданим взводом вже cтворено журнал", disable_notification=True)
+
+
+
+# map(lambda p: add_journal_entry({'journal': journal, 'profile': p,  'date': today, 'is_present': False}), ordered_profiles)
