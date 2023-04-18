@@ -57,7 +57,7 @@ async def initiate_today_entries(today, journal): # TODO: the better choice may 
     for p in ordered_profiles: add_journal_entry({'journal': journal, 'profile': p, 'date': today, 'is_present': False})
 
 
-@router.message(Command(commands='who_s_present'))  # TODO: add an enum for zoom-mode, add an enum for schedule mode
+@router.message(Command(commands='who_s_present'), F.chat.type.in_({'group'}))  # TODO: add an enum for zoom-mode, add an enum for schedule mode
 async def who_s_present_command(message: types.Message, state: FSMContext):  # Checks who is present
     now = datetime.datetime.now()
     today = now.date()
@@ -132,7 +132,7 @@ async def cancel_registration_command(message: types.Message, state: FSMContext)
 # TODO: reports should be able in both group and private chat
     # TODO: when printing a report: use sort by a lesson and then by ordinal
 
-async def report(date, message:types.Message):
+async def report(date, message: types.Message):
     table = prettytable.PrettyTable(["Студент", "Заняття №", "Присутність"])
     group_id = message.chat.id
     journal = Journal.objects.get(external_id=group_id)
