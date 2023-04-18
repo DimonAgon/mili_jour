@@ -16,6 +16,7 @@ class Profile(models.Model):
 
     class Meta:
         verbose_name = "Профіль"
+        verbose_name_plural = "Взводи"
         ordering = ['name']
 
 
