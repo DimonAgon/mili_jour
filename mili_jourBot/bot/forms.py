@@ -1,10 +1,13 @@
+from aiogram import types
+from aiogram.fsm.state import State, StatesGroup
 
 from aiogram_forms import Form, fields, dispatcher, FormsManager
 from aiogram_forms.errors import ValidationError
-from aiogram import types
+
 from channels.db import database_sync_to_async
 import regex
 from .views import *
+from .models import *
 
 
 
@@ -65,7 +68,7 @@ def validate_strength_format(value: str):
 
 @dispatcher.register('profileform')
 class ProfileForm(Form):
-    name = fields.TextField("Ввести Прізвище та Ім'я", validators=[validate_name_format])#, validate_name_in_base
+    name = fields.TextField("Ввести Прізвище та Ім'я", validators=[validate_name_format])#, validate_name_in_base # TODO: accent on order
     journal = fields.TextField("Ввести номер взводу", validators=[validate_journal_format])
     ordinal = fields.TextField("Ввести номер у списку", validators=[validate_ordinal_format])
 
@@ -122,19 +125,8 @@ class JournalForm(Form):
             await message.answer(text="Помилка, журнал за цим telegram-ID існує")
 
 
-# class JournalForm(StatesGroup):
-#
-#     current_user_id = State()
-#     group_id = State()
-#     name = State()
-#     strength = State()
-#     initial = State()
-#
-#     name_label = "Номер взводу"
-#     strength_label = "Чисельність взводу"
-#
-#     сallback_text = "Журнал відвідувань до взводу створено"
-#     on_registration_fail_text = "Помилка, журнал не було створено"
+class AttendanceControl(StatesGroup):
+    pass
 
 
 
