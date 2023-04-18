@@ -41,31 +41,41 @@ async def help_command(message: types.Message):
                     "\n/register_journal– створити журнал відвідувань" \
                     "\n/cancel_registration– відмінити реєстрацію" \
                     "\n/who_s_present– створити опитування щодо присутності" \
-                    "\n/report_today– викликати звіт за сьогоднішній день" \
-                    "\n/report_last– викликати останній звіт" \
-                    "\n/report_on_date– викликати звіт за датою"
+                    "\n/today_report– викликати звіт за сьогоднішній день" \
+                    "\n/last_report– викликати останній звіт" \
+                    "\n/on_date_report– викликати звіт за датою"
 
     # TODO: on_update_info
 
     await message.reply(HELPFUL_REPLY)
 
 
-@router.message(Command(commands='who_s_present'))  # TODO: add a flag for zoom-mode
-async def who_s_present_command(message: types.Message):  # Checks who's present
+async def initiate_today_entries(today, journal): # TODO: the better choice may be to call function on every study day
+    profiles = Journal.objects.filter() #TODO: use stat-machine for better-performance
+    ordered_profiles = profiles.order_by('ordinal')
+
+    for p in ordered_profiles: add_journal_entry({'journal': journal, 'profile': p, 'date': today, 'is_present': False})
+
+
+@router.message(Command(commands='who_s_present'))  # TODO: add an enum for zoom-mode, add an enum for schedule mode
+async def who_s_present_command(message: types.Message, state: FSMContext):  # Checks who is present
     now = datetime.datetime.now()
     today = now.date()
     deadline_time = datetime.time(hour=17, minute=5)
     deadline = now.replace(hour=deadline_time.hour, minute=deadline_time.minute)
     till_deadline = deadline - now
     question = str(today) + " Присутні"
+    group_id = message.chat.id
+    journal = Journal.objects.filter(external_id=group_id) # TODO: adapt django functions to async
 
-    poll_message = await message.answer_poll(question=question, options=["Я", "Відсутній"], type='quiz', correct_option_id=0, is_anonymous=False, allows_multiple_answers=False, protect_content=True)
+    await initiate_today_entries(today)
+    poll_message = await message.answer_poll(question=question, options=["Я", "Відсутній"], type='quiz', correct_option_id=0, is_anonymous=False, allows_multiple_answers=False, protect_content=True) # TODO: forbid re-answering
 
     await asyncio.sleep(300)  # till_deadline.total_seconds())
     await bot.stop_poll(chat_id=poll_message.chat.id, message_id=poll_message.message_id)
 
 
-class Schedule: #Do not try to decieve the poll
+class Schedule: #Do not try to deceive the poll
     first_lesson = P.openclosed(datetime.time(8, 25, 0), datetime.time(10, 0, 0))
     second_lesson = P.openclosed(datetime.time(10, 20, 0), datetime.time(11, 55, 0))
     third_lesson = P.openclosed(datetime.time(12, 15, 0), datetime.time(13, 50, 0))
@@ -87,12 +97,13 @@ def handle_who_s_present(poll_answer: types.poll_answer):  # TODO: add an every-
             lesson = l
 
     if lesson:
-        #TODO: change django functions to async
+        # TODO: adapt django functions to async
         user_id = poll_answer.user.id
         profile = Profile.objects.get(external_id=user_id)
         journal = Journal.objects.get(name=profile.journal)
-        initial = {'journal': journal, 'profile': profile,  'date': now_date, 'lesson': lesson, 'status': True}
-        add_journal_entry(initial)
+        corresponding_entry = JournalEntry(journal=journal, profile=profile, date=now_date)
+        corresponding_entry.lesson, corresponding_entry.is_present = lesson, True
+        corresponding_entry.save()
 
 
 @router.message(Command(commands='register'), F.chat.type.in_({'private'}))
@@ -124,28 +135,41 @@ async def cancel_registration_command(message: types.Message, state: FSMContext)
 async def report(date, message:types.Message):
     table = prettytable.PrettyTable(["Студент", "Заняття №", "Присутність"])
     group_id = message.chat.id
-    journal = Profile.objects.get(external_id=group_id)
-    profiles = Profile.objects.filter(journal=journal)
-    entries = JournalEntry.objects.filter(date=date)
+    journal = Journal.objects.get(external_id=group_id)
+    if date == 'last': entries = JournalEntry.objects.filter(journal=journal).latest()
+    else: entries = JournalEntry.objects.filter(journal=journal, date=date)
+    # TODO: adapt django functions to async
+    for entry in entries:
+        profile = entry.profile
 
-    for profile in profiles:
-        try:
-            for entry in entries:
-                if entry.objects.filter(profile=profile, date=date):
-                    table.add_row(str(profile), entry.lesson, "·")
+        if entry.is_present: presence = "·"
+        else: presence = "н/б"
 
-        except:
-            initial = {'journal': journal, 'profile': profile, 'date': date, 'status': False}
-            add_journal_entry(initial)
-            table.add_row(str(profile), "", "н/б")
+        table.add_row(str(profile), entry.lesson, presence)
 
-@router.message(Command(commands='today'))
-async def report_today_command(message: types.Message):
+
+@router.message(Command(commands='today_report'))
+async def today_report_command(message: types.Message):
     today = datetime.datetime.today().date()
 
-    message.answer(report())
+    message.answer(report(today, message))
+
+
+@router.message(Command(commands='last_report'))
+async def last_report_command(message: types.Message):
+    date = 'last'
+
+    message.answer(report(date, message))
+
+
+@router.message(Command(commands='on_date_report'))
+async def on_date_report_command(message: types.Message):
+    date = None
+
+    message.answer(report(date, message))
 
 
 
-# TODO: craete a chat leave command
+# TODO: create a chat leave command, should delete any info of-group info
+# TODO: create a new_schedule_command
 
