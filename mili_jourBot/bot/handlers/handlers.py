@@ -78,7 +78,7 @@ async def who_s_present_command(message: types.Message, state: FSMContext):  # C
 
 
 class Schedule: #Do not try to deceive the poll
-    first_lesson = P.openclosed(datetime.time(8, 25, 0), datetime.time(10, 0, 0))
+    first_lesson = P.openclosed(datetime.time(8, 10, 0), datetime.time(10, 0, 0))
     second_lesson = P.openclosed(datetime.time(10, 20, 0), datetime.time(11, 55, 0))
     third_lesson = P.openclosed(datetime.time(12, 15, 0), datetime.time(13, 50, 0))
     fourth_lesson = P.openclosed(datetime.time(14, 10, 0), datetime.time(15, 45, 0))
