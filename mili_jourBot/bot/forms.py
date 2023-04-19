@@ -80,19 +80,19 @@ class ProfileForm(Form):
 
         data = await forms.get_data(ProfileForm)
         user_id = message.from_user.id
-        if not Profile.objects.filter(external_id=user_id).exists():
+        # if not Profile.objects.filter(external_id=user_id).exists():
 
-            try:
+        try:
 
-                await add_profile(data, user_id)
-                await message.answer(text=cls.сallback_text)
+            await add_profile(data, user_id)
+            await message.answer(text=cls.сallback_text)
 
-            except Exception as e:
+        except Exception as e:
 
-                await message.answer(text=cls.on_registration_fail_text)
+            await message.answer(text=cls.on_registration_fail_text)
 
-        else:
-            await message.answer(text="Помилка, профіль за цим telegram-ID існує")
+        # else:
+        #     await message.answer(text="Помилка, профіль за цим telegram-ID існує")
 
 
 
@@ -109,19 +109,19 @@ class JournalForm(Form):
 
         data = await forms.get_data(JournalForm)
         group_id = message.from_user.id
-        if not Profile.objects.filter(external_id=group_id).exists():
+        # if not Profile.objects.filter(external_id=group_id).exists():
 
-            try:
+        try:
 
-                await add_journal(data, group_id)
-                await message.answer(text=cls.сallback_text)
+            await add_journal(data, group_id)
+            await message.answer(text=cls.сallback_text)
 
-            except Exception as e:
+        except Exception as e:
 
-                await message.answer(text=cls.on_registration_fail_text)
+            await message.answer(text=cls.on_registration_fail_text)
 
-        else:
-            await message.answer(text="Помилка, журнал за цим telegram-ID існує")
+        # else:
+        #     await message.answer(text="Помилка, журнал за цим telegram-ID існує")
 
 
 
