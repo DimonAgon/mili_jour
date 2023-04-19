@@ -17,6 +17,7 @@ import portion as P
 import  prettytable
 
 import asyncio
+from channels.db import database_sync_to_async
 
 
 @router.message(Command(commands='start'))
@@ -50,7 +51,8 @@ async def help_command(message: types.Message):
     await message.reply(HELPFUL_REPLY)
 
 
-async def initiate_today_entries(today, journal): # TODO: the better choice may be to call function on every study day
+@database_sync_to_async
+def initiate_today_entries(today, journal): # TODO: the better choice may be to call function on every study day
     profiles = Journal.objects.filter() #TODO: use stat-machine for better-performance
     ordered_profiles = profiles.order_by('ordinal')
 
@@ -66,9 +68,9 @@ async def who_s_present_command(message: types.Message, state: FSMContext):  # C
     till_deadline = deadline - now
     question = str(today) + " Присутні"
     group_id = message.chat.id
-    journal = Journal.objects.filter(external_id=group_id) # TODO: adapt django functions to async
+    journal = await database_sync_to_async(Journal.objects.filter(external_id=group_id)) # TODO: adapt django functions to async
 
-    await initiate_today_entries(today)
+    await initiate_today_entries(today, journal)
     poll_message = await message.answer_poll(question=question, options=["Я", "Відсутній"], type='quiz', correct_option_id=0, is_anonymous=False, allows_multiple_answers=False, protect_content=True) # TODO: forbid re-answering
 
     await asyncio.sleep(300)  # till_deadline.total_seconds())
@@ -132,7 +134,9 @@ async def cancel_registration_command(message: types.Message, state: FSMContext)
 # TODO: reports should be able in both group and private chat
     # TODO: when printing a report: use sort by a lesson and then by ordinal
 
-async def report(date, message: types.Message):
+
+@database_sync_to_async
+def report(date, message: types.Message):
     table = prettytable.PrettyTable(["Студент", "Заняття №", "Присутність"])
     group_id = message.chat.id
     journal = Journal.objects.get(external_id=group_id)
@@ -164,9 +168,10 @@ async def last_report_command(message: types.Message):
 
 @router.message(Command(commands='on_date_report'))
 async def on_date_report_command(message: types.Message):
-    date = None
+    #date =
+    pass
 
-    message.answer(report(date, message))
+    #message.answer(report(date, message))
 
 
 
