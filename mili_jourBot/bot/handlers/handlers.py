@@ -53,7 +53,7 @@ async def help_command(message: types.Message):
 
 @database_sync_to_async
 def initiate_today_entries(today, journal): # TODO: the better choice may be to call function on every study day
-    profiles = Journal.objects.filter() #TODO: use stat-machine for better-performance
+    profiles = Profile.objects.filter(journal=journal) #TODO: use stat-machine for better-performance
     ordered_profiles = profiles.order_by('ordinal')
 
     for p in ordered_profiles: add_journal_entry({'journal': journal, 'profile': p, 'date': today, 'is_present': False})
@@ -68,7 +68,7 @@ async def who_s_present_command(message: types.Message, state: FSMContext):  # C
     till_deadline = deadline - now
     question = str(today) + " Присутні"
     group_id = message.chat.id
-    journal = await database_sync_to_async(Journal.objects.filter(external_id=group_id)) # TODO: adapt django functions to async
+    journal = Journal.objects.filter(external_id=group_id) # TODO: adapt django functions to async
 
     await initiate_today_entries(today, journal)
     poll_message = await message.answer_poll(question=question, options=["Я", "Відсутній"], type='quiz', correct_option_id=0, is_anonymous=False, allows_multiple_answers=False, protect_content=True) # TODO: forbid re-answering

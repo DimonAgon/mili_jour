@@ -8,7 +8,7 @@ async def add_profile(data, user_id):
 
     try:
         initial = data
-        initial['external_id'] = user_id
+        initial['external_id'], initial['journal'] = user_id, Journal.objects.get(name=data['journal'])
 
         Profile.objects.create(**initial)
         logging.info(f"A profile created for user_id {user_id}")
