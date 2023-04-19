@@ -1,7 +1,6 @@
 from aiogram import types
-from aiogram.fsm.state import State, StatesGroup
 
-from aiogram_forms import Form, fields, dispatcher, FormsManager
+from aiogram_forms import Form, fields, dispatcher
 from aiogram_forms.errors import ValidationError
 
 from channels.db import database_sync_to_async
@@ -124,9 +123,6 @@ class JournalForm(Form):
         else:
             await message.answer(text="Помилка, журнал за цим telegram-ID існує")
 
-
-class AttendanceControl(StatesGroup):
-    pass
 
 
 
