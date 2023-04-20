@@ -1,16 +1,21 @@
-from .models import *
-from .forms import *
-from aiogram_forms import FormsManager
+
 import logging
 
+from .models import *
+from .forms import *
 
-async def add_profile(data, user_id):
+from channels.db import database_sync_to_async
+
+@database_sync_to_async
+def add_profile(data, user_id):
+    initial = data
+    initial['external_id'], initial['journal'] = user_id, Journal.objects.get(name=data['journal'])
 
     try:
-        initial = data
-        initial['external_id'], initial['journal'] = user_id, Journal.objects.get(name=data['journal'])
 
-        Profile.objects.create(**initial)
+        new_profile = Profile.objects.create(**initial)
+        new_profile.save()
+        Profile.objects.get(external_id=user_id)
         logging.info(f"A profile created for user_id {user_id}")
 
     except Exception as e:
@@ -18,12 +23,15 @@ async def add_profile(data, user_id):
 
 
 
-async def add_journal(group_id, name, strength):
-
-    initial = {'external_id': group_id, 'name': name, 'strength': strength}
+@database_sync_to_async
+def add_journal(data, group_id):
+    initial = data
+    initial['external_id'] = group_id
 
     try:
-        Journal.objects.create(**initial)
+        new_journal = Journal.objects.create(**initial)
+        new_journal.save()
+        Journal.objects.get(external_id=group_id)
         logging.info(f"A journal created for group_id {group_id}")
 
     except Exception as e:
@@ -32,6 +40,8 @@ async def add_journal(group_id, name, strength):
 
 
 
-async def add_journal_entry(initial):
+@database_sync_to_async
+def add_journal_entry(initial):
 
-    JournalEntry.objects.create(**initial)
+    new_journal_entry = JournalEntry.objects.create(**initial)
+    new_journal_entry.save()
