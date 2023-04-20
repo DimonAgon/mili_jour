@@ -5,6 +5,7 @@ from aiogram.filters import Command
 from aiogram.fsm.context import FSMContext
 from aiogram.filters.state import State, StatesGroup
 
+from aiogram_forms import FormsManager
 
 from .dispatcher import dp, router, bot
 from ..models import *

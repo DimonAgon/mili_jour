@@ -1,6 +1,6 @@
 from aiogram import types
 
-from aiogram_forms import Form, fields, dispatcher
+from aiogram_forms import Form, fields, dispatcher, FormsManager
 from aiogram_forms.errors import ValidationError
 
 from channels.db import database_sync_to_async
@@ -16,7 +16,7 @@ def validate_name_format(value: str):
 
     if not regex.fullmatch(pattern=name_rePattern, string=value):
 
-        raise ValidationError("Ввести ім'я коректно", code="regex_match")
+        raise ValidationError("Ввести ім'я коректно", code='regex_match')
 
 
 @database_sync_to_async
@@ -24,7 +24,7 @@ def validate_name_in_base(value: str):
 
     if Profile.objects.filter(name=value).exists():
 
-        raise ValidationError("Профіль зареєстровано")
+        raise ValidationError("Профіль вже зареєстровано", code='name_in_db')
 
 
 def validate_journal_format(value: str):
@@ -33,7 +33,7 @@ def validate_journal_format(value: str):
 
     if not regex.fullmatch(pattern=journal_rePattern, string=value):
 
-        raise ValidationError("Ввести номер взводу коректно", code="regex_match")
+        raise ValidationError("Ввести номер взводу коректно", code='regex_match')
 
 
 
@@ -42,7 +42,7 @@ def validate_journal_name_in_base(value: str):
 
     if Journal.objects.filter(name=value).exists():
 
-        raise ValidationError("Взвод зареєстровано")
+        raise ValidationError("Взвод вже зареєстровано", code='name_in_db')
 
 
 def validate_ordinal_format(value: str):
@@ -51,7 +51,7 @@ def validate_ordinal_format(value: str):
 
     if not regex.fullmatch(pattern=ordinal_rePattern, string=value):
 
-        raise ValidationError("Ввести номер коректно", code="regex_match")
+        raise ValidationError("Ввести номер коректно", code='regex_match')
 
 
 
@@ -61,14 +61,14 @@ def validate_strength_format(value: str):
 
     if not regex.fullmatch(pattern=sterngth_rePattern, string=value):
 
-        raise ValidationError("Ввести чисельність коректно", code="regex_match")
+        raise ValidationError("Ввести чисельність коректно", code='regex_match')
 
 
 
 @dispatcher.register('profileform')
 class ProfileForm(Form):
-    name = fields.TextField("Ввести Прізвище та Ім'я", validators=[validate_name_format])#, validate_name_in_base # TODO: accent on order
     journal = fields.TextField("Ввести номер взводу", validators=[validate_journal_format])
+    name = fields.TextField("Ввести Прізвище та Ім'я", validators=[validate_name_format, validate_name_in_base]) # TODO: accent on order
     ordinal = fields.TextField("Ввести номер у списку", validators=[validate_ordinal_format])
 
 
@@ -98,7 +98,7 @@ class ProfileForm(Form):
 
 @dispatcher.register('journalform')
 class JournalForm(Form):
-    name = fields.TextField("Ввести номер взводу", validators=[validate_journal_format])#, validate_journal_name_in_base
+    name = fields.TextField("Ввести номер взводу", validators=[validate_journal_format, validate_journal_name_in_base])
     strength = fields.TextField("Ввести чисельність взводу", validators=[validate_strength_format])
 
     сallback_text = "Журнал відвідувань до взводу створено"
