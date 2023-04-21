@@ -74,7 +74,7 @@ def validate_strength_format(value: str):
 
 @dispatcher.register('profileform')
 class ProfileForm(Form):
-    journal = fields.TextField("Ввести номер взводу", validators=[validate_journal_format])
+    journal = fields.TextField("Ввести номер взводу", validators=[validate_journal_format, validate_journal_name_in_base])
     name = fields.TextField("Ввести Прізвище та Ім'я", validators=[validate_name_format, validate_name_available]) # TODO: accent on order
     ordinal = fields.TextField("Ввести номер у списку", validators=[validate_ordinal_format])
 
@@ -105,8 +105,7 @@ class ProfileForm(Form):
 
 #@dispatcher.register('journalform')
 class JournalForm(Form):
-    name = fields.TextField("Ввести номер взводу", validators=[validate_journal_format, validate_journal_name_available,
-                                                               validate_journal_name_in_base])
+    name = fields.TextField("Ввести номер взводу", validators=[validate_journal_format, validate_journal_name_available])
     strength = fields.TextField("Ввести чисельність взводу", validators=[validate_strength_format])
 
     сallback_text = "Журнал відвідувань до взводу створено"
