@@ -9,6 +9,7 @@ from .views import *
 from .models import *
 
 
+#TODO: add an ordinal filter
 
 def validate_name_format(value: str):
 
@@ -103,7 +104,7 @@ class ProfileForm(Form):
 
 
 
-@dispatcher.register('journalform')
+#@dispatcher.register('journalform')
 class JournalForm(Form):
     name = fields.TextField("Ввести номер взводу", validators=[validate_journal_format, validate_journal_name_available])
     strength = fields.TextField("Ввести чисельність взводу", validators=[validate_strength_format])

@@ -4,7 +4,7 @@ from django.urls import reverse_lazy
 
 class Profile(models.Model):
     name = models.CharField(verbose_name="Ім'я, Прізвище", max_length=65)
-    ordinal = models.CharField(verbose_name="Номер в списку", max_length=2)
+    ordinal = models.CharField(verbose_name="Номер в списку", max_length=2) # TODO: db_intex=True
     journal = models.ForeignKey(to='Journal', on_delete=models.CASCADE, verbose_name="Журнал")
     external_id = models.PositiveIntegerField(verbose_name='Telegram id')
 
