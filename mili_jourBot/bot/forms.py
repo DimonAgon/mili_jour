@@ -103,7 +103,7 @@ class ProfileForm(Form):
 
 
 
-#@dispatcher.register('journalform')
+@dispatcher.register('journalform')
 class JournalForm(Form):
     name = fields.TextField("Ввести номер взводу", validators=[validate_journal_format, validate_journal_name_available])
     strength = fields.TextField("Ввести чисельність взводу", validators=[validate_strength_format])
@@ -115,7 +115,7 @@ class JournalForm(Form):
     async def callback(cls, message: types.Message, forms: FormsManager, **data) -> None:
 
         data = await forms.get_data(JournalForm)
-        group_id = message.from_user.id
+        group_id = message.chat.id
         # if not Profile.objects.filter(external_id=group_id).exists():
 
         try:
