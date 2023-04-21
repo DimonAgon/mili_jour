@@ -20,7 +20,7 @@ def validate_name_format(value: str):
 
 
 @database_sync_to_async
-def validate_name_in_base(value: str):
+def validate_name_available(value: str):
 
     if Profile.objects.filter(name=value).exists():
 
@@ -36,9 +36,8 @@ def validate_journal_format(value: str):
         raise ValidationError("Ввести номер взводу коректно", code='regex_match')
 
 
-
 @database_sync_to_async
-def validate_journal_name_in_base(value: str):
+def validate_journal_name_available(value: str):
 
     if Journal.objects.filter(name=value).exists():
 
@@ -68,7 +67,7 @@ def validate_strength_format(value: str):
 @dispatcher.register('profileform')
 class ProfileForm(Form):
     journal = fields.TextField("Ввести номер взводу", validators=[validate_journal_format])
-    name = fields.TextField("Ввести Прізвище та Ім'я", validators=[validate_name_format, validate_name_in_base]) # TODO: accent on order
+    name = fields.TextField("Ввести Прізвище та Ім'я", validators=[validate_name_format, validate_name_availible]) # TODO: accent on order
     ordinal = fields.TextField("Ввести номер у списку", validators=[validate_ordinal_format])
 
 
@@ -96,9 +95,9 @@ class ProfileForm(Form):
 
 
 
-@dispatcher.register('journalform')
+#@dispatcher.register('journalform')
 class JournalForm(Form):
-    name = fields.TextField("Ввести номер взводу", validators=[validate_journal_format, validate_journal_name_in_base])
+    name = fields.TextField("Ввести номер взводу", validators=[validate_journal_format, validate_journal_name_available])
     strength = fields.TextField("Ввести чисельність взводу", validators=[validate_strength_format])
 
     сallback_text = "Журнал відвідувань до взводу створено"
@@ -122,8 +121,6 @@ class JournalForm(Form):
 
         # else:
         #     await message.answer(text="Помилка, журнал за цим telegram-ID існує")
-
-
 
 
 
