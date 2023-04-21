@@ -5,11 +5,13 @@ from aiogram.filters import Command
 from aiogram.fsm.context import FSMContext
 from aiogram.filters.state import State, StatesGroup
 
+from aiogram_forms import FormsManager
 
 from .dispatcher import dp, router, bot
 from ..models import *
 from ..forms import *
 from ..views import *
+from .filters import *
 
 import datetime
 import portion as P
@@ -38,7 +40,7 @@ async def help_command(message: types.Message):
                     "\nСписок команд наведено нижче:" \
                     "\n/start– введення у бот" \
                     "\n/help– інструкція до взаємодії із ботом" \
-                    "\n/register– реєструвати профілю" \
+                    "\n/register– реєструвати профіль" \
                     "\n/register_journal– створити журнал відвідувань" \
                     "\n/cancel_registration– відмінити реєстрацію" \
                     "\n/who_s_present– створити опитування щодо присутності" \
@@ -108,7 +110,7 @@ def handle_who_s_present(poll_answer: types.poll_answer):  # TODO: add an every-
         corresponding_entry.save()
 
 
-@router.message(Command(commands='register'), F.chat.type.in_({'private'}))
+@router.message(Command(commands='register'), F.chat.type.in_({'private'}))#, RegisteredExternalIdFilter(Profile)
 async def register_command(message: types.Message, forms: FormsManager):
 
     await message.reply(text='ініціюю реєстрацію')
@@ -118,7 +120,7 @@ async def register_command(message: types.Message, forms: FormsManager):
 
 
 
-@router.message(Command(commands='register_journal'), F.chat.type.in_({'group'}))
+@router.message(Command(commands='register_journal'), F.chat.type.in_({'group', 'supergroup'}))
 async def register_journal_command(message: types.Message, forms: FormsManager):
 
     await message.reply(text="Ініціюю реєстрацію взводу")
