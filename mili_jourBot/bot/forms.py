@@ -67,7 +67,7 @@ def validate_strength_format(value: str):
 @dispatcher.register('profileform')
 class ProfileForm(Form):
     journal = fields.TextField("Ввести номер взводу", validators=[validate_journal_format])
-    name = fields.TextField("Ввести Прізвище та Ім'я", validators=[validate_name_format, validate_name_availible]) # TODO: accent on order
+    name = fields.TextField("Ввести Прізвище та Ім'я", validators=[validate_name_format, validate_name_available]) # TODO: accent on order
     ordinal = fields.TextField("Ввести номер у списку", validators=[validate_ordinal_format])
 
 
