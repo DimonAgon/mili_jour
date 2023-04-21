@@ -115,7 +115,7 @@ class JournalForm(Form):
     async def callback(cls, message: types.Message, forms: FormsManager, **data) -> None:
 
         data = await forms.get_data(JournalForm)
-        group_id = message.сhat.id
+        group_id = message.chat.id
         # if not Profile.objects.filter(external_id=group_id).exists():
 
         try:
