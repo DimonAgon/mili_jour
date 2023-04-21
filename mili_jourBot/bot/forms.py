@@ -44,6 +44,14 @@ def validate_journal_name_available(value: str):
         raise ValidationError("Взвод вже зареєстровано", code='name_in_db')
 
 
+@database_sync_to_async
+def validate_journal_name_in_base(value: str):
+
+    if not Journal.objects.filter(name=value).exists():
+
+        raise ValidationError("Взвод не зареєстровано", code='name_in_db')
+
+
 def validate_ordinal_format(value: str):
 
     ordinal_rePattern = "(?!0)\d{1,2}"
