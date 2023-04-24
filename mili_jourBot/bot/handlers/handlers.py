@@ -63,20 +63,20 @@ def initiate_today_entries(today, message: types.Message): # TODO: the better ch
     for p in ordered_profiles: add_journal_entry({'journal': journal, 'profile': p, 'date': today, 'is_present': False})
 
 
-@router.message(Command(commands='who_s_present'), F.chat.type.in_({'group'}))  # TODO: add an enum for zoom-mode, add an enum for schedule mode
+@router.message(Command(commands='who_s_present'), F.chat.type.in_({'group', 'supergroup'}))  # TODO: add an enum for zoom-mode, add an enum for schedule mode
 async def who_s_present_command(message: types.Message, state: FSMContext):  # Checks who is present
     now = datetime.datetime.now()
     today = now.date()
     deadline_time = datetime.time(hour=17, minute=5)
     deadline = now.replace(hour=deadline_time.hour, minute=deadline_time.minute)
-    till_deadline = deadline - now
+    seconds_till_deadline = (deadline - now).seconds
     question = str(today) + " Присутні"
     group_id = message.chat.id
 
     await initiate_today_entries(today, message)
     poll_message = await message.answer_poll(question=question, options=["Я", "Відсутній"], type='quiz', correct_option_id=0, is_anonymous=False, allows_multiple_answers=False, protect_content=True)
 
-    await asyncio.sleep(till_deadline.total_seconds())
+    await asyncio.sleep(seconds_till_deadline)
     await bot.stop_poll(chat_id=poll_message.chat.id, message_id=poll_message.message_id)
 
 
@@ -90,25 +90,39 @@ class Schedule: #Do not try to deceive the poll
     lessons = {1: first_lesson, 2: second_lesson, 3: third_lesson, 4: fourth_lesson, 5: fifth_lesson}
 
 
-@router.poll_answer(F.option_ids.contains(0))  # TODO: add a flag for vote-answer mode, add an every-lesson mode
-def handle_who_s_present(poll_answer: types.poll_answer):  #TODO: add an ability to re-answer
+@router.poll_answer()  # TODO: add a flag for vote-answer mode, add an every-lesson mode
+def handle_who_s_present(poll_answer: types.poll_answer, forms: FormsManager):  #TODO: add an ability to re-answer
     now = datetime.datetime.now()# TODO: use time for schedule control, use date for entry's date
     now_time = now.time()
     now_date = now.date()
 
-    lessons = Schedule.lessons
-    for l in lessons:
-        if lessons[l].contains(now_time):
-            lesson = l
+    option_is_0 = poll_answer == [0]
 
-    if lesson:
-        # TODO: adapt django functions to async
+    if option_is_0:
+        lessons = Schedule.lessons
+
+        for l in lessons:
+            if lessons[l].contains(now_time):
+                lesson = l
+            else: lesson = None
+    else: lesson = None
+
+    if not option_is_0 or lesson:
         user_id = poll_answer.user.id
         profile = Profile.objects.get(external_id=user_id)
         journal = Journal.objects.get(name=profile.journal)
         corresponding_entry = JournalEntry.objects.get(journal=journal, profile=profile, date=now_date)
+
+    if lesson:
+        # TODO: adapt django functions to async
         corresponding_entry.lesson, corresponding_entry.is_present = lesson, True
-        corresponding_entry.save()
+
+    if not option_is_0:
+
+        # corresponding_entry.lesson, corresponding_entry.is_present = lesson, False
+        forms.show('absenceform')
+
+    corresponding_entry.save()
 
 
 @router.message(Command(commands='register'), F.chat.type.in_({'private'}))#, RegisteredExternalIdFilter(Profile)
@@ -145,7 +159,7 @@ def report(date, message: types.Message):
     journal = Journal.objects.get(external_id=group_id)
     if date == 'last': entries = JournalEntry.objects.filter(journal=journal).latest()
     else: entries = JournalEntry.objects.filter(journal=journal, date=date)
-    # TODO: adapt django functions to async
+
     for entry in entries:
         profile = entry.profile
 
