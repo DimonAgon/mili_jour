@@ -54,8 +54,10 @@ async def help_command(message: types.Message):
 
 
 @database_sync_to_async
-def initiate_today_entries(today, journal): # TODO: the better choice may be to call function on every study day
-    profiles = Profile.objects.filter(journal=journal) #TODO: use stat-machine for better-performance
+def initiate_today_entries(today, message: types.Message): # TODO: the better choice may be to call function on every study day
+    group_id = message.chat.id
+    journal = Journal.objects.get(external_id=group_id)
+    profiles = Profile.objects.filter(journal=journal) #TODO: use state-machine for better-performance
     ordered_profiles = profiles.order_by('ordinal')
 
     for p in ordered_profiles: add_journal_entry({'journal': journal, 'profile': p, 'date': today, 'is_present': False})
@@ -70,12 +72,11 @@ async def who_s_present_command(message: types.Message, state: FSMContext):  # C
     till_deadline = deadline - now
     question = str(today) + " Присутні"
     group_id = message.chat.id
-    journal = Journal.objects.filter(external_id=group_id) # TODO: adapt django functions to async
 
-    await initiate_today_entries(today, journal)
-    poll_message = await message.answer_poll(question=question, options=["Я", "Відсутній"], type='quiz', correct_option_id=0, is_anonymous=False, allows_multiple_answers=False, protect_content=True) # TODO: forbid re-answering
+    await initiate_today_entries(today, message)
+    poll_message = await message.answer_poll(question=question, options=["Я", "Відсутній"], type='quiz', correct_option_id=0, is_anonymous=False, allows_multiple_answers=False, protect_content=True)
 
-    await asyncio.sleep(300)  # till_deadline.total_seconds())
+    await asyncio.sleep(till_deadline.total_seconds())
     await bot.stop_poll(chat_id=poll_message.chat.id, message_id=poll_message.message_id)
 
 
@@ -89,8 +90,8 @@ class Schedule: #Do not try to deceive the poll
     lessons = {1: first_lesson, 2: second_lesson, 3: third_lesson, 4: fourth_lesson, 5: fifth_lesson}
 
 
-@router.poll_answer(F.option_ids.contains(0))  # TODO: add a flag for vote-answer mode
-def handle_who_s_present(poll_answer: types.poll_answer):  # TODO: add an every-lesson mode
+@router.poll_answer(F.option_ids.contains(0))  # TODO: add a flag for vote-answer mode, add an every-lesson mode
+def handle_who_s_present(poll_answer: types.poll_answer):  #TODO: add an ability to re-answer
     now = datetime.datetime.now()# TODO: use time for schedule control, use date for entry's date
     now_time = now.time()
     now_date = now.date()
@@ -105,7 +106,7 @@ def handle_who_s_present(poll_answer: types.poll_answer):  # TODO: add an every-
         user_id = poll_answer.user.id
         profile = Profile.objects.get(external_id=user_id)
         journal = Journal.objects.get(name=profile.journal)
-        corresponding_entry = JournalEntry(journal=journal, profile=profile, date=now_date)
+        corresponding_entry = JournalEntry.objects.get(journal=journal, profile=profile, date=now_date)
         corresponding_entry.lesson, corresponding_entry.is_present = lesson, True
         corresponding_entry.save()
 
@@ -151,18 +152,18 @@ def report(date, message: types.Message):
         if entry.is_present: presence = "·"
         else: presence = "н/б"
 
-        table.add_row(str(profile), entry.lesson, presence)
-
+        table.add_row([str(profile), entry.lesson, presence])
+    return str(table)
 
 @router.message(Command(commands='today_report'))
 async def today_report_command(message: types.Message):
     today = datetime.datetime.today().date()
-
-    message.answer(report(today, message))
+    today_report = await report(today, message)
+    await message.answer(today_report)
 
 
 @router.message(Command(commands='last_report'))
-async def last_report_command(message: types.Message):
+async def last_report_command(message: types.Message):# TODO: use report model to answer
     date = 'last'
 
     message.answer(report(date, message))

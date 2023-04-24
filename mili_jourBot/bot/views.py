@@ -38,9 +38,6 @@ def add_journal(data, group_id):
         logging.error(f"Failed to create a journal for group_id {group_id}\nError:{e}")
 
 
-
-
-@database_sync_to_async
 def add_journal_entry(initial):
 
     new_journal_entry = JournalEntry.objects.create(**initial)
