@@ -4,7 +4,7 @@ from django.urls import reverse_lazy
 
 class Profile(models.Model):
     name = models.CharField(verbose_name="Ім'я, Прізвище", max_length=65)
-    ordinal = models.CharField(verbose_name="Номер в списку", max_length=2) # TODO: db_intex=True
+    ordinal = models.CharField(verbose_name="Номер в списку", max_length=2)
     journal = models.ForeignKey(to='Journal', on_delete=models.CASCADE, verbose_name="Журнал")
     external_id = models.PositiveIntegerField(verbose_name='Telegram id')
 
@@ -17,7 +17,7 @@ class Profile(models.Model):
     class Meta:
         verbose_name = "Профіль"
         verbose_name_plural = "Взводи"
-        ordering = ['name']
+        ordering = ['ordinal']
 
 
 class Journal(models.Model):
@@ -35,10 +35,12 @@ class Journal(models.Model):
 
 
 class JournalEntry(models.Model):
-    journal = models.CharField(max_length=180)
+    journal = models.ForeignKey(to='Journal', on_delete=models.CASCADE, verbose_name="Журнал")
     profile = models.ForeignKey(to='Profile', on_delete=models.CASCADE)
     date = models.DateField()
     lesson = models.IntegerField(null=True)
     is_present = models.BooleanField(verbose_name="Присутність")
 
 # TODO: add a model for schedule using hash-key
+# TODO: add a model for lessons
+# TODO: add a report model
