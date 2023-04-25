@@ -118,9 +118,6 @@ class AbsenceReasonStates(StatesGroup):
 @router.message(AbsenceReasonStates.status, F.text.regexp(r'Т'))
 def absence_reason_handler(forms: FormsManager, state: FSMContext):
     forms.show('absenceform')
-    data = forms.get_data('absenceform')
-    entry = state.get_data(AbsenceReasonStates.entry)
-    set_status(data, entry)
 
 @router.message(AbsenceReasonStates.status, F.text.regexp(r'Н'))
 def absence_reason_handler(state: FSMContext):

@@ -1,6 +1,4 @@
 
-import logging
-
 from .models import *
 from .forms import *
 
@@ -13,16 +11,9 @@ def add_profile(data, user_id):
     initial = data
     initial['external_id'], initial['journal'] = user_id, Journal.objects.get(name=data['journal'])
 
-    try:
-
-        new_profile = Profile.objects.create(**initial)
-        new_profile.save()
-        Profile.objects.get(external_id=user_id)
-        logging.info(f"A profile created for user_id {user_id}")
-
-    except Exception as e:
-        logging.error(f"Failed to create a profile for user_id {user_id}\nError:{e}")
-
+    new_profile = Profile.objects.create(**initial)
+    new_profile.save()
+    Profile.objects.get(external_id=user_id)
 
 
 @database_sync_to_async
@@ -30,14 +21,9 @@ def add_journal(data, group_id):
     initial = data
     initial['external_id'] = group_id
 
-    try:
-        new_journal = Journal.objects.create(**initial)
-        new_journal.save()
-        Journal.objects.get(external_id=group_id)
-        logging.info(f"A journal created for group_id {group_id}")
-
-    except Exception as e: #TODO: all try-catches into views
-        logging.error(f"Failed to create a journal for group_id {group_id}\nError:{e}")
+    new_journal = Journal.objects.create(**initial)
+    new_journal.save()
+    Journal.objects.get(external_id=group_id)
 
 
 def add_journal_entry(initial):
@@ -50,9 +36,5 @@ def add_journal_entry(initial):
 def set_status(data, entry: Type[JournalEntry]):
     status = data['status']
 
-    try:
-        entry.status = status
-        entry.save()
-
-    except Exception as e:
-        logging.error(f"Failed to set a status for journal_entry of id of {entry.id}\nError:{e}")
+    entry.status = status
+    entry.save()

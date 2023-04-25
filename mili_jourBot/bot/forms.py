@@ -1,12 +1,17 @@
+
 from aiogram import types
 
 from aiogram_forms import Form, fields, dispatcher, FormsManager
 from aiogram_forms.errors import ValidationError
 
 from channels.db import database_sync_to_async
+
 import regex, re #TODO: adapt validators to re, where possible
+
 from .views import *
 from .models import *
+
+import logging
 
 
 #TODO: add an ordinal filter
@@ -89,13 +94,15 @@ class ProfileForm(Form):
         # if not Profile.objects.filter(external_id=user_id).exists():
 
         try:
-
             await add_profile(data, user_id)
             await message.answer(text=cls.сallback_text)
+            logging.info(f"A profile created for user_id {user_id}")
 
-        except Exception:
+
+        except Exception as e:
 
             await message.answer(text=cls.on_registration_fail_text)
+            logging.error(f"Failed to create a profile for user_id {user_id}\nError:{e}")
 
         # else:
         #     await message.answer(text="Помилка, профіль за цим telegram-ID існує")
@@ -118,13 +125,14 @@ class JournalForm(Form):
         # if not Profile.objects.filter(external_id=group_id).exists():
 
         try:
-
             await add_journal(data, group_id)
             await message.answer(text=cls.сallback_text)
+            logging.info(f"A journal created for group_id {group_id}")
 
-        except Exception:
+        except Exception as e:
 
             await message.answer(text=cls.on_registration_fail_text)
+            logging.error(f"Failed to create a journal for group_id {group_id}\nError:{e}")
 
         # else:
         #     await message.answer(text="Помилка, журнал за цим telegram-ID існує")
@@ -136,3 +144,17 @@ class AbsenceReason(Form):
 
     сallback_text = "Причину записано"
     on_registration_fail_text = "Помилка, причину не записано"
+
+    @classmethod
+    async def callback(cls, message: types.Message, forms: FormsManager, **data) -> None:
+
+        data = forms.get_data('absenceform')
+        user_id = message.from_user.id
+
+
+        try:
+            await set_status(data, user_id)
+            await message.answer(text=cls.сallback_text)
+
+        except Exception as e:
+            logging.error(f"Failed to set a status for journal_entry for an entry of profile of user id of {user_id}\nError:{e}")
