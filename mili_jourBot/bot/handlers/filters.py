@@ -23,3 +23,4 @@ class RegisteredExternalIdFilter(BaseFilter):
             id_ = message.from_user.id
         return not self.model.objects.filter(external_id=id_).exists()
 
+# TODO: add while state, sleep or reply to stop registration
