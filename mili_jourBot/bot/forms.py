@@ -4,7 +4,7 @@ from aiogram_forms import Form, fields, dispatcher, FormsManager
 from aiogram_forms.errors import ValidationError
 
 from channels.db import database_sync_to_async
-import regex
+import regex, re #TODO: adapt validators to re, where possible
 from .views import *
 from .models import *
 
@@ -62,7 +62,6 @@ def validate_ordinal_format(value: str):
         raise ValidationError("Ввести номер коректно", code='regex_match')
 
 
-
 def validate_strength_format(value: str):
 
     sterngth_rePattern = "(?!0)\d{2}"
@@ -70,7 +69,6 @@ def validate_strength_format(value: str):
     if not regex.fullmatch(pattern=sterngth_rePattern, string=value):
 
         raise ValidationError("Ввести чисельність коректно", code='regex_match')
-
 
 
 @dispatcher.register('profileform')
@@ -95,7 +93,7 @@ class ProfileForm(Form):
             await add_profile(data, user_id)
             await message.answer(text=cls.сallback_text)
 
-        except Exception as e:
+        except Exception:
 
             await message.answer(text=cls.on_registration_fail_text)
 
@@ -104,7 +102,7 @@ class ProfileForm(Form):
 
 
 
-#@dispatcher.register('journalform')
+@dispatcher.register('journalform')
 class JournalForm(Form):
     name = fields.TextField("Ввести номер взводу", validators=[validate_journal_format, validate_journal_name_available])
     strength = fields.TextField("Ввести чисельність взводу", validators=[validate_strength_format])
@@ -124,7 +122,7 @@ class JournalForm(Form):
             await add_journal(data, group_id)
             await message.answer(text=cls.сallback_text)
 
-        except Exception as e:
+        except Exception:
 
             await message.answer(text=cls.on_registration_fail_text)
 
@@ -132,6 +130,9 @@ class JournalForm(Form):
         #     await message.answer(text="Помилка, журнал за цим telegram-ID існує")
 
 
+@dispatcher.register('absenceform')
+class AbsenceReason(Form):
+    status = fields.TextField("Причина відсутності (мінімальна кількість слів)")
 
-
-
+    сallback_text = "Причину записано"
+    on_registration_fail_text = "Помилка, причину не записано"

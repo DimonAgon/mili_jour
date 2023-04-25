@@ -6,6 +6,8 @@ from .forms import *
 
 from channels.db import database_sync_to_async
 
+from typing import Type
+
 @database_sync_to_async
 def add_profile(data, user_id):
     initial = data
@@ -34,7 +36,7 @@ def add_journal(data, group_id):
         Journal.objects.get(external_id=group_id)
         logging.info(f"A journal created for group_id {group_id}")
 
-    except Exception as e:
+    except Exception as e: #TODO: all try-catches into views
         logging.error(f"Failed to create a journal for group_id {group_id}\nError:{e}")
 
 
@@ -42,3 +44,15 @@ def add_journal_entry(initial):
 
     new_journal_entry = JournalEntry.objects.create(**initial)
     new_journal_entry.save()
+
+
+@database_sync_to_async
+def set_status(data, entry: Type[JournalEntry]):
+    status = data['status']
+
+    try:
+        entry.status = status
+        entry.save()
+
+    except Exception as e:
+        logging.error(f"Failed to set a status for journal_entry of id of {entry.id}\nError:{e}")

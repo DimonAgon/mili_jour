@@ -21,6 +21,7 @@ import  prettytable
 import asyncio
 from channels.db import database_sync_to_async
 
+from enum import Enum
 
 @router.message(Command(commands='start'))
 async def start_command(message: types.Message):  # Self-presintation of the bot
@@ -54,29 +55,41 @@ async def help_command(message: types.Message):
 
 
 @database_sync_to_async
-def initiate_today_entries(today, message: types.Message): # TODO: the better choice may be to call function on every study day
-    group_id = message.chat.id
-    journal = Journal.objects.get(external_id=group_id)
-    profiles = Profile.objects.filter(journal=journal) #TODO: use state-machine for better-performance
-    ordered_profiles = profiles.order_by('ordinal')
+# TODO: all views to views.py
+def initiate_today_entries(today, message: types.Message):# TODO: the better choice may be to call function on every study day
+    if not JournalEntry.objects.filter(date=today).exists():
+        group_id = message.chat.id
+        journal = Journal.objects.get(external_id=group_id)
+        profiles = Profile.objects.filter(journal=journal)# TODO: use state-machine for better-performance
+        ordered_profiles = profiles.order_by('ordinal')
 
-    for p in ordered_profiles: add_journal_entry({'journal': journal, 'profile': p, 'date': today, 'is_present': False})
+        for p in ordered_profiles: add_journal_entry({'journal': journal, 'profile': p, 'date': today, 'is_present': False})
 
+class PresenceOptions(Enum):
+    Present = 0
+    Absent = 1
 
-@router.message(Command(commands='who_s_present'), F.chat.type.in_({'group', 'supergroup'}))  # TODO: add an enum for zoom-mode, add an enum for schedule mode
+def presence_option_to_string(presenceOption: Type[PresenceOptions]):
+    match presenceOption:
+        case PresenceOptions.Present:
+            return "Я"
+        case PresenceOptions.Absent:
+            return "Відсутній"
+
+@router.message(Command(commands='who_s_present'), F.chat.type.in_({'group', 'supergroup'}))# TODO: add an enum for zoom-mode, add an enum for schedule mode
 async def who_s_present_command(message: types.Message, state: FSMContext):  # Checks who is present
     now = datetime.datetime.now()
     today = now.date()
     deadline_time = datetime.time(hour=17, minute=5)
     deadline = now.replace(hour=deadline_time.hour, minute=deadline_time.minute)
     seconds_till_deadline = (deadline - now).seconds
-    question = str(today) + " Присутні"
+    question = str(today) + " Присутність"
     group_id = message.chat.id
 
     await initiate_today_entries(today, message)
-    poll_message = await message.answer_poll(question=question, options=["Я", "Відсутній"], type='quiz', correct_option_id=0, is_anonymous=False, allows_multiple_answers=False, protect_content=True)
+    poll_message = await message.answer_poll(question=question, options=list(presence_option_to_string(o) for o in PresenceOptions), type='quiz', correct_option_id=0, is_anonymous=False, allows_multiple_answers=False, protect_content=True)
 
-    await asyncio.sleep(seconds_till_deadline)
+    await asyncio.sleep(seconds_till_deadline)# TODO: schedule instead
     await bot.stop_poll(chat_id=poll_message.chat.id, message_id=poll_message.message_id)
 
 
@@ -89,38 +102,59 @@ class Schedule: #Do not try to deceive the poll
 
     lessons = {1: first_lesson, 2: second_lesson, 3: third_lesson, 4: fourth_lesson, 5: fifth_lesson}
 
+    @classmethod
+    def lesson_match(cls, time):
+        lessons = cls.lessons
 
-@router.poll_answer()  # TODO: add a flag for vote-answer mode, add an every-lesson mode
-def handle_who_s_present(poll_answer: types.poll_answer, forms: FormsManager):  #TODO: add an ability to re-answer
+        for l in lessons:
+            if lessons[l].contains(time):
+
+                return l
+        return None
+class AbsenceReasonStates(StatesGroup):
+    status = State()
+    entry = State()
+
+@router.message(AbsenceReasonStates.status, F.text.regexp(r'Т'))
+def absence_reason_handler(forms: FormsManager, state: FSMContext):
+    forms.show('absenceform')
+    data = forms.get_data('absenceform')
+    entry = state.get_data(AbsenceReasonStates.entry)
+    set_status(data, entry)
+
+@router.message(AbsenceReasonStates.status, F.text.regexp(r'Н'))
+def absence_reason_handler(state: FSMContext):
+    await state.clear()
+
+@router.poll_answer()# TODO: add a flag for vote-answer mode, add an every-lesson mode
+def who_s_present_handler (poll_answer: types.poll_answer, state: FSMContext):  #TODO: add an ability to re-answer
     now = datetime.datetime.now()# TODO: use time for schedule control, use date for entry's date
     now_time = now.time()
     now_date = now.date()
 
-    option_is_0 = poll_answer == [0]
+    is_present = poll_answer.option_ids == [PresenceOptions.Present.value]
 
-    if option_is_0:
-        lessons = Schedule.lessons
-
-        for l in lessons:
-            if lessons[l].contains(now_time):
-                lesson = l
-            else: lesson = None
+    if is_present:
+        lesson = Schedule.lesson_match(now_time)
     else: lesson = None
 
-    if not option_is_0 or lesson:
+    if not is_present or lesson:
         user_id = poll_answer.user.id
         profile = Profile.objects.get(external_id=user_id)
         journal = Journal.objects.get(name=profile.journal)
         corresponding_entry = JournalEntry.objects.get(journal=journal, profile=profile, date=now_date)
+        corresponding_entry.lesson = lesson
 
     if lesson:
         # TODO: adapt django functions to async
-        corresponding_entry.lesson, corresponding_entry.is_present = lesson, True
+        corresponding_entry.is_present = True
 
-    if not option_is_0:
+    if not is_present:
+        corresponding_entry.is_present = False
 
-        # corresponding_entry.lesson, corresponding_entry.is_present = lesson, False
-        forms.show('absenceform')
+        bot.send_message(user_id, 'Вказати причину відстутності? Т/Н')
+        state.update_data(entry=corresponding_entry)# TODO: fix async
+        state.set_state(AbsenceReasonStates.status)
 
     corresponding_entry.save()
 
@@ -154,7 +188,7 @@ async def cancel_registration_command(message: types.Message, state: FSMContext)
 
 @database_sync_to_async
 def report(date, message: types.Message):
-    table = prettytable.PrettyTable(["Студент", "Заняття №", "Присутність"])
+    table = prettytable.PrettyTable(["Студент", "З заняття №", "Присутність"])
     group_id = message.chat.id
     journal = Journal.objects.get(external_id=group_id)
     if date == 'last': entries = JournalEntry.objects.filter(journal=journal).latest()
