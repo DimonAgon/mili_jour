@@ -40,6 +40,7 @@ class JournalEntry(models.Model):
     date = models.DateField()
     lesson = models.IntegerField(null=True)
     is_present = models.BooleanField(verbose_name="Присутність")
+    status = models.CharField(verbose_name='Статус', max_length=60, null=True)
 
 # TODO: add a model for schedule using hash-key
 # TODO: add a model for lessons
