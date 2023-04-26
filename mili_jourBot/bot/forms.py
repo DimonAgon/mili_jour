@@ -140,7 +140,7 @@ class JournalForm(Form):
 
 @dispatcher.register('absenceform')
 class AbsenceReason(Form):
-    status = fields.TextField("Причина відсутності (мінімальна кількість слів)")
+    status = fields.TextField("Ввести причину відсутності (мінімальна кількість слів)")
 
     сallback_text = "Причину записано"
     on_registration_fail_text = "Помилка, причину не записано"
@@ -148,7 +148,7 @@ class AbsenceReason(Form):
     @classmethod
     async def callback(cls, message: types.Message, forms: FormsManager, **data) -> None:
 
-        data = forms.get_data('absenceform')
+        data = await forms.get_data(AbsenceReason)
         user_id = message.from_user.id
 
 

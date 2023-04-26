@@ -54,17 +54,6 @@ async def help_command(message: types.Message):
     await message.reply(HELPFUL_REPLY)
 
 
-@database_sync_to_async
-# TODO: all views to views.py
-def initiate_today_entries(today, message: types.Message):# TODO: the better choice may be to call function on every study day
-    if not JournalEntry.objects.filter(date=today).exists():
-        group_id = message.chat.id
-        journal = Journal.objects.get(external_id=group_id)
-        profiles = Profile.objects.filter(journal=journal)# TODO: use state-machine for better-performance
-        ordered_profiles = profiles.order_by('ordinal')
-
-        for p in ordered_profiles: add_journal_entry({'journal': journal, 'profile': p, 'date': today, 'is_present': False})
-
 class PresenceOptions(Enum):
     Present = 0
     Absent = 1
@@ -86,7 +75,7 @@ async def who_s_present_command(message: types.Message, state: FSMContext):  # C
     question = str(today) + " Присутність"
     group_id = message.chat.id
 
-    await initiate_today_entries(today, message)
+    await initiate_today_entries(today, group_id)# TODO: the better choice may be to call function on every study day
     poll_message = await message.answer_poll(question=question, options=list(presence_option_to_string(o) for o in PresenceOptions), type='quiz', correct_option_id=0, is_anonymous=False, allows_multiple_answers=False, protect_content=True)
 
     await asyncio.sleep(seconds_till_deadline)# TODO: schedule instead
@@ -111,20 +100,21 @@ class Schedule: #Do not try to deceive the poll
 
                 return l
         return None
-class AbsenceReasonStates(StatesGroup):
-    status = State()
-    entry = State()
 
-@router.message(AbsenceReasonStates.status, F.text.regexp(r'Т'))
-def absence_reason_handler(forms: FormsManager, state: FSMContext):
-    forms.show('absenceform')
 
-@router.message(AbsenceReasonStates.status, F.text.regexp(r'Н'))
-def absence_reason_handler(state: FSMContext):
+
+class AbsenceReasonStates(StatesGroup): AbsenceReason = State()
+
+@router.message(AbsenceReasonStates.AbsenceReason, F.text.regexp(r'Т'))
+async def absence_reason_handler(message: types.Message, forms: FormsManager):
+    await forms.show('absenceform')
+
+@router.message(AbsenceReasonStates.AbsenceReason, F.text.regexp(r'Н'))
+async def absence_reason_handler(message: types.Message, state: FSMContext):
     await state.clear()
 
 @router.poll_answer()# TODO: add a flag for vote-answer mode, add an every-lesson mode
-def who_s_present_handler (poll_answer: types.poll_answer, state: FSMContext):  #TODO: add an ability to re-answer
+async def who_s_present_handler (poll_answer: types.poll_answer, state: FSMContext):  #TODO: add an ability to re-answer
     now = datetime.datetime.now()# TODO: use time for schedule control, use date for entry's date
     now_time = now.time()
     now_date = now.date()
@@ -137,23 +127,14 @@ def who_s_present_handler (poll_answer: types.poll_answer, state: FSMContext):  
 
     if not is_present or lesson:
         user_id = poll_answer.user.id
-        profile = Profile.objects.get(external_id=user_id)
-        journal = Journal.objects.get(name=profile.journal)
-        corresponding_entry = JournalEntry.objects.get(journal=journal, profile=profile, date=now_date)
-        corresponding_entry.lesson = lesson
 
     if lesson:
-        # TODO: adapt django functions to async
-        corresponding_entry.is_present = True
+        await on_lesson_view(lesson, user_id, now_date)
 
     if not is_present:
-        corresponding_entry.is_present = False
-
-        bot.send_message(user_id, 'Вказати причину відстутності? Т/Н')
-        state.update_data(entry=corresponding_entry)# TODO: fix async
-        state.set_state(AbsenceReasonStates.status)
-
-    corresponding_entry.save()
+        await if_absent_view(user_id, now_date)
+        await bot.send_message(user_id, 'Вказати причину відстутності? Т/Н')
+        await state.set_state(AbsenceReasonStates.AbsenceReason)
 
 
 @router.message(Command(commands='register'), F.chat.type.in_({'private'}))#, RegisteredExternalIdFilter(Profile)
@@ -188,8 +169,7 @@ def report(date, message: types.Message):
     table = prettytable.PrettyTable(["Студент", "З заняття №", "Присутність"])
     group_id = message.chat.id
     journal = Journal.objects.get(external_id=group_id)
-    if date == 'last': entries = JournalEntry.objects.filter(journal=journal).latest()
-    else: entries = JournalEntry.objects.filter(journal=journal, date=date)
+    entries = JournalEntry.objects.filter(journal=journal, date=date)
 
     for entry in entries:
         profile = entry.profile
