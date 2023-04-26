@@ -106,11 +106,11 @@ class Schedule: #Do not try to deceive the poll
 class AbsenceReasonStates(StatesGroup): AbsenceReason = State()
 
 @router.message(AbsenceReasonStates.AbsenceReason, F.text.regexp(r'Т'))
-async def absence_reason_handler(message: types.Message, forms: FormsManager):
+async def absence_reason_handler_T(message: types.Message, forms: FormsManager):
     await forms.show('absenceform')
 
 @router.message(AbsenceReasonStates.AbsenceReason, F.text.regexp(r'Н'))
-async def absence_reason_handler(message: types.Message, state: FSMContext):
+async def absence_reason_handler_H(message: types.Message, state: FSMContext):
     await state.clear()
 
 @router.poll_answer()# TODO: add a flag for vote-answer mode, add an every-lesson mode
