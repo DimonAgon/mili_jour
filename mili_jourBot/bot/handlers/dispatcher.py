@@ -1,10 +1,13 @@
 #aiogram
-from aiogram import Bot, Dispatcher
+from aiogram import Bot, Dispatcher, Router
+from aiogram.fsm.storage.memory import MemoryStorage
 #aiogram
 
+#aiogram_forms
+from aiogram_forms import dispatcher as forms_distpatcher
+#aiogram_forms
+
 #django
-from django.http import HttpResponse
-from django.views.decorators.csrf import csrf_exempt
 from django.core.exceptions import PermissionDenied
 from django.conf import settings
 #django
@@ -14,11 +17,18 @@ from telebot import TeleBot
 #pyTelegramBotAPI
 
 #bot
-from ..models import *
+
 #bot
 
+TOKEN = settings.TELEGRAM_BOT_API_KEY
 
-bot = Bot(token=settings.TELEGRAM_BOT_API_KEY)
-dp = Dispatcher(bot)
+storage = MemoryStorage
+
+
+bot = Bot(token=TOKEN)
+dp = Dispatcher()#storage=storage)
+router = Router()
+dp.include_router(router)
+forms_distpatcher.attach(dp)
 
 
