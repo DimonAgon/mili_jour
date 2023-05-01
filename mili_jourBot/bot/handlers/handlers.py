@@ -1,7 +1,7 @@
 
 from aiogram import F
 from aiogram import types
-from aiogram.filters import Command
+from aiogram.filters import Command, CommandObject
 from aiogram.fsm.context import FSMContext
 from aiogram.filters.state import State, StatesGroup
 
@@ -13,15 +13,19 @@ from ..forms import *
 from ..views import *
 from .filters import *
 
-import datetime
-import portion as P
+from django.core.validators import validate_comma_separated_integer_list
 
-import  prettytable
-
-import asyncio
 from channels.db import database_sync_to_async
+import asyncio
 
 from enum import Enum
+
+import datetime
+
+import random
+
+import portion as P
+
 
 @router.message(Command(commands='start'))
 async def start_command(message: types.Message):  # Self-presintation of the bot
@@ -54,32 +58,101 @@ async def help_command(message: types.Message):
     await message.reply(HELPFUL_REPLY)
 
 
-class PresenceOptions(Enum):
-    Present = 0
-    Absent = 1
+class PresencePollOptions(Enum):
+    Present: 0
+    Absent: 1
 
-def presence_option_to_string(presenceOption: Type[PresenceOptions]):
+def presence_option_to_string(presenceOption: Type[PresencePollOptions]):
     match presenceOption:
-        case PresenceOptions.Present:
+        case PresencePollOptions.Present:
             return "Я"
-        case PresenceOptions.Absent:
+        case PresencePollOptions.Absent:
             return "Відсутній"
 
+class WhoSPresentMode(Enum):
+    LIGHT_MODE = 'light'
+    NORMAL_MODE = 'normal'
+    HARDCORE_MODE = 'hardcore'
+    SCHEDULE_MODE = 'schedule'
+    ZOOM_MODE = 'zoom'
+
+default = WhoSPresentMode.LIGHT_MODE
+
 @router.message(Command(commands='who_s_present'), F.chat.type.in_({'group', 'supergroup'}))# TODO: add an enum for zoom-mode, add an enum for schedule mode
-async def who_s_present_command(message: types.Message, state: FSMContext):  # Checks who is present
-    now = datetime.datetime.now()
-    today = now.date()
-    deadline_time = datetime.time(hour=17, minute=5)
-    deadline = now.replace(hour=deadline_time.hour, minute=deadline_time.minute)
-    seconds_till_deadline = (deadline - now).seconds
-    question = str(today) + " Присутність"
-    group_id = message.chat.id
+async def who_s_present_command(message: types.Message, command: CommandObject):  # Checks who is present
 
-    await initiate_today_entries(today, group_id)# TODO: the better choice may be to call function on every study day
-    poll_message = await message.answer_poll(question=question, options=list(presence_option_to_string(o) for o in PresenceOptions), type='quiz', correct_option_id=0, is_anonymous=False, allows_multiple_answers=False, protect_content=True)
+    if command.args:
+        args = command.args.split()
+        mode, *secondary = args
+    else: mode = default
+    with WhoSPresentMode as Mode:
+        try:
+            mode in [m for m in WhoSPresentMode]
 
-    await asyncio.sleep(seconds_till_deadline)# TODO: schedule instead
-    await bot.stop_poll(chat_id=poll_message.chat.id, message_id=poll_message.message_id)
+        except:
+            await message.answer(text="Помилка, вказано невірний режим")
+            logging.error(f"Command initiation failed\nError: no such mode \"{mode}\"")
+            return
+
+        if mode == Mode.SCHEDULE_MODE or mode == Mode.ZOOM_MODE:
+            try:
+                validate_comma_separated_integer_list(secondary)
+
+            except Exception as e:
+                await message.answer(text="Помилка, очікується послідовність занять")
+                logging.error(f"Command initiation failed\nError:{e}")
+                return
+        else:
+            try:
+                validate_comma_separated_integer_list(secondary)
+                await message.answer(text="Помилка, даний режим послідовність занять")
+                logging.error("Command initiation failed\nError: no arguments expected")
+                return
+
+            except Exception:
+                pass
+
+
+        lessons = set(secondary)
+        lessons.sort()
+
+        now = datetime.datetime.now()
+        today = now.date()
+
+        group_id = message.chat.id
+
+        match mode:
+
+            case Mode.LIGHT_MODE:
+                deadline_time = datetime.time(hour=17, minute=5, second=0)
+                deadline = now.replace(hour=deadline_time.hour, minute=deadline_time.minute, second=deadline_time.second)
+                question = str(today) + " Присутність"
+
+        till_deadline = deadline - now
+
+        if lessons:
+            await initiate_today_entries(today, group_id, lessons)
+            await initiate_today_report(today, group_id, lessons)
+            for l in lessons:
+                match mode:
+                    case Mode.HARDCORE_MODE:
+                        lesson_time_interval = Schedule.lessons[l]
+                        start_time = lesson_time_interval.lower
+                        end_time = lesson_time_interval.upper
+
+                        poll_time = random.randint()
+
+
+        else:
+            await initiate_today_entries(today, group_id)# TODO: the better choice may be to call function on every study day
+            await initiate_today_report(today, group_id)
+            poll_message = await message.answer_poll(question=question, options=list(presence_option_to_string(o) for o in PresencePollOptions), type='quiz', correct_option_id=0, is_anonymous=False, allows_multiple_answers=False, protect_content=True)
+            await asyncio.sleep(till_deadline.seconds)# TODO: schedule instead
+            await bot.stop_poll(chat_id=poll_message.chat.id, message_id=poll_message.message_id)
+
+    await report()
+
+    mode = default
 
 
 class Schedule: #Do not try to deceive the poll
@@ -114,12 +187,12 @@ async def absence_reason_handler_H(message: types.Message, state: FSMContext):
     await state.clear()
 
 @router.poll_answer()# TODO: add a flag for vote-answer mode, add an every-lesson mode
-async def who_s_present_handler (poll_answer: types.poll_answer, state: FSMContext):  #TODO: add an ability to re-answer
+async def who_s_present_poll_handler (poll_answer: types.poll_answer, state: FSMContext):  #TODO: add an ability to re-answer
     now = datetime.datetime.now()# TODO: use time for schedule control, use date for entry's date
     now_time = now.time()
     now_date = now.date()
 
-    is_present = poll_answer.option_ids == [PresenceOptions.Present.value]
+    is_present = poll_answer.option_ids == [PresencePollOptions.Present.value]
 
     if is_present:
         lesson = Schedule.lesson_match(now_time)
@@ -164,34 +237,15 @@ async def cancel_registration_command(message: types.Message, state: FSMContext)
     # TODO: when printing a report: use sort by a lesson and then by ordinal
 
 
-@database_sync_to_async
-def report(date, message: types.Message):
-    table = prettytable.PrettyTable(["Студент", "З заняття №", "Присутність"])
-    group_id = message.chat.id
-    journal = Journal.objects.get(external_id=group_id)
-    entries = JournalEntry.objects.filter(journal=journal, date=date)
-
-    for entry in entries:
-        profile = entry.profile
-
-        if entry.is_present: presence = "·"
-        else: presence = "н/б"
-
-        table.add_row([str(profile), entry.lesson, presence])
-    return str(table)
-
 @router.message(Command(commands='today_report'))
 async def today_report_command(message: types.Message):
     today = datetime.datetime.today().date()
-    today_report = await report(today, message)
-    await message.answer(today_report)
 
 
 @router.message(Command(commands='last_report'))
 async def last_report_command(message: types.Message):# TODO: use report model to answer
-    date = 'last'
 
-    message.answer(report(date, message))
+    pass
 
 
 @router.message(Command(commands='on_date_report'))

@@ -8,6 +8,8 @@ from typing import Type
 
 import datetime
 
+import prettytable
+
 @database_sync_to_async
 def add_profile(data, user_id):
     initial = data
@@ -35,9 +37,10 @@ def add_journal_entry(initial):
 
 
 @database_sync_to_async
-def initiate_today_entries(today, group_id):
-    if not JournalEntry.objects.filter(date=today).exists():
-        journal = Journal.objects.get(external_id=group_id)
+def initiate_today_entries(today, group_id, lessons: list()):
+    journal = Journal.objects.get(external_id=group_id)
+
+    if not JournalEntry.objects.filter(journal=journal, date=today).exists():
         profiles = Profile.objects.filter(journal=journal)
         ordered_profiles = profiles.order_by('ordinal')
 
@@ -72,3 +75,31 @@ def set_status(data, user_id):
 
     entry.status = status
     entry.save()
+
+
+@database_sync_to_async
+def initiate_today_report(today, group_id, lessons: list()):
+    journal = Journal.objects.get(external_id=group_id)
+    Report.objects.create(journal=journal, date=today, lessons=lessons)
+
+
+@database_sync_to_async
+def report(date, group_id, lessons: list()):
+    journal = Journal.objects.get(external_id=group_id)
+    corresponding_report = Report(journal=journal, date=date)
+    lessons = corresponding_report.lessons
+    table = prettytable.PrettyTable(["Студент"] + [l for l in lessons])
+    table.border = False
+    table.header = False
+    summary = prettytable.PrettyTable(["Зан.", "Сп.", "Пр.", "Відсутні"])
+    entries = JournalEntry.objects.filter(journal=journal, date=date)
+
+    for entry in entries:
+        profile = entry.profile
+
+        if entry.is_present: presence = "·"
+        else: presence = "н/б"
+
+        table.add_row([str(profile), entry.lesson, presence])
+
+    corresponding_report = Report.objects.create(journal=journal, date=date, table=str(table), summary=str(summary))
