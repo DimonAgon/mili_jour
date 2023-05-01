@@ -77,7 +77,7 @@ async def who_s_present_command(message: types.Message, command: CommandObject):
     else: mode = default
 
     if not mode in [getattr(WhoSPresentMode, attribute) for attribute in vars(WhoSPresentMode)]:
-        await message.answer(text="Помилка, вказано невірний режим")
+        await message.answer("Помилка, вказано невірний режим")
         logging.error(f"Command initiation failed\nError: no such mode \"{mode}\"")
         return
 
@@ -86,8 +86,16 @@ async def who_s_present_command(message: types.Message, command: CommandObject):
             secondary_integers = [int(e) for e in secondary]
 
         except Exception as e:
-            await message.answer(text="Помилка, очікується послідовність занять")
+            await message.answer("Помилка, очікується послідовність занять")
             logging.error(f"Command initiation failed\nError:{e}")
+            return
+
+        if [i for i in secondary_integers if i in Schedule.lessons.keys()] == [i for i in secondary_integers]:
+            lessons = secondary_integers
+
+        else:
+            await message.answer("Помилка, невірно вказані заняття")
+            logging.error("Command initiation failed\nError: wrong arguments")
             return
 
     else:
@@ -100,8 +108,6 @@ async def who_s_present_command(message: types.Message, command: CommandObject):
         except Exception:
             pass
 
-
-    lessons = secondary_integers
     lessons.sort()
 
     now = datetime.datetime.now()
