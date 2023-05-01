@@ -1,6 +1,7 @@
 
 from .models import *
 from .forms import *
+from .infrastructure.enums import *
 
 from channels.db import database_sync_to_async
 
@@ -37,14 +38,15 @@ def add_journal_entry(initial):
 
 
 @database_sync_to_async
-def initiate_today_entries(today, group_id, lessons: list()):
-    journal = Journal.objects.get(external_id=group_id)
+def initiate_today_entries(today, group_id, lessons=list(), mode=WhoSPresentMode.LIGHT_MODE):
+    if mode == WhoSPresentMode.LIGHT_MODE:
+        journal = Journal.objects.get(external_id=group_id)
 
-    if not JournalEntry.objects.filter(journal=journal, date=today).exists():
-        profiles = Profile.objects.filter(journal=journal)
-        ordered_profiles = profiles.order_by('ordinal')
+        if not JournalEntry.objects.filter(journal=journal, date=today).exists():
+            profiles = Profile.objects.filter(journal=journal)
+            ordered_profiles = profiles.order_by('ordinal')
 
-        for p in ordered_profiles: add_journal_entry({'journal': journal, 'profile': p, 'date': today, 'is_present': False})
+            for p in ordered_profiles: add_journal_entry({'journal': journal, 'profile': p, 'date': today, 'is_present': False})
 
 
 @database_sync_to_async
@@ -78,28 +80,39 @@ def set_status(data, user_id):
 
 
 @database_sync_to_async
-def initiate_today_report(today, group_id, lessons: list()):
+def initiate_today_report(today, group_id, lessons):
     journal = Journal.objects.get(external_id=group_id)
     Report.objects.create(journal=journal, date=today, lessons=lessons)
 
 
 @database_sync_to_async
-def report(date, group_id, lessons: list()):
+def report(date, group_id, lessons, mode=WhoSPresentMode.LIGHT_MODE):
     journal = Journal.objects.get(external_id=group_id)
-    corresponding_report = Report(journal=journal, date=date)
-    lessons = corresponding_report.lessons
+    #corresponding_report = Report(journal=journal, date=date)
+    lessons = lessons#corresponding_report.lessons
     table = prettytable.PrettyTable(["Студент"] + [l for l in lessons])
     table.border = False
-    table.header = False
     summary = prettytable.PrettyTable(["Зан.", "Сп.", "Пр.", "Відсутні"])
-    entries = JournalEntry.objects.filter(journal=journal, date=date)
+    if mode == WhoSPresentMode.LIGHT_MODE:
+        entries = JournalEntry.objects.filter(journal=journal, date=date)
 
-    for entry in entries:
-        profile = entry.profile
+        for entry in entries:
+            profile = entry.profile
 
-        if entry.is_present: presence = "·"
-        else: presence = "н/б"
+            if entry.is_present:
+                appeared_at = entry.lesson
+                appeared_at_lesson_index = lessons.index(appeared_at)
+                lessons_quantity = len(lessons)
+                presence = ["н" if i < appeared_at_lesson_index else "·" for i in range(lessons_quantity)]
+            else: presence = ["н" for l in lessons]
 
-        table.add_row([str(profile), entry.lesson, presence])
+            table.add_row([regex.match(r'\p{Lu}\p{Ll}+', str(profile)).group(0), *presence])
 
-    corresponding_report = Report.objects.create(journal=journal, date=date, table=str(table), summary=str(summary))
+    #orresponding_report = Report.objects.create(journal=journal, date=date, table=str(table), summary=str(summary))
+    return str(table)
+
+@database_sync_to_async
+def get_report(date, group_id):
+    journal = Journal.objects.get(external_id=group_id)
+    corresponding_report = Report.objects.get(date=date, journal=journal)
+    return corresponding_report

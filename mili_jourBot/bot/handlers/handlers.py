@@ -12,6 +12,7 @@ from ..models import *
 from ..forms import *
 from ..views import *
 from .filters import *
+from ..infrastructure.enums import *
 
 from django.core.validators import validate_comma_separated_integer_list
 
@@ -59,8 +60,8 @@ async def help_command(message: types.Message):
 
 
 class PresencePollOptions(Enum):
-    Present: 0
-    Absent: 1
+    Present = 0
+    Absent = 1
 
 def presence_option_to_string(presenceOption: Type[PresencePollOptions]):
     match presenceOption:
@@ -69,88 +70,96 @@ def presence_option_to_string(presenceOption: Type[PresencePollOptions]):
         case PresencePollOptions.Absent:
             return "Відсутній"
 
-class WhoSPresentMode(Enum):
-    LIGHT_MODE = 'light'
-    NORMAL_MODE = 'normal'
-    HARDCORE_MODE = 'hardcore'
-    SCHEDULE_MODE = 'schedule'
-    ZOOM_MODE = 'zoom'
-
-default = WhoSPresentMode.LIGHT_MODE
 
 @router.message(Command(commands='who_s_present'), F.chat.type.in_({'group', 'supergroup'}))# TODO: add an enum for zoom-mode, add an enum for schedule mode
 async def who_s_present_command(message: types.Message, command: CommandObject):  # Checks who is present
-
     if command.args:
         args = command.args.split()
         mode, *secondary = args
     else: mode = default
-    with WhoSPresentMode as Mode:
-        try:
-            mode in [m for m in WhoSPresentMode]
 
-        except:
-            await message.answer(text="Помилка, вказано невірний режим")
-            logging.error(f"Command initiation failed\nError: no such mode \"{mode}\"")
+    if not mode in [getattr(WhoSPresentMode, attribute) for attribute in vars(WhoSPresentMode)]:
+        await message.answer(text="Помилка, вказано невірний режим")
+        logging.error(f"Command initiation failed\nError: no such mode \"{mode}\"")
+        return
+
+    if mode == WhoSPresentMode.LIGHT_MODE or mode == WhoSPresentMode.NORMAL_MODE or mode == WhoSPresentMode.HARDCORE_MODE:
+        try:
+            secondary_integers = [int(e) for e in secondary]
+
+        except Exception as e:
+            await message.answer(text="Помилка, очікується послідовність занять")
+            logging.error(f"Command initiation failed\nError:{e}")
             return
 
-        if mode == Mode.SCHEDULE_MODE or mode == Mode.ZOOM_MODE:
-            try:
-                validate_comma_separated_integer_list(secondary)
+    else:
+        try:
+            validate_comma_separated_integer_list(secondary)
+            await message.answer(text="Помилка, даний режим послідовність занять")
+            logging.error("Command initiation failed\nError: no arguments expected")
+            return
 
-            except Exception as e:
-                await message.answer(text="Помилка, очікується послідовність занять")
-                logging.error(f"Command initiation failed\nError:{e}")
-                return
-        else:
-            try:
-                validate_comma_separated_integer_list(secondary)
-                await message.answer(text="Помилка, даний режим послідовність занять")
-                logging.error("Command initiation failed\nError: no arguments expected")
-                return
-
-            except Exception:
-                pass
+        except Exception:
+            pass
 
 
-        lessons = set(secondary)
-        lessons.sort()
+    lessons = secondary_integers
+    lessons.sort()
 
-        now = datetime.datetime.now()
-        today = now.date()
+    now = datetime.datetime.now()
+    today = now.date()
 
-        group_id = message.chat.id
+    group_id = message.chat.id
 
-        match mode:
+    if mode == WhoSPresentMode.LIGHT_MODE:
+        deadline_time = datetime.time(hour=15, minute=45, second=0)
+        deadline = now.replace(hour=deadline_time.hour, minute=deadline_time.minute, second=deadline_time.second)
+        question = str(today) + " Присутність"
 
-            case Mode.LIGHT_MODE:
-                deadline_time = datetime.time(hour=17, minute=5, second=0)
-                deadline = now.replace(hour=deadline_time.hour, minute=deadline_time.minute, second=deadline_time.second)
-                question = str(today) + " Присутність"
+    till_deadline = deadline - now
 
-        till_deadline = deadline - now
+    if not mode == WhoSPresentMode.LIGHT_MODE:
+        await initiate_today_report(today, lessons, group_id, mode)
+        await initiate_today_entries(today, lessons, group_id, mode)
+        for l in lessons:
+            lesson_time_interval = Schedule.lessons[l]
+            now = datetime.datetime.now()
+            start_time = lesson_time_interval.lower
+            end_time = lesson_time_interval.upper
 
-        if lessons:
-            await initiate_today_entries(today, group_id, lessons)
-            await initiate_today_report(today, group_id, lessons)
-            for l in lessons:
-                match mode:
-                    case Mode.HARDCORE_MODE:
-                        lesson_time_interval = Schedule.lessons[l]
-                        start_time = lesson_time_interval.lower
-                        end_time = lesson_time_interval.upper
+            if mode == WhoSPresentMode.HARDCORE_MODE:
+                lower = start_time
+                upper = end_time
+                lower_today = now.replace(hour=lower.hour, minute=lower.minute, second=lower.second)
+                upper_today = now.replace(hour=upper.hour, minute=upper.minute, second=lower.second)
+                lower_today_timestamp = lower_today.timestamp()
+                upper_today_timestamp = upper_today.timestamp()
+                lower_today_timestamp_integer = int(lower_today_timestamp)
+                upper_today_timestamp_integer = int(upper_today_timestamp)
+                random_datetime_timestamp_integer = random.randint(lower_today_timestamp_integer,
+                                                                   upper_today_timestamp_integer)
+                random_datetime = datetime.datetime.fromtimestamp(random_datetime_timestamp_integer)
 
-                        poll_time = random.randint()
+                poll_time = random_datetime
 
+            else:
+                poll_time = start_time
 
-        else:
-            await initiate_today_entries(today, group_id)# TODO: the better choice may be to call function on every study day
-            await initiate_today_report(today, group_id)
-            poll_message = await message.answer_poll(question=question, options=list(presence_option_to_string(o) for o in PresencePollOptions), type='quiz', correct_option_id=0, is_anonymous=False, allows_multiple_answers=False, protect_content=True)
-            await asyncio.sleep(till_deadline.seconds)# TODO: schedule instead
-            await bot.stop_poll(chat_id=poll_message.chat.id, message_id=poll_message.message_id)
+            deadline = end_time
+            till_start = now.replace(hour=poll_time.hour, minute=poll_time.minute, second=poll_time.second)
+            poll_message = await message.answer_poll()
 
-    await report()
+    else:
+        await initiate_today_entries(today, group_id)# TODO: the better choice may be to call function on every study day
+        #await initiate_today_report(today, group_id, lessons)
+        poll_message = await message.answer_poll(question=question, options=list(presence_option_to_string(o) for o in PresencePollOptions), type='quiz', correct_option_id=0, is_anonymous=False, allows_multiple_answers=False, protect_content=True)
+        await asyncio.sleep(till_deadline.seconds)# TODO: schedule instead
+        await bot.stop_poll(chat_id=poll_message.chat.id, message_id=poll_message.message_id)
+
+    today_report = await report(today, group_id, lessons, mode)
+    await message.answer(today_report)
+    #report(today, group_id, lessons, mode)
+
 
     mode = default
 
@@ -240,6 +249,11 @@ async def cancel_registration_command(message: types.Message, state: FSMContext)
 @router.message(Command(commands='today_report'))
 async def today_report_command(message: types.Message):
     today = datetime.datetime.today().date()
+    group_id = message.chat.id
+
+    report = get_report(today, group_id)
+    message.answer(report.table)
+    #message.answer(report.summary)
 
 
 @router.message(Command(commands='last_report'))
