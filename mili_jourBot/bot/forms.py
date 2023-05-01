@@ -100,7 +100,6 @@ class ProfileForm(Form):
 
 
         except Exception as e:
-
             await message.answer(text=cls.on_registration_fail_text)
             logging.error(f"Failed to create a profile for user_id {user_id}\nError:{e}")
 
@@ -130,8 +129,7 @@ class JournalForm(Form):
             logging.info(f"A journal created for group_id {group_id}")
 
         except Exception as e:
-
-            await message.answer(text=cls.on_registration_fail_text)
+            await message.answer(text=cls.on_registration_fail_text) #Does not work, no message
             logging.error(f"Failed to create a journal for group_id {group_id}\nError:{e}")
 
         # else:
@@ -157,4 +155,5 @@ class AbsenceReason(Form):
             await message.answer(text=cls.сallback_text)
 
         except Exception as e:
+            await message.answer(text=cls.on_registration_fail_text)
             logging.error(f"Failed to set a status for journal_entry for an entry of profile of user id of {user_id}\nError:{e}")
