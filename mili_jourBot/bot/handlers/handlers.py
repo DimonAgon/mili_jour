@@ -25,8 +25,6 @@ import datetime
 
 import random
 
-import portion as P
-
 
 @router.message(Command(commands='start'))
 async def start_command(message: types.Message):  # Self-presintation of the bot
@@ -114,9 +112,8 @@ async def who_s_present_command(message: types.Message, command: CommandObject):
     if mode == WhoSPresentMode.LIGHT_MODE:
         deadline_time = datetime.time(hour=15, minute=45, second=0)
         deadline = now.replace(hour=deadline_time.hour, minute=deadline_time.minute, second=deadline_time.second)
+        till_deadline = deadline - now
         question = str(today) + " Присутність"
-
-    till_deadline = deadline - now
 
     if not mode == WhoSPresentMode.LIGHT_MODE:
         await initiate_today_report(today, lessons, group_id, mode)
@@ -126,6 +123,7 @@ async def who_s_present_command(message: types.Message, command: CommandObject):
             now = datetime.datetime.now()
             start_time = lesson_time_interval.lower
             end_time = lesson_time_interval.upper
+            deadline = end_time
 
             if mode == WhoSPresentMode.HARDCORE_MODE:
                 lower = start_time
@@ -138,21 +136,35 @@ async def who_s_present_command(message: types.Message, command: CommandObject):
                 upper_today_timestamp_integer = int(upper_today_timestamp)
                 random_datetime_timestamp_integer = random.randint(lower_today_timestamp_integer,
                                                                    upper_today_timestamp_integer)
-                random_datetime = datetime.datetime.fromtimestamp(random_datetime_timestamp_integer)
+                random_lessno_datetime = datetime.datetime.fromtimestamp(random_datetime_timestamp_integer)
 
-                poll_time = random_datetime
+                poll_time = now.replace(hour=random_lessno_datetime.hour, minute=random_lessno_datetime.minute, second=random_lessno_datetime.second)
 
-            else:
-                poll_time = start_time
+            else: poll_time = now.replace(hour=start_time.hour, minute=start_time.minute, second=start_time.second)
 
             deadline = end_time
             till_start = now.replace(hour=poll_time.hour, minute=poll_time.minute, second=poll_time.second)
-            poll_message = await message.answer_poll()
+            till_deadline = deadline - now # TODO: create an async scheduler
+            await asyncio.sleep(till_start)
+            poll_message = await message.answer_poll(question=question,
+                                                     options=list(presence_option_to_string(o) for o in PresencePollOptions),
+                                                     type='quiz', correct_option_id=0,
+                                                     is_anonymous=False,
+                                                     allows_multiple_answers=False,
+                                                     protect_content=True)
+            await asyncio.sleep(till_deadline.seconds)  # TODO: schedule instead
+            await bot.stop_poll(chat_id=poll_message.chat.id, message_id=poll_message.message_id)
+
 
     else:
         await initiate_today_entries(today, group_id)# TODO: the better choice may be to call function on every study day
         #await initiate_today_report(today, group_id, lessons)
-        poll_message = await message.answer_poll(question=question, options=list(presence_option_to_string(o) for o in PresencePollOptions), type='quiz', correct_option_id=0, is_anonymous=False, allows_multiple_answers=False, protect_content=True)
+        poll_message = await message.answer_poll(question=question,
+                                                 options=list(presence_option_to_string(o) for o in PresencePollOptions),
+                                                 type='quiz', correct_option_id=0,
+                                                 is_anonymous=False,
+                                                 allows_multiple_answers=False,
+                                                 protect_content=True)
         await asyncio.sleep(till_deadline.seconds)# TODO: schedule instead
         await bot.stop_poll(chat_id=poll_message.chat.id, message_id=poll_message.message_id)
 
@@ -162,27 +174,6 @@ async def who_s_present_command(message: types.Message, command: CommandObject):
 
 
     mode = default
-
-
-class Schedule: #Do not try to deceive the poll
-    first_lesson = P.openclosed(datetime.time(8, 10, 0), datetime.time(10, 0, 0))
-    second_lesson = P.openclosed(datetime.time(10, 20, 0), datetime.time(11, 55, 0))
-    third_lesson = P.openclosed(datetime.time(12, 15, 0), datetime.time(13, 50, 0))
-    fourth_lesson = P.openclosed(datetime.time(14, 10, 0), datetime.time(15, 45, 0))
-    fifth_lesson = P.openclosed(datetime.time(16, 5, 0), datetime.time(17, 30, 0))
-
-    lessons = {1: first_lesson, 2: second_lesson, 3: third_lesson, 4: fourth_lesson, 5: fifth_lesson}
-
-    @classmethod
-    def lesson_match(cls, time):
-        lessons = cls.lessons
-
-        for l in lessons:
-            if lessons[l].contains(time):
-
-                return l
-        return None
-
 
 
 class AbsenceReasonStates(StatesGroup): AbsenceReason = State()
@@ -197,24 +188,12 @@ async def absence_reason_handler_H(message: types.Message, state: FSMContext):
 
 @router.poll_answer()# TODO: add a flag for vote-answer mode, add an every-lesson mode
 async def who_s_present_poll_handler (poll_answer: types.poll_answer, state: FSMContext):  #TODO: add an ability to re-answer
-    now = datetime.datetime.now()# TODO: use time for schedule control, use date for entry's date
-    now_time = now.time()
-    now_date = now.date()
-
     is_present = poll_answer.option_ids == [PresencePollOptions.Present.value]
+    user_id = poll_answer.user.id
 
-    if is_present:
-        lesson = Schedule.lesson_match(now_time)
-    else: lesson = None
-
-    if not is_present or lesson:
-        user_id = poll_answer.user.id
-
-    if lesson:
-        await on_lesson_view(lesson, user_id, now_date)
+    await presence_view(is_present, user_id)
 
     if not is_present:
-        await if_absent_view(user_id, now_date)
         await bot.send_message(user_id, 'Вказати причину відстутності? Т/Н')
         await state.set_state(AbsenceReasonStates.AbsenceReason)
 
