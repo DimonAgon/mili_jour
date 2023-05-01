@@ -191,7 +191,7 @@ async def who_s_present_poll_handler (poll_answer: types.poll_answer, state: FSM
     is_present = poll_answer.option_ids == [PresencePollOptions.Present.value]
     user_id = poll_answer.user.id
 
-    presence_view(is_present, user_id)
+    await presence_view(is_present, user_id)
 
     if not is_present:
         await bot.send_message(user_id, 'Вказати причину відстутності? Т/Н')
