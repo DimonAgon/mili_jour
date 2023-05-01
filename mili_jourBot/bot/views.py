@@ -48,24 +48,31 @@ def initiate_today_entries(today, group_id, lessons=list(), mode=WhoSPresentMode
 
             for p in ordered_profiles: add_journal_entry({'journal': journal, 'profile': p, 'date': today, 'is_present': False})
 
-
 @database_sync_to_async
-def on_lesson_view(lesson, user_id, date):
-    profile = Profile.objects.get(external_id=user_id)
-    journal = profile.journal
-    corresponding_entry = JournalEntry.objects.get(journal=journal, profile=profile, date=date)
-    corresponding_entry.lesson = lesson
-    corresponding_entry.is_present = True
-    corresponding_entry.save()
+def presence_view(is_present, user_id):
+    now = datetime.datetime.now()# TODO: use time for schedule control, use date for entry's date
+    now_time = now.time()
+    now_date = now.date()
 
-@database_sync_to_async
-def if_absent_view(user_id, date):
-    profile = Profile.objects.get(external_id=user_id)
-    journal = profile.journal
-    corresponding_entry = JournalEntry.objects.get(journal=journal, profile=profile, date=date)
-    corresponding_entry.lesson = None
-    corresponding_entry.is_present = False
-    corresponding_entry.save()
+    if is_present:
+        lesson = Schedule.lesson_match(now_time)
+    else: lesson = None
+
+    if lesson or not is_present:
+        profile = Profile.objects.get(external_id=user_id)
+        journal = profile.journal
+        corresponding_entry = JournalEntry.objects.get(journal=journal, profile=profile, date=now_date)
+
+    if lesson:
+        corresponding_entry.lesson = lesson
+        corresponding_entry.is_present = True
+        corresponding_entry.save()
+
+    if not is_present:
+        corresponding_entry.lesson = None
+        corresponding_entry.is_present = False
+        corresponding_entry.save()
+
 
 @database_sync_to_async
 def set_status(data, user_id):
