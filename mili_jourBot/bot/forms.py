@@ -129,7 +129,7 @@ class JournalForm(Form):
             logging.info(f"A journal created for group_id {group_id}")
 
         except Exception as e:
-            await message.answer(text=cls.on_registration_fail_text)
+            await message.answer(text=cls.on_registration_fail_text) #Does not work, no message
             logging.error(f"Failed to create a journal for group_id {group_id}\nError:{e}")
 
         # else:
