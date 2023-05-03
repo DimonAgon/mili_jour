@@ -89,7 +89,7 @@ async def who_s_present_command(message: types.Message, command: CommandObject):
             logging.error(f"Command initiation failed\nError:{e}")
             return
 
-        if [i for i in secondary_integers if i in Schedule.lessons.keys()] == [i for i in secondary_integers]:
+        if [i for i in secondary_integers if i in Schedule.lessons_intervals.keys()] == [i for i in secondary_integers]:
             lessons = secondary_integers
 
         else:
@@ -116,11 +116,20 @@ async def who_s_present_command(message: types.Message, command: CommandObject):
 
     group_id = message.chat.id
 
+    poll_configuration = {'options': list(presence_option_to_string(o) for o in PresencePollOptions),
+                           'type': 'quiz', 'correct_option_id': 0,
+                           'is_anonymous': False,
+                           'allows_multiple_answers': False,
+                           'protect_content': True}
+
     if mode == WhoSPresentMode.LIGHT_MODE:
-        deadline_time = datetime.time(hour=16, minute=37, second=0)
+        last_lesson = lessons[-1]
+        last_lesson_time = Schedule.lessons_intervals[last_lesson]
+        deadline_time = last_lesson_time.upper
         deadline = now.replace(hour=deadline_time.hour, minute=deadline_time.minute, second=deadline_time.second)
         till_deadline = deadline - now
         question = string_today + " Присутність"
+        poll_configuration.update({'question': question})
 
     if not mode == WhoSPresentMode.LIGHT_MODE:
         await initiate_today_report(today, group_id, lessons)
@@ -129,8 +138,9 @@ async def who_s_present_command(message: types.Message, command: CommandObject):
             await initiate_today_entries(today, group_id, lesson, mode)
 
             question = string_today + f" Заняття {str(lesson)}"
+            poll_configuration.update({'question': question})
 
-            lesson_time_interval = Schedule.lessons[lesson]
+            lesson_time_interval = Schedule.lessons_intervals[lesson]
             if lesson_time_interval.contains(now_time): start_time = start_time = (now + datetime.timedelta(seconds=1)).time()
             elif now_time < lesson_time_interval.lower:  start_time = lesson_time_interval.lower
             else:
@@ -161,25 +171,15 @@ async def who_s_present_command(message: types.Message, command: CommandObject):
             till_poll = poll_time - now
             await asyncio.sleep(till_poll.seconds)
             till_deadline = deadline - now # TODO: create an async scheduler
-            poll_message = await message.answer_poll(question=question,
-                                                     options=list(presence_option_to_string(o) for o in PresencePollOptions),
-                                                     type='quiz', correct_option_id=0,
-                                                     is_anonymous=False,
-                                                     allows_multiple_answers=False,
-                                                     protect_content=True) #TODO: consider using poll configuration dict
+            poll_message = await message.answer_poll(question=question) #TODO: consider using poll configuration dict
             await asyncio.sleep(till_deadline.seconds)  # TODO: schedule instead
             await bot.stop_poll(chat_id=poll_message.chat.id, message_id=poll_message.message_id)
 
 
     else:
         await initiate_today_entries(today, group_id)# TODO: the better choice may be to call function on every study day
-        await initiate_today_report(today, group_id, lessons, mode)
-        poll_message = await message.answer_poll(question=question,
-                                                 options=list(presence_option_to_string(o) for o in PresencePollOptions),
-                                                 type='quiz', correct_option_id=0,
-                                                 is_anonymous=False,
-                                                 allows_multiple_answers=False,
-                                                 protect_content=True)
+        await initiate_today_report(today, group_id, lessons)
+        poll_message = await message.answer_poll(**poll_configuration)
         await asyncio.sleep(till_deadline.seconds)# TODO: schedule instead
         await bot.stop_poll(chat_id=poll_message.chat.id, message_id=poll_message.message_id)
 

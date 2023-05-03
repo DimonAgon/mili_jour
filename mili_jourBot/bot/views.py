@@ -119,7 +119,7 @@ def initiate_today_report(today, group_id, lessons):
     if not Report.objects.filter(date=today, journal=journal, lessons=lessons).exists():
         if Report.objects.filter(date=today, journal=journal).exists():
             correseponding_report = Report.objects.get(date=today, journal=journal)
-            correseponding_report.lessons = lessons
+            correseponding_report.lessons_intervals = lessons
             correseponding_report.save()
 
         else:

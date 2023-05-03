@@ -39,16 +39,18 @@ class JournalEntry(models.Model):
     journal = models.ForeignKey(to='Journal', on_delete=models.CASCADE, verbose_name="Журнал")
     profile = models.ForeignKey(to='Profile', on_delete=models.CASCADE)
     date = models.DateField()
-    lesson = models.IntegerField(null=True)
+    lesson = models.IntegerField(null=True) #TODO: rename to lesson_ord
     is_present = models.BooleanField(verbose_name="Присутність")
     status = models.CharField(verbose_name='Статус', max_length=60, null=True)
+
 
 class Report(models.Model):
     journal = models.ForeignKey(to='Journal', on_delete=models.CASCADE, verbose_name="Журнал")
     date = models.DateField()
-    lessons = models.CharField(max_length=22, null=True)
+    lessons = models.CharField(validate_comma_separated_integer_list, max_length=15, null=True)
     table = models.TextField(null=True)
     summary = models.TextField(null=True)
+
 
 # TODO: add a model for schedule using hash-key
 # TODO: add a model for lessons
