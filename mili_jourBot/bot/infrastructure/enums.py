@@ -21,8 +21,9 @@ class Schedule: #Do not try to deceive the poll
     third_lesson = P.openclosed(datetime.time(12, 15, 0), datetime.time(13, 50, 0))
     fourth_lesson = P.openclosed(datetime.time(14, 10, 0), datetime.time(15, 45, 0))
     fifth_lesson = P.openclosed(datetime.time(16, 5, 0), datetime.time(17, 30, 0))
+    ninth_lesson = P.openclosed(datetime.time(0, 0, 0), datetime.time(3, 30, 0))
 
-    lessons = {1: first_lesson, 2: second_lesson, 3: third_lesson, 4: fourth_lesson, 5: fifth_lesson}
+    lessons = {1: first_lesson, 2: second_lesson, 3: third_lesson, 4: fourth_lesson, 5: fifth_lesson, 9: ninth_lesson}
 
     @classmethod
     def lesson_match(cls, time):

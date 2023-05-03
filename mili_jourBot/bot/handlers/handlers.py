@@ -13,13 +13,12 @@ from ..forms import *
 from ..views import *
 from .filters import *
 from ..infrastructure.enums import *
+from ..infrastructure import enums
 
 from django.core.validators import validate_comma_separated_integer_list
 
 from channels.db import database_sync_to_async
 import asyncio
-
-from enum import Enum
 
 import datetime
 
@@ -78,7 +77,7 @@ async def who_s_present_command(message: types.Message, command: CommandObject):
 
     if not mode in [getattr(WhoSPresentMode, attribute) for attribute in vars(WhoSPresentMode)]:
         await message.answer("Помилка, вказано невірний режим")
-        logging.error(f"Command initiation failed\nError: no such mode \"{mode}\"")
+        logging.error(f"Command initiation failed\nError: no such mode \"{enums.mode}\"")
         return
 
     if mode == WhoSPresentMode.LIGHT_MODE or mode == WhoSPresentMode.NORMAL_MODE or mode == WhoSPresentMode.HARDCORE_MODE:
@@ -101,35 +100,46 @@ async def who_s_present_command(message: types.Message, command: CommandObject):
     else:
         try:
             validate_comma_separated_integer_list(secondary)
-            await message.answer(text="Помилка, даний режим послідовність занять")
+            await message.answer("Помилка, режим не потребує послідовності занять")
             logging.error("Command initiation failed\nError: no arguments expected")
             return
 
         except Exception:
-            pass
+            pass # TODO: consider pass
 
     lessons.sort()
 
     now = datetime.datetime.now()
     today = now.date()
+    now_time = now.time()
+    string_today = str(today)
 
     group_id = message.chat.id
 
     if mode == WhoSPresentMode.LIGHT_MODE:
-        deadline_time = datetime.time(hour=15, minute=45, second=0)
+        deadline_time = datetime.time(hour=16, minute=37, second=0)
         deadline = now.replace(hour=deadline_time.hour, minute=deadline_time.minute, second=deadline_time.second)
         till_deadline = deadline - now
-        question = str(today) + " Присутність"
+        question = string_today + " Присутність"
 
     if not mode == WhoSPresentMode.LIGHT_MODE:
-        await initiate_today_report(today, lessons, group_id, mode)
-        await initiate_today_entries(today, lessons, group_id, mode)
-        for l in lessons:
-            lesson_time_interval = Schedule.lessons[l]
-            now = datetime.datetime.now()
-            start_time = lesson_time_interval.lower
+        await initiate_today_report(today, group_id, lessons)
+        for lesson in lessons:
+
+            await initiate_today_entries(today, group_id, lesson, mode)
+
+            question = string_today + f" Заняття {str(lesson)}"
+
+            lesson_time_interval = Schedule.lessons[lesson]
+            if lesson_time_interval.contains(now_time): start_time = start_time = (now + datetime.timedelta(seconds=1)).time()
+            elif now_time < lesson_time_interval.lower:  start_time = lesson_time_interval.lower
+            else:
+                logging.info(f"lesson {lesson} iteration skipped, lesson time is over")
+                continue
+
             end_time = lesson_time_interval.upper
-            deadline = end_time
+            deadline = now.replace(hour=end_time.hour, minute=end_time.minute, second=end_time.second)
+
 
             if mode == WhoSPresentMode.HARDCORE_MODE:
                 lower = start_time
@@ -142,29 +152,28 @@ async def who_s_present_command(message: types.Message, command: CommandObject):
                 upper_today_timestamp_integer = int(upper_today_timestamp)
                 random_datetime_timestamp_integer = random.randint(lower_today_timestamp_integer,
                                                                    upper_today_timestamp_integer)
-                random_lessno_datetime = datetime.datetime.fromtimestamp(random_datetime_timestamp_integer)
+                random_lesson_datetime = datetime.datetime.fromtimestamp(random_datetime_timestamp_integer)
 
-                poll_time = now.replace(hour=random_lessno_datetime.hour, minute=random_lessno_datetime.minute, second=random_lessno_datetime.second)
+                poll_time = now.replace(hour=random_lesson_datetime.hour, minute=random_lesson_datetime.minute, second=random_lesson_datetime.second)
 
             else: poll_time = now.replace(hour=start_time.hour, minute=start_time.minute, second=start_time.second)
 
-            deadline = end_time
-            till_start = now.replace(hour=poll_time.hour, minute=poll_time.minute, second=poll_time.second)
+            till_poll = poll_time - now
+            await asyncio.sleep(till_poll.seconds)
             till_deadline = deadline - now # TODO: create an async scheduler
-            await asyncio.sleep(till_start)
             poll_message = await message.answer_poll(question=question,
                                                      options=list(presence_option_to_string(o) for o in PresencePollOptions),
                                                      type='quiz', correct_option_id=0,
                                                      is_anonymous=False,
                                                      allows_multiple_answers=False,
-                                                     protect_content=True)
+                                                     protect_content=True) #TODO: consider using poll configuration dict
             await asyncio.sleep(till_deadline.seconds)  # TODO: schedule instead
             await bot.stop_poll(chat_id=poll_message.chat.id, message_id=poll_message.message_id)
 
 
     else:
         await initiate_today_entries(today, group_id)# TODO: the better choice may be to call function on every study day
-        #await initiate_today_report(today, group_id, lessons)
+        await initiate_today_report(today, group_id, lessons, mode)
         poll_message = await message.answer_poll(question=question,
                                                  options=list(presence_option_to_string(o) for o in PresencePollOptions),
                                                  type='quiz', correct_option_id=0,
@@ -175,11 +184,8 @@ async def who_s_present_command(message: types.Message, command: CommandObject):
         await bot.stop_poll(chat_id=poll_message.chat.id, message_id=poll_message.message_id)
 
     today_report = await report(today, group_id, lessons, mode)
-    await message.answer(today_report)
-    #report(today, group_id, lessons, mode)
-
-
-    mode = default
+    await message.answer(today_report.table)
+    await message.answer(today_report.summary, disable_notification=True)
 
 
 class AbsenceReasonStates(StatesGroup): AbsenceReason = State()
@@ -200,8 +206,13 @@ async def who_s_present_poll_handler (poll_answer: types.poll_answer, state: FSM
     await presence_view(is_present, user_id)
 
     if not is_present:
-        await bot.send_message(user_id, 'Вказати причину відстутності? Т/Н')
-        await state.set_state(AbsenceReasonStates.AbsenceReason)
+        today_status = await get_today_status(user_id)
+        if today_status:
+            await set_status({'status': today_status}, user_id)
+
+        else:
+            await bot.send_message(user_id, 'Вказати причину відстутності? Т/Н')
+            await state.set_state(AbsenceReasonStates.AbsenceReason)
 
 
 @router.message(Command(commands='register'), F.chat.type.in_({'private'}))#, RegisteredExternalIdFilter(Profile)
