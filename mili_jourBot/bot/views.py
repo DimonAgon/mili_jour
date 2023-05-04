@@ -128,17 +128,9 @@ def filled_absence_cell(entry, absence_cell):
     absence_cell.append(last_name if not status else last_name + "— " + status)
     return absence_cell
 
-@database_sync_to_async
-def report_today(today, group_id, lessons, mode=default):
-    journal = Journal.objects.get(external_id=group_id)
-    journal_strength = journal.strength
-    corresponding_report = Report.objects.get(journal=journal, date=today)
-    lessons = lessons
+def report_table(journal, entries, lessons, journal_strength, mode=default):
     table = prettytable.PrettyTable(["Студент"] + [l for l in lessons])
     table.border = False
-    summary = prettytable.PrettyTable(["Зан.", "Сп.", "Пр.", "Відсутні"])
-
-    entries = JournalEntry.objects.filter(journal=journal, date=today)
 
     if mode == WhoSPresentMode.LIGHT_MODE:
         for entry in entries:
@@ -149,20 +141,10 @@ def report_today(today, group_id, lessons, mode=default):
                 appeared_at_lesson_index = lessons.index(appeared_at)
                 lessons_quantity = len(lessons)
                 presence = ["н" if i < appeared_at_lesson_index else "·" for i in range(lessons_quantity)]
-            else: presence = ["н" for l in lessons]
+            else:
+                presence = ["н" for l in lessons]
 
             table.add_row([regex.match(r'\p{Lu}\p{Ll}+', str(profile)).group(0), *presence])
-
-        for lesson in lessons:
-            absence_cell = []
-
-            for entry in entries:
-                entry_lesson = entry.lesson
-                if not entry_lesson or entry_lesson > lesson:
-                    absence_cell = filled_absence_cell(entry, absence_cell)
-
-            present_count = int(journal_strength) - len(absence_cell)
-            summary.add_row([lesson, journal_strength, present_count, "\n".join(absence_cell)])
 
     else:
         profiles = Profile.objects.filter(journal=journal)
@@ -179,20 +161,56 @@ def report_today(today, group_id, lessons, mode=default):
 
         table.add_row(row)
 
-        ordered_entries = entries.order_by('profile__ordinal')
-        for lesson in lessons:
-            lesson_entries = ordered_entries.filter(lesson=lesson)
-            lesson_absent_entries = lesson_entries.filter(is_present=False)
-            present_count = int(journal_strength) - len(lesson_absent_entries)
+        return table
 
+def report_summary(journal, entries, lessons, journal_strength, mode=default):
+    summary = prettytable.PrettyTable(["Зан.", "Сп.", "Пр.", "Відсутні"])
+
+    if mode == WhoSPresentMode.LIGHT_MODE:
+        for lesson in lessons:
             absence_cell = []
 
-            for entry in lesson_entries:
-                if not entry.is_present:
+            for entry in entries:
+                entry_lesson = entry.lesson
+                if not entry_lesson or entry_lesson > lesson:
                     absence_cell = filled_absence_cell(entry, absence_cell)
 
+            present_count = int(journal_strength) - len(absence_cell)
             summary.add_row([lesson, journal_strength, present_count, "\n".join(absence_cell)])
 
+    ordered_entries = entries.order_by('profile__ordinal')
+    for lesson in lessons:
+        lesson_entries = ordered_entries.filter(lesson=lesson)
+        lesson_absent_entries = lesson_entries.filter(is_present=False)
+        present_count = int(journal_strength) - len(lesson_absent_entries)
+
+        absence_cell = []
+
+        for entry in lesson_entries:
+            if not entry.is_present:
+                absence_cell = filled_absence_cell(entry, absence_cell)
+
+        summary.add_row([lesson, journal_strength, present_count, "\n".join(absence_cell)])
+
+        return summary
+
+@database_sync_to_async
+def report_today(today, group_id, lessons, mode=default):
+    journal = Journal.objects.get(external_id=group_id)
+    journal_strength = journal.strength
+
+    entries = JournalEntry.objects.filter(journal=journal, date=today)
+
+    report_details = {'journal': journal,
+                      'entries': entries,
+                      'lessons': lessons,
+                      'journal_strength': journal_strength,
+                      'mode': mode}
+
+    table = report_table(**report_details)
+    summary = report_summary(**report_details)
+
+    corresponding_report = Report.objects.get(journal=journal, date=today)
     corresponding_report.date, corresponding_report.table, corresponding_report.summary = today, str(table), str(summary)
     corresponding_report.save()
     return corresponding_report
