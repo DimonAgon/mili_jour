@@ -68,7 +68,7 @@ def presence_option_to_string(presenceOption: Type[PresencePollOptions]):
             return "Відсутній"
 
 
-@router.message(Command(commands='who_s_present'), F.chat.type.in_({'group', 'supergroup'}))# TODO: add an enum for zoom-mode, add an enum for schedule mode
+@router.message(Command(commands=['who_s_present', 'wp']), F.chat.type.in_({'group', 'supergroup'}))# TODO: add an enum for zoom-mode, add an enum for schedule mode
 async def who_s_present_command(message: types.Message, command: CommandObject):  # Checks who is present
     if command.args:
         args = command.args.split()
