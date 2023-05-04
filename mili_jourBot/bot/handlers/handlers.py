@@ -82,6 +82,7 @@ async def who_s_present_command(message: types.Message, command: CommandObject):
 
     if mode == WhoSPresentMode.LIGHT_MODE or mode == WhoSPresentMode.NORMAL_MODE or mode == WhoSPresentMode.HARDCORE_MODE:
         try:
+            secondary[0]
             secondary_integers = [int(e) for e in secondary]
 
         except Exception as e:
@@ -171,7 +172,7 @@ async def who_s_present_command(message: types.Message, command: CommandObject):
             till_poll = poll_time - now
             await asyncio.sleep(till_poll.seconds)
             till_deadline = deadline - now # TODO: create an async scheduler
-            poll_message = await message.answer_poll(question=question) #TODO: consider using poll configuration dict
+            poll_message = await message.answer_poll(**poll_configuration) #TODO: consider using poll configuration dict
             await asyncio.sleep(till_deadline.seconds)  # TODO: schedule instead
             await bot.stop_poll(chat_id=poll_message.chat.id, message_id=poll_message.message_id)
 
@@ -183,7 +184,7 @@ async def who_s_present_command(message: types.Message, command: CommandObject):
         await asyncio.sleep(till_deadline.seconds)# TODO: schedule instead
         await bot.stop_poll(chat_id=poll_message.chat.id, message_id=poll_message.message_id)
 
-    today_report = await report(today, group_id, lessons, mode)
+    today_report = await report_today(today, group_id, lessons, mode)
     await message.answer(today_report.table)
     await message.answer(today_report.summary, disable_notification=True)
 
@@ -214,6 +215,12 @@ async def who_s_present_poll_handler (poll_answer: types.poll_answer, state: FSM
             await bot.send_message(user_id, 'Вказати причину відстутності? Т/Н')
             await state.set_state(AbsenceReasonStates.AbsenceReason)
 
+@router.message(Command(commands='absence_reason'))
+def absence_reason_command(message: types.Message, state: FSMContext):
+    user_id = message.user.id
+
+    await bot.send_message(user_id, 'Вказати причину відстутності? Т/Н')
+    await state.set_state(AbsenceReasonStates.AbsenceReason)
 
 @router.message(Command(commands='register'), F.chat.type.in_({'private'}))#, RegisteredExternalIdFilter(Profile)
 async def register_command(message: types.Message, forms: FormsManager):

@@ -96,17 +96,13 @@ def get_today_status(user_id):
 def set_status(data, user_id, lesson=None, mode=default): #TODO: if today status: status = today status. return
     profile = Profile.objects.get(external_id=user_id)
     journal = profile.journal
+    now = datetime.datetime.now()
+    today = now.date()
+    now_time = now.time()
     status = data['status']
-
-    if mode == WhoSPresentMode.LIGHT_MODE:
-        today = datetime.datetime.today()
-
-    else:
-        now = datetime.datetime.now()
-        today = now.date()
-        now_time = now.time()
-        lesson = Schedule.lesson_match(now_time)
-
+    current_lesson = Schedule.lesson_match(now_time)
+    if JournalEntry.objects.filter(journal=journal, profile=profile, date=today, lesson=current_lesson).exists(): #TODO: use mode instead!
+        lesson = current_lesson
     entry = JournalEntry.objects.get(journal=journal, profile=profile, date=today, lesson=lesson)
     entry.status = status
     entry.save()
@@ -118,9 +114,9 @@ def initiate_today_report(today, group_id, lessons):
 
     if not Report.objects.filter(date=today, journal=journal, lessons=lessons).exists():
         if Report.objects.filter(date=today, journal=journal).exists():
-            correseponding_report = Report.objects.get(date=today, journal=journal)
-            correseponding_report.lessons_intervals = lessons
-            correseponding_report.save()
+            corresponding_report = Report.objects.get(date=today, journal=journal)
+            corresponding_report.lessons_intervals = lessons
+            corresponding_report.save()
 
         else:
             journal = Journal.objects.get(external_id=group_id)
@@ -134,16 +130,16 @@ def filled_absence_cell(entry, absence_cell):
     return absence_cell
 
 @database_sync_to_async
-def report(date, group_id, lessons, mode=default):
+def report_today(today, group_id, lessons, mode=default):
     journal = Journal.objects.get(external_id=group_id)
     journal_strength = journal.strength
-    corresponding_report = Report.objects.get(journal=journal, date=date)
+    corresponding_report = Report.objects.get(journal=journal, date=today)
     lessons = lessons
     table = prettytable.PrettyTable(["Студент"] + [l for l in lessons])
     table.border = False
     summary = prettytable.PrettyTable(["Зан.", "Сп.", "Пр.", "Відсутні"])
 
-    entries = JournalEntry.objects.filter(journal=journal, date=date)
+    entries = JournalEntry.objects.filter(journal=journal, date=today)
 
     if mode == WhoSPresentMode.LIGHT_MODE:
         for entry in entries:
@@ -198,7 +194,7 @@ def report(date, group_id, lessons, mode=default):
 
             summary.add_row([lesson, journal_strength, present_count, "\n".join(absence_cell)])
 
-    corresponding_report.date, corresponding_report.table, corresponding_report.summary = date, str(table), str(summary)
+    corresponding_report.date, corresponding_report.table, corresponding_report.summary = today, str(table), str(summary)
     corresponding_report.save()
     return corresponding_report
 
