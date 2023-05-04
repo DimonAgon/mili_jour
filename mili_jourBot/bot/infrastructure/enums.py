@@ -12,6 +12,7 @@ class WhoSPresentMode:
     HARDCORE_MODE = 'hardcore'
     SCHEDULE_MODE = 'schedule'
     ZOOM_MODE = 'zoom'
+    # TODO: add an event mode
 
 default = WhoSPresentMode.LIGHT_MODE
 
