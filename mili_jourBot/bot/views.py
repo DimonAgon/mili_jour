@@ -59,7 +59,7 @@ def initiate_today_entries(today, group_id, lesson=None, mode=default):
 
 
 @database_sync_to_async
-def presence_view(is_present, user_id, lesson=None):
+def presence_view(is_present, user_id):
     now = datetime.datetime.now()# TODO: use time for schedule control, use date for entry's date
     now_time = now.time()
     now_date = now.date()
@@ -71,14 +71,13 @@ def presence_view(is_present, user_id, lesson=None):
         journal = profile.journal
 
         corresponding_entry = JournalEntry.objects.get(journal=journal, profile=profile, date=now_date, lesson=lesson)
+        corresponding_entry.lesson = lesson
 
     if is_present:
-        corresponding_entry.lesson = lesson
         corresponding_entry.is_present = True
         corresponding_entry.save()
 
     else:
-        corresponding_entry.lesson = None
         corresponding_entry.is_present = False
         corresponding_entry.save()
 

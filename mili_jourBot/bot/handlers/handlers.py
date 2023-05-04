@@ -216,7 +216,7 @@ async def who_s_present_poll_handler (poll_answer: types.poll_answer, state: FSM
             await state.set_state(AbsenceReasonStates.AbsenceReason)
 
 @router.message(Command(commands='absence_reason'))
-def absence_reason_command(message: types.Message, state: FSMContext):
+async def absence_reason_command(message: types.Message, state: FSMContext):
     user_id = message.user.id
 
     await bot.send_message(user_id, 'Вказати причину відстутності? Т/Н')
