@@ -42,7 +42,7 @@ def add_journal_entry(initial):
 
 
 @database_sync_to_async
-def initiate_today_entries(today, group_id, lesson=None, mode=default):
+def initiate_today_entries(today, group_id, lesson=None, mode=WhoSPresentMode.default):
     journal = Journal.objects.get(external_id=group_id)
 
     if mode == WhoSPresentMode.LIGHT_MODE:
@@ -91,8 +91,9 @@ def get_today_status(user_id):
         if status:
             return status
 
+
 @database_sync_to_async
-def set_status(data, user_id, lesson=None, mode=default): #TODO: if today status: status = today status. return
+def set_status(data, user_id, lesson=None, mode=WhoSPresentMode.default): #TODO: if today status: status = today status. return
     profile = Profile.objects.get(external_id=user_id)
     journal = profile.journal
     now = datetime.datetime.now()
@@ -128,7 +129,7 @@ def filled_absence_cell(entry, absence_cell):
     absence_cell.append(last_name if not status else last_name + "— " + status)
     return absence_cell
 
-def report_table(journal, entries, lessons, journal_strength, mode=default):
+def report_table(journal, entries, lessons, journal_strength, mode=WhoSPresentMode.default):
     table = prettytable.PrettyTable(["Студент"] + [l for l in lessons])
     table.border = False
 
@@ -163,7 +164,7 @@ def report_table(journal, entries, lessons, journal_strength, mode=default):
 
         return table
 
-def report_summary(journal, entries, lessons, journal_strength, mode=default):
+def report_summary(journal, entries, lessons, journal_strength, mode=WhoSPresentMode.default):
     summary = prettytable.PrettyTable(["Зан.", "Сп.", "Пр.", "Відсутні"])
 
     if mode == WhoSPresentMode.LIGHT_MODE:
@@ -179,6 +180,7 @@ def report_summary(journal, entries, lessons, journal_strength, mode=default):
             summary.add_row([lesson, journal_strength, present_count, "\n".join(absence_cell)])
 
     ordered_entries = entries.order_by('profile__ordinal')
+
     for lesson in lessons:
         lesson_entries = ordered_entries.filter(lesson=lesson)
 
@@ -194,7 +196,7 @@ def report_summary(journal, entries, lessons, journal_strength, mode=default):
         return summary
 
 @database_sync_to_async
-def report_today(today, group_id, lessons, mode=default):
+def report_today(today, group_id, lessons, mode=WhoSPresentMode.default):
     journal = Journal.objects.get(external_id=group_id)
     journal_strength = journal.strength
 
@@ -215,7 +217,19 @@ def report_today(today, group_id, lessons, mode=default):
     return corresponding_report
 
 @database_sync_to_async
-def get_report(date, group_id):
+def get_report(group_id, mode, specified_date: datetime=None):
     journal = Journal.objects.get(external_id=group_id)
-    corresponding_report = Report.objects.get(date=date, journal=journal)
+
+    match mode:
+        case GetReportMode.TODAY:
+            today = datetime.datetime.today()
+            corresponding_report = Report.objects.get(date=today, journal=journal)
+
+        case GetReportMode.LAST:
+            journal_reports = Report.objects.filter(journal=journal)
+            corresponding_report = journal_reports.order_by('date')[-1]
+
+        case GetReportMode.ON_DATE:
+            corresponding_report = Report.objects.get(date=specified_date, journal=journal)
+
     return corresponding_report

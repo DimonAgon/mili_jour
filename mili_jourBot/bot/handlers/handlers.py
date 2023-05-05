@@ -1,3 +1,4 @@
+import re
 
 from aiogram import F
 from aiogram import types
@@ -6,6 +7,7 @@ from aiogram.fsm.context import FSMContext
 from aiogram.filters.state import State, StatesGroup
 
 from aiogram_forms import FormsManager
+from aiogram_forms.errors import ValidationError
 
 from .dispatcher import dp, router, bot
 from ..models import *
@@ -23,6 +25,19 @@ import asyncio
 import datetime
 
 import random
+
+
+
+def validate_date_format(value):
+    date_format = '%d-%m-%Y'
+
+    try:
+        datetime.datetime.strptime(value, date_format)
+        return value
+
+    except:
+        raise ValidationError("Ввести дату коректно", code='format_match')
+
 
 
 @router.message(Command(commands='start'))
@@ -256,27 +271,35 @@ async def cancel_registration_command(message: types.Message, state: FSMContext)
 
 @router.message(Command(commands='today_report'))
 async def today_report_command(message: types.Message):
-    today = datetime.datetime.today().date()
     group_id = message.chat.id
 
-    report = get_report(today, group_id)
-    message.answer(report.table)
-    #message.answer(report.summary)
+    today_report = await get_report(group_id, GetReportMode.TODAY)
+
+    message.answer(today_report.table)
+    message.answer(today_report.summary, disable_notification=True)
 
 
 @router.message(Command(commands='last_report'))
 async def last_report_command(message: types.Message):# TODO: use report model to answer
+    group_id = message.chat.id
+    last_report = await get_report(group_id, GetReportMode.LAST)
 
-    pass
+    message.answer(last_report.table)
+    message.answer(last_report.summary, disable_notification=True)
 
 
 @router.message(Command(commands='on_date_report'))
-async def on_date_report_command(message: types.Message):
-    #date =
-    pass
+async def on_date_report_command(message: types.Message, command: CommandObject):
+    aftercommand = command.args
+    if validate_date_format(aftercommand):
+        date = aftercommand
 
-    #message.answer(report(date, message))
+    group_id = message.chat.id
 
+    on_date_report = await get_report(group_id, GetReportMode.ON_DATE, date)
+
+    message.answer(on_date_report.table)
+    message.answer(on_date_report.summary, disable_notification=True)
 
 
 # TODO: create a chat leave command, should delete any info of-group info

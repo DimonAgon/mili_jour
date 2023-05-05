@@ -1,4 +1,4 @@
-from enum import Enum
+from enum import Enum, auto
 
 import datetime
 
@@ -12,9 +12,15 @@ class WhoSPresentMode(Enum):
     HARDCORE_MODE = 'hardcore'
     SCHEDULE_MODE = 'schedule'
     ZOOM_MODE = 'zoom'
+    default = LIGHT_MODE
     # TODO: add an event mode
 
-default = WhoSPresentMode.LIGHT_MODE
+
+class GetReportMode(Enum):
+    TODAY = auto()
+    LAST = auto()
+    ON_DATE = auto()
+
 
 class Schedule: #Do not try to deceive the poll
     first_lesson_interval = P.openclosed(datetime.time(8, 10, 0), datetime.time(10, 0, 0))
