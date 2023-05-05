@@ -197,6 +197,8 @@ async def who_s_present_command(message: types.Message, command: CommandObject):
             await asyncio.sleep(till_deadline.seconds)  # TODO: schedule instead
             await bot.stop_poll(chat_id=poll_message.chat.id, message_id=poll_message.message_id)
 
+        await amend_statuses(today, group_id)
+
 
     else:
         await initiate_today_entries(today, group_id)# TODO: the better choice may be to call function on every study day

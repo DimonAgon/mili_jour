@@ -93,6 +93,26 @@ def get_today_status(user_id):
 
 
 @database_sync_to_async
+def amend_statuses(date, group_id):
+    journal = Journal.objects.get(external_id=group_id)
+    journal_profiles = Profile.objects.filter(journal=journal)
+
+    for profile in journal_profiles:
+        on_date_profile_entries = JournalEntry.objects.filter(date=date, profile=profile)
+
+        most_relevant_status = None
+
+        for entry in on_date_profile_entries:
+            entry_status = entry.status
+            if entry_status: most_relevant_status = entry_status
+            else:
+                entry.status = most_relevant_status
+                entry.save()
+
+
+
+
+@database_sync_to_async
 def set_status(data, user_id, lesson=None, mode=WhoSPresentMode.default): #TODO: if today status: status = today status. return
     profile = Profile.objects.get(external_id=user_id)
     journal = profile.journal
@@ -148,8 +168,8 @@ def report_table(journal, entries, lessons, journal_strength, mode=WhoSPresentMo
             table.add_row([regex.match(r'\p{Lu}\p{Ll}+', str(profile)).group(0), *presence])
 
     else:
-        profiles = Profile.objects.filter(journal=journal)
-        ordered_profiles = profiles.order_by('ordinal')
+        journal_profiles = Profile.objects.filter(journal=journal)
+        ordered_profiles = journal_profiles.order_by('ordinal')
         for profile in ordered_profiles:
             profile_entries = entries.filter(profile=profile)
             ordered_profile_entries = profile_entries.order_by('lesson')
