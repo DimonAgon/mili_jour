@@ -181,8 +181,6 @@ def report_summary(journal, entries, lessons, journal_strength, mode=default):
     ordered_entries = entries.order_by('profile__ordinal')
     for lesson in lessons:
         lesson_entries = ordered_entries.filter(lesson=lesson)
-        lesson_absent_entries = lesson_entries.filter(is_present=False)
-        present_count = int(journal_strength) - len(lesson_absent_entries)
 
         absence_cell = []
 
@@ -190,6 +188,7 @@ def report_summary(journal, entries, lessons, journal_strength, mode=default):
             if not entry.is_present:
                 absence_cell = filled_absence_cell(entry, absence_cell)
 
+        present_count = int(journal_strength) - len(absence_cell)
         summary.add_row([lesson, journal_strength, present_count, "\n".join(absence_cell)])
 
         return summary
