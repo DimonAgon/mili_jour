@@ -62,6 +62,7 @@ async def help_command(message: types.Message):
                     "\n/register_journal– створити журнал відвідувань" \
                     "\n/cancel_registration– відмінити реєстрацію" \
                     "\n/who_s_present– створити опитування щодо присутності" \
+                    "\n/absence_reason– вказати причину відсутності" \
                     "\n/today_report– викликати звіт за сьогоднішній день" \
                     "\n/last_report– викликати останній звіт" \
                     "\n/on_date_report– викликати звіт за датою"
