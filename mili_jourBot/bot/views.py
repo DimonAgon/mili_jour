@@ -162,7 +162,7 @@ def report_table(journal, entries, lessons, journal_strength, mode=WhoSPresentMo
 
         table.add_row(row)
 
-        return table
+    return table
 
 def report_summary(journal, entries, lessons, journal_strength, mode=WhoSPresentMode.default):
     summary = prettytable.PrettyTable(["Зан.", "Сп.", "Пр.", "Відсутні"])
