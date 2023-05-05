@@ -60,24 +60,30 @@ class PresencePollOptions(Enum):
     Present = 0
     Absent = 1
 
-def presence_option_to_string(presenceOption: Type[PresencePollOptions]):
-    match presenceOption:
+def presence_option_to_string(presence_option: Type[PresencePollOptions]):
+    match presence_option:
         case PresencePollOptions.Present:
             return "Я"
         case PresencePollOptions.Absent:
             return "Відсутній"
 
 
-@router.message(Command(commands=['who_s_present', 'wp']), F.chat.type.in_({'group', 'supergroup'}))# TODO: add an enum for zoom-mode, add an enum for schedule mode
+@router.message(Command(commands=['who_s_present', 'wp']), F.chat.type.in_({'group', 'supergroup'}))
 async def who_s_present_command(message: types.Message, command: CommandObject):  # Checks who is present
-    if command.args:
-        args = command.args.split()
-        mode, *secondary = args
-    else: mode = default
+    aftercommand = command.args
+    if aftercommand:
+        args = aftercommand.split()
+        pseudo_mode, *secondary = args
+    else:
+        await message.answer("Помилка, вкажіть аргументи")
+        logging.error("Command initiation failed\nError: no arguments")
+        return
 
-    if not mode in [getattr(WhoSPresentMode, attribute) for attribute in vars(WhoSPresentMode)]:
+    mode = next((mode for mode in WhoSPresentMode if mode.value == pseudo_mode), None)
+
+    if not mode:
         await message.answer("Помилка, вказано невірний режим")
-        logging.error(f"Command initiation failed\nError: no such mode \"{enums.mode}\"")
+        logging.error(f"Command initiation failed\nError: no such mode \"{pseudo_mode}\"")
         return
 
     if mode == WhoSPresentMode.LIGHT_MODE or mode == WhoSPresentMode.NORMAL_MODE or mode == WhoSPresentMode.HARDCORE_MODE:
@@ -246,7 +252,6 @@ async def cancel_registration_command(message: types.Message, state: FSMContext)
     await state.clear()
     await message.reply(text="Процес реєстрації було перервано")
 # TODO: reports should be able in both group and private chat
-    # TODO: when printing a report: use sort by a lesson and then by ordinal
 
 
 @router.message(Command(commands='today_report'))

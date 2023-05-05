@@ -6,7 +6,7 @@ import portion as P
 
 
 
-class WhoSPresentMode:
+class WhoSPresentMode(Enum):
     LIGHT_MODE = 'light'
     NORMAL_MODE = 'normal'
     HARDCORE_MODE = 'hardcore'
