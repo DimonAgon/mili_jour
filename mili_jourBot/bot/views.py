@@ -179,21 +179,21 @@ def report_summary(journal, entries, lessons, journal_strength, mode=WhoSPresent
             present_count = int(journal_strength) - len(absence_cell)
             summary.add_row([lesson, journal_strength, present_count, "\n".join(absence_cell)])
 
-    ordered_entries = entries.order_by('profile__ordinal')
+    else:
+        ordered_entries = entries.order_by('profile__ordinal')
+        for lesson in lessons:
+            lesson_entries = ordered_entries.filter(lesson=lesson)
 
-    for lesson in lessons:
-        lesson_entries = ordered_entries.filter(lesson=lesson)
+            absence_cell = []
 
-        absence_cell = []
+            for entry in lesson_entries:
+                if not entry.is_present:
+                    absence_cell = filled_absence_cell(entry, absence_cell)
 
-        for entry in lesson_entries:
-            if not entry.is_present:
-                absence_cell = filled_absence_cell(entry, absence_cell)
+            present_count = int(journal_strength) - len(absence_cell)
+            summary.add_row([lesson, journal_strength, present_count, "\n".join(absence_cell)])
 
-        present_count = int(journal_strength) - len(absence_cell)
-        summary.add_row([lesson, journal_strength, present_count, "\n".join(absence_cell)])
-
-        return summary
+    return summary
 
 @database_sync_to_async
 def report_today(today, group_id, lessons, mode=WhoSPresentMode.default):
