@@ -110,8 +110,6 @@ def amend_statuses(date, group_id):
                 entry.save()
 
 
-
-
 @database_sync_to_async
 def set_status(data, user_id, lesson=None, mode=WhoSPresentMode.default): #TODO: if today status: status = today status. return
     profile = Profile.objects.get(external_id=user_id)
@@ -180,7 +178,7 @@ def report_table(journal, entries, lessons, journal_strength, mode=WhoSPresentMo
                 presence = entry.is_present
                 row.append("·" if presence else "н")
 
-        table.add_row(row)
+            table.add_row(row)
 
     return table
 
