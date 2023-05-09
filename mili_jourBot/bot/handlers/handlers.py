@@ -17,8 +17,6 @@ from .filters import *
 from ..infrastructure.enums import *
 from ..infrastructure import enums
 
-from django.core.validators import validate_comma_separated_integer_list
-
 from channels.db import database_sync_to_async
 import asyncio
 
