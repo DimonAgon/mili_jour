@@ -27,14 +27,14 @@ import random
 
 
 def validate_date_format(value):
-    date_format = '%d-%m-%Y'
+    date_format = '%d.%m.%Y'
 
     try:
-        datetime.datetime.strptime(value, date_format)
+        datetime.datetime.strptime(value, date_format).date()
         return value
 
     except:
-        raise ValidationError("Ввести дату коректно", code='format_match')
+        raise ValidationError("wrong date format", code='format_match')
 
 
 
@@ -282,8 +282,8 @@ async def today_report_command(message: types.Message):
 
     today_report = await get_report(group_id, GetReportMode.TODAY)
 
-    message.answer(today_report.table)
-    message.answer(today_report.summary, disable_notification=True)
+    await message.answer(today_report.table)
+    await message.answer(today_report.summary, disable_notification=True)
 
 
 @router.message(Command(commands='last_report'))
@@ -291,22 +291,25 @@ async def last_report_command(message: types.Message):# TODO: use report model t
     group_id = message.chat.id
     last_report = await get_report(group_id, GetReportMode.LAST)
 
-    message.answer(last_report.table)
-    message.answer(last_report.summary, disable_notification=True)
+    await message.answer(last_report.table)
+    await message.answer(last_report.summary, disable_notification=True)
 
 
 @router.message(Command(commands='on_date_report'))
 async def on_date_report_command(message: types.Message, command: CommandObject):
     aftercommand = command.args
+
     if validate_date_format(aftercommand):
-        date = aftercommand
+        date = datetime.datetime.strptime(aftercommand, '%d.%m.%Y').date()
+
+    else: message.answer("Ввести дату коректно")
 
     group_id = message.chat.id
 
     on_date_report = await get_report(group_id, GetReportMode.ON_DATE, date)
 
-    message.answer(on_date_report.table)
-    message.answer(on_date_report.summary, disable_notification=True)
+    await message.answer(on_date_report.table)
+    await message.answer(on_date_report.summary, disable_notification=True)
 
 
 # TODO: create a chat leave command, should delete any info of-group info

@@ -253,12 +253,12 @@ def get_report(group_id, mode, specified_date: datetime=None):
 
     match mode:
         case GetReportMode.TODAY:
-            today = datetime.datetime.today()
+            today = datetime.datetime.today().date()
             corresponding_report = Report.objects.get(date=today, journal=journal)
 
         case GetReportMode.LAST:
             journal_reports = Report.objects.filter(journal=journal)
-            corresponding_report = journal_reports.order_by('date')[-1]
+            corresponding_report = journal_reports.order_by('date')[len(journal_reports) - 1] # bare -1 is not supported
 
         case GetReportMode.ON_DATE:
             corresponding_report = Report.objects.get(date=specified_date, journal=journal)
