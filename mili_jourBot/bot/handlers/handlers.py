@@ -280,7 +280,7 @@ async def absence_reason_command(message: types.Message, forms: FormsManager):
         await message.answer("Помилка, вас відмічено як присутнього")
         logging.error(f"failed to set a status for user {user_id}, is_present: True")
 
-@router.message(Command(commands='register'), F.chat.type.in_({'private'}))#, RegisteredExternalIdFilter(Profile)
+@router.message(Command(commands='register'), F.chat.type.in_({'private'}), RegisteredExternalIdFilter(Profile))
 async def register_command(message: types.Message, forms: FormsManager):
 
     await message.reply(text='ініціюю реєстрацію')
@@ -289,7 +289,8 @@ async def register_command(message: types.Message, forms: FormsManager):
     await forms.show('profileform')
 
 
-@router.message(Command(commands='register_journal'), F.chat.type.in_({'group', 'supergroup'}), IsAdminFilter())
+@router.message(Command(commands='register_journal'), F.chat.type.in_({'group', 'supergroup'}), IsAdminFilter(),
+                RegisteredExternalIdFilter(Journal, chat_mode=True))
 async def register_journal_command(message: types.Message, forms: FormsManager):
 
     await message.reply(text="Ініціюю реєстрацію взводу")

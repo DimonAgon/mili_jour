@@ -1,3 +1,4 @@
+import aiogram
 from aiogram.filters import BaseFilter
 from aiogram import types
 
@@ -17,14 +18,16 @@ class RegisteredExternalIdFilter(BaseFilter):
         self.model = model
         self.chat_mode = chat_mode
 
-    @database_sync_to_async
-    def __call__(self, message: types.Message) -> bool:
+    async def __call__(self, message: types.Message) -> bool:
+        @database_sync_to_async
+        def on_id_object_exists():
+            if self.chat_mode:
+                id_ = message.chat.id
+            else:
+                id_ = message.from_user.id
+            return not self.model.objects.filter(external_id=id_).exists()
 
-        if self.chat_mode:
-            id_ = message.chat.id
-        else:
-            id_ = message.from_user.id
-        return not self.model.objects.filter(external_id=id_).exists()
+        return await on_id_object_exists()
 
 class IsAdminFilter(BaseFilter):
     key = 'is_admin'
