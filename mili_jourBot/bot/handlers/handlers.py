@@ -25,6 +25,11 @@ import datetime
 import random
 
 
+def aftercommand_check(value):
+    if value:
+        return value
+
+    logging.error("Command initiation failed\nError: no arguments")
 
 def validate_date_format(value):
     date_format = '%d.%m.%Y'
@@ -36,6 +41,31 @@ def validate_date_format(value):
     except:
         raise ValidationError("wrong date format", code='format_match')
 
+
+def validate_is_mode(value, modes: Enum):
+
+    mode = next((mode for mode in modes if mode.value == value), None)
+
+    if mode:
+        return  True
+
+    logging.error(f"Command initiation failed\nError:no such mode \"{value}\"")
+
+
+def validate_lessons(value):
+    try:
+        value[0]
+        value_integers = [int(e) for e in value]
+
+    except Exception as e:
+        logging.error(f"Command initiation failed\nError:{e}")
+        return
+
+    if [i for i in value_integers if i in Schedule.lessons_intervals.keys()] == [i for i in value_integers]:
+        return True
+
+    else:
+        logging.error("Command initiation failed\nError: wrong arguments")
 
 
 @router.message(Command(commands='start'))
@@ -85,38 +115,28 @@ def presence_option_to_string(presence_option: Type[PresencePollOptions]):
 @router.message(Command(commands=['who_s_present', 'wp']), F.chat.type.in_({'group', 'supergroup'}))
 async def who_s_present_command(message: types.Message, command: CommandObject):  # Checks who is present
     aftercommand = command.args
-    if aftercommand:
+    if aftercommand_check(aftercommand):
         args = aftercommand.split()
         pseudo_mode, *secondary = args
+
     else:
         await message.answer("Помилка, вкажіть аргументи")
-        logging.error("Command initiation failed\nError: no arguments")
         return
 
-    mode = next((mode for mode in WhoSPresentMode if mode.value == pseudo_mode), None)
+    if validate_is_mode(pseudo_mode, WhoSPresentMode):
+        mode = next((mode for mode in WhoSPresentMode if pseudo_mode == mode.value), None)
 
-    if not mode:
+    else:
         await message.answer("Помилка, вказано невірний режим")
-        logging.error(f"Command initiation failed\nError: no such mode \"{pseudo_mode}\"")
         return
 
     if mode == WhoSPresentMode.LIGHT_MODE or mode == WhoSPresentMode.NORMAL_MODE or mode == WhoSPresentMode.HARDCORE_MODE:
-        try:
-            secondary[0]
-            secondary_integers = [int(e) for e in secondary]
-
-        except Exception as e:
-            await message.answer("Помилка, очікується послідовність занять")
-            logging.error(f"Command initiation failed\nError:{e}")
-            return
-
-        if [i for i in secondary_integers if i in Schedule.lessons_intervals.keys()] == [i for i in secondary_integers]:
-            lessons = secondary_integers
-
+        if validate_lessons(secondary):
+            lessons = [int(e) for e in secondary]
         else:
-            await message.answer("Помилка, невірно вказані заняття")
-            logging.error("Command initiation failed\nError: wrong arguments")
+            await message.answer("Помилка, очікується послідовність занять")
             return
+
 
     else:
         try:
@@ -240,7 +260,7 @@ async def who_s_present_poll_handler (poll_answer: types.poll_answer, state: FSM
 @router.message(Command(commands='absence_reason'))
 async def absence_reason_command(message: types.Message, state: FSMContext):
     user_id = message.from_user.id
-
+    # TODO: pass the lesson if lesson is none, then answer and return
     current_lesson_presence = await on_lesson_presence_check(user_id)
     if not current_lesson_presence:
         await message.answer('Вказати причину відстутності? Т/Н')
@@ -298,6 +318,10 @@ async def last_report_command(message: types.Message):# TODO: use report model t
 @router.message(Command(commands='on_date_report'))
 async def on_date_report_command(message: types.Message, command: CommandObject):
     aftercommand = command.args
+
+    if not aftercommand_check(aftercommand):
+        await message.answer("Помилка, вкажіть аргументи")
+        return
 
     if validate_date_format(aftercommand):
         date = datetime.datetime.strptime(aftercommand, '%d.%m.%Y').date()
