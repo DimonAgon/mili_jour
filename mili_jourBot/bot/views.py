@@ -227,7 +227,7 @@ def report_summary(journal, entries, lessons, journal_strength, mode=WhoSPresent
     return summary
 
 @database_sync_to_async
-def report_today(today, group_id, lessons, mode=WhoSPresentMode.default):
+def report_today(today, group_id, lessons, mode=WhoSPresentMode.default): #TODO: separate report, make it sync
     journal = Journal.objects.get(external_id=group_id)
     journal_strength = journal.strength
 
@@ -262,5 +262,5 @@ def get_report(group_id, mode, specified_date: datetime=None):
 
         case GetReportMode.ON_DATE:
             corresponding_report = Report.objects.get(date=specified_date, journal=journal)
-
+        #TODO: if report table is None: report()
     return corresponding_report
