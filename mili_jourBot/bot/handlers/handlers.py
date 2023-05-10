@@ -289,7 +289,7 @@ async def register_command(message: types.Message, forms: FormsManager):
     await forms.show('profileform')
 
 
-@router.message(Command(commands='register_journal'), F.chat.type.in_({'group', 'supergroup'}), IsAdminFilter)
+@router.message(Command(commands='register_journal'), F.chat.type.in_({'group', 'supergroup'}), IsAdminFilter())
 async def register_journal_command(message: types.Message, forms: FormsManager):
 
     await message.reply(text="Ініціюю реєстрацію взводу")
@@ -305,7 +305,7 @@ async def cancel_registration_command(message: types.Message, state: FSMContext)
 #TODO: reports should be able in both group and private chat
 
 
-@router.message(Command(commands='today_report'), IsAdminFilter)
+@router.message(Command(commands='today_report'), IsAdminFilter())
 async def today_report_command(message: types.Message):
     group_id = message.chat.id
 
@@ -315,7 +315,7 @@ async def today_report_command(message: types.Message):
     await message.answer(today_report.summary, disable_notification=True)
 
 
-@router.message(Command(commands='last_report'), IsAdminFilter)
+@router.message(Command(commands='last_report'), IsAdminFilter())
 async def last_report_command(message: types.Message): #TODO: use report model to answer
     group_id = message.chat.id
     last_report = await get_report(group_id, GetReportMode.LAST)
@@ -324,7 +324,7 @@ async def last_report_command(message: types.Message): #TODO: use report model t
     await message.answer(last_report.summary, disable_notification=True)
 
 
-@router.message(Command(commands='on_date_report'), IsAdminFilter)
+@router.message(Command(commands='on_date_report'), IsAdminFilter())
 async def on_date_report_command(message: types.Message, command: CommandObject):
     aftercommand = command.args
 
