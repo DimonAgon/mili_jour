@@ -112,7 +112,7 @@ def amend_statuses(date, group_id):
 
 @database_sync_to_async
 def on_lesson_presence_check(user_id):
-    profile = Profile.objects.get(user_id)
+    profile = Profile.objects.get(external_id=user_id)
     current_lesson = Schedule.lesson_match(datetime.datetime.now().time())
     on_lesson_entry = JournalEntry.objects.get(profile=profile, lesson=current_lesson)
     presence = on_lesson_entry.is_present
