@@ -6,13 +6,13 @@ import portion as P
 
 
 
-class WhoSPresentMode(Enum):
+class WhoSPresentMode(Enum): #TODO: rewrite the _values_, add more string representations
     LIGHT_MODE = 'light'
     NORMAL_MODE = 'normal'
     HARDCORE_MODE = 'hardcore'
     SCHEDULE_MODE = 'schedule'
     ZOOM_MODE = 'zoom'
-    default = LIGHT_MODE
+    default = NORMAL_MODE
     # TODO: add an event mode
 
 
