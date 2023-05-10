@@ -1,3 +1,4 @@
+import logging
 import re
 
 from aiogram import F
@@ -265,6 +266,7 @@ async def absence_reason_command(message: types.Message, state: FSMContext):
 
     except:
         await message.answer("Помилка, причину відсутності вказати впродовж відповідного заняття") #TODO: consider
+        logging.error(f"failed to set a status for user {user_id}, lesson is None")
         return
 
     if not current_lesson_presence:
@@ -274,6 +276,7 @@ async def absence_reason_command(message: types.Message, state: FSMContext):
     else:
         logging.error(f"Absence reason set is impossible, user {user_id} is present")
         await message.answer("Помилка, вас відмічено як присутнього")
+        logging.error(f"failed to set a status for user {user_id}, is_present: True")
 
 @router.message(Command(commands='register'), F.chat.type.in_({'private'}))#, RegisteredExternalIdFilter(Profile)
 async def register_command(message: types.Message, forms: FormsManager):
@@ -339,6 +342,7 @@ async def on_date_report_command(message: types.Message, command: CommandObject)
 
     except:
         await message.answer("Помилка, задана дата не відповідає жодному звіту взводу")
+        logging.error(f"get report failed, no reports on {date} date")
         return
 
     await message.answer(on_date_report.table)
