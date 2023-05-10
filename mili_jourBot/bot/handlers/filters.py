@@ -12,6 +12,7 @@ from .dispatcher import bot
 
 class RegisteredExternalIdFilter(BaseFilter):
     key = "in_db"
+
     def __init__(self, model: Type[models.Model], chat_mode: bool = False):
         self.model = model
         self.chat_mode = chat_mode
@@ -30,7 +31,7 @@ class IsAdminFilter(BaseFilter):
     required_auth_level = 'administrator'
     creator = 'creator'
 
-    async def __call__(self, message: types.Message):
+    async def __call__(self, message: types.Message) -> bool:
         
         chat_id = message.chat.id
         user_id = message.from_user.id
