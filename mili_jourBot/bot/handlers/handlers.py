@@ -17,7 +17,6 @@ from .filters import *
 from ..infrastructure.enums import *
 from ..infrastructure import enums
 
-from channels.db import database_sync_to_async
 import asyncio
 
 import datetime
@@ -330,7 +329,12 @@ async def on_date_report_command(message: types.Message, command: CommandObject)
 
     group_id = message.chat.id
 
-    on_date_report = await get_report(group_id, GetReportMode.ON_DATE, date)
+    try:
+        on_date_report = await get_report(group_id, GetReportMode.ON_DATE, date)
+
+    except:
+        await message.answer("Помилка, задана дата не відповідає жодному звіту взводу")
+        return
 
     await message.answer(on_date_report.table)
     await message.answer(on_date_report.summary, disable_notification=True)
