@@ -306,7 +306,7 @@ async def cancel_registration_command(message: types.Message, state: FSMContext)
 
 
 @router.message(Command(commands='today_report'), IsAdminFilter())
-async def today_report_command(message: types.Message):
+async def today_report_command(message: types.Message): #TODO: if report table is empty: report_today()
     group_id = message.chat.id
 
     today_report = await get_report(group_id, GetReportMode.TODAY)

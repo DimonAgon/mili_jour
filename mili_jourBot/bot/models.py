@@ -50,7 +50,7 @@ class Report(models.Model):
     lessons = models.CharField(validate_comma_separated_integer_list, max_length=15, null=True)
     table = models.TextField(null=True)
     summary = models.TextField(null=True)
-
+    #TODO: make both table and summary file fields
 
 #TODO: add a model for schedule using hash-key
 #TODO: add a model for lessons

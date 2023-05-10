@@ -243,7 +243,7 @@ def report_today(today, group_id, lessons, mode=WhoSPresentMode.default):
     summary = report_summary(**report_details)
 
     corresponding_report = Report.objects.get(journal=journal, date=today)
-    corresponding_report.date, corresponding_report.table, corresponding_report.summary = today, str(table), str(summary)
+    corresponding_report.date, corresponding_report.table, corresponding_report.summary = today, str(table), str(summary) #TODO: add tables itself instead, or add links to table files
     corresponding_report.save()
     return corresponding_report
 
