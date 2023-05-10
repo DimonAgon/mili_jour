@@ -258,7 +258,7 @@ async def who_s_present_poll_handler (poll_answer: types.poll_answer, state: FSM
             await state.set_state(AbsenceReasonStates.AbsenceReason)
 
 @router.message(Command(commands='absence_reason'), F.chat.type.in_({'private'}))
-async def absence_reason_command(message: types.Message, state: FSMContext):
+async def absence_reason_command(message: types.Message, forms: FormsManager):
     user_id = message.from_user.id
     # TODO: pass the lesson if lesson is none, then answer and return
     try:
@@ -270,8 +270,7 @@ async def absence_reason_command(message: types.Message, state: FSMContext):
         return
 
     if not current_lesson_presence:
-        await message.answer('Вказати причину відстутності? Т/Н')
-        await state.set_state(AbsenceReasonStates.AbsenceReason)
+        await forms.show('absenceform')
 
     else:
         logging.error(f"Absence reason set is impossible, user {user_id} is present")
