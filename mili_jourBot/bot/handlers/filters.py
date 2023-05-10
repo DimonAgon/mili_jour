@@ -14,9 +14,9 @@ from .dispatcher import bot
 class RegisteredExternalIdFilter(BaseFilter):
     key = "in_db"
 
-    def __init__(self, model: Type[models.Model], chat_mode: bool = False):
+    def __init__(self, model: Type[models.Model], use_chat_id: bool = False):
         self.model = model
-        self.chat_mode = chat_mode
+        self.chat_mode = use_chat_id
 
     async def __call__(self, message: types.Message) -> bool:
         @database_sync_to_async

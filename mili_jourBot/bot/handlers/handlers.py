@@ -290,7 +290,7 @@ async def register_command(message: types.Message, forms: FormsManager):
 
 
 @router.message(Command(commands='register_journal'), F.chat.type.in_({'group', 'supergroup'}), IsAdminFilter(),
-                RegisteredExternalIdFilter(Journal, chat_mode=True))
+                RegisteredExternalIdFilter(Journal, use_chat_id=True))
 async def register_journal_command(message: types.Message, forms: FormsManager):
 
     await message.reply(text="Ініціюю реєстрацію взводу")
