@@ -342,7 +342,7 @@ async def on_date_report_command(message: types.Message, command: CommandObject)
     try:
         on_date_report = await get_report(group_id, GetReportMode.ON_DATE, date)
 
-    except:
+    except:# TODO: write a decorator-validator instead
         await message.answer("Помилка, задана дата не відповідає жодному звіту взводу")
         logging.error(f"get report failed, no reports on {date} date")
         return
