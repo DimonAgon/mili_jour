@@ -256,7 +256,7 @@ async def who_s_present_poll_handler (poll_answer: types.poll_answer, state: FSM
             await bot.send_message(user_id, 'Вказати причину відстутності? Т/Н')
             await state.set_state(AbsenceReasonStates.AbsenceReason)
 
-@router.message(Command(commands='absence_reason'))
+@router.message(Command(commands='absence_reason'), F.chat.type.in_({'private'}))
 async def absence_reason_command(message: types.Message, state: FSMContext):
     user_id = message.from_user.id
     # TODO: pass the lesson if lesson is none, then answer and return
@@ -276,7 +276,6 @@ async def register_command(message: types.Message, forms: FormsManager):
     await asyncio.sleep(3)
 
     await forms.show('profileform')
-
 
 
 @router.message(Command(commands='register_journal'), F.chat.type.in_({'group', 'supergroup'}))
