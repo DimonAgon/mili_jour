@@ -13,7 +13,7 @@ class WhoSPresentMode(Enum): #TODO: rewrite the _values_, add more string repres
     SCHEDULE_MODE = 'schedule'
     ZOOM_MODE = 'zoom'
     default = NORMAL_MODE
-    # TODO: add an event mode
+    #TODO: add an event mode
 
 
 class GetReportMode(Enum):

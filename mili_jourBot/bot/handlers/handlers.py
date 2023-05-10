@@ -96,7 +96,7 @@ async def help_command(message: types.Message):
                     "\n/last_report– викликати останній звіт" \
                     "\n/on_date_report– викликати звіт за датою"
 
-    # TODO: on_update_info
+    #TODO: on_update_info
 
     await message.reply(HELPFUL_REPLY)
 
@@ -149,7 +149,7 @@ async def who_s_present_command(message: types.Message, command: CommandObject):
             return
 
         except Exception:
-            pass # TODO: consider pass
+            pass #TODO: consider pass
 
     lessons.sort()
 
@@ -214,19 +214,19 @@ async def who_s_present_command(message: types.Message, command: CommandObject):
 
             till_poll = poll_time - now
             await asyncio.sleep(till_poll.seconds)
-            till_deadline = deadline - now # TODO: create an async scheduler
+            till_deadline = deadline - now #TODO: create an async scheduler
             poll_message = await message.answer_poll(**poll_configuration) #TODO: consider using poll configuration dict
-            await asyncio.sleep(till_deadline.seconds)  # TODO: schedule instead
+            await asyncio.sleep(till_deadline.seconds)  #TODO: schedule instead
             await bot.stop_poll(chat_id=poll_message.chat.id, message_id=poll_message.message_id)
 
         await amend_statuses(today, group_id)
 
 
     else:
-        await initiate_today_entries(today, group_id)# TODO: the better choice may be to call function on every study day
+        await initiate_today_entries(today, group_id) #TODO: the better choice may be to call function on every study day
         await initiate_today_report(today, group_id, lessons)
         poll_message = await message.answer_poll(**poll_configuration)
-        await asyncio.sleep(till_deadline.seconds)# TODO: schedule instead
+        await asyncio.sleep(till_deadline.seconds) #TODO: schedule instead
         await bot.stop_poll(chat_id=poll_message.chat.id, message_id=poll_message.message_id)
 
     today_report = await report_today(today, group_id, lessons, mode)
@@ -244,7 +244,7 @@ async def absence_reason_handler_T(message: types.Message, forms: FormsManager):
 async def absence_reason_handler_H(message: types.Message, state: FSMContext):
     await state.clear()
 
-@router.poll_answer()# TODO: add a flag for vote-answer mode, add an every-lesson mode
+@router.poll_answer() #TODO: add a flag for vote-answer mode, add an every-lesson mode
 async def who_s_present_poll_handler (poll_answer: types.poll_answer, state: FSMContext):  #TODO: add an ability to re-answer
     is_present = poll_answer.option_ids == [PresencePollOptions.Present.value]
     user_id = poll_answer.user.id
@@ -263,7 +263,7 @@ async def who_s_present_poll_handler (poll_answer: types.poll_answer, state: FSM
 @router.message(Command(commands='absence_reason'), F.chat.type.in_({'private'}))
 async def absence_reason_command(message: types.Message, forms: FormsManager):
     user_id = message.from_user.id
-    # TODO: pass the lesson if lesson is none, then answer and return
+    #TODO: pass the lesson if lesson is none, then answer and return
     try:
         current_lesson_presence = await on_lesson_presence_check(user_id)
 
@@ -302,7 +302,7 @@ async def register_journal_command(message: types.Message, forms: FormsManager):
 async def cancel_registration_command(message: types.Message, state: FSMContext):
     await state.clear()
     await message.reply(text="Процес реєстрації було перервано")
-# TODO: reports should be able in both group and private chat
+#TODO: reports should be able in both group and private chat
 
 
 @router.message(Command(commands='today_report'), IsAdminFilter)
@@ -316,7 +316,7 @@ async def today_report_command(message: types.Message):
 
 
 @router.message(Command(commands='last_report'), IsAdminFilter)
-async def last_report_command(message: types.Message):# TODO: use report model to answer
+async def last_report_command(message: types.Message): #TODO: use report model to answer
     group_id = message.chat.id
     last_report = await get_report(group_id, GetReportMode.LAST)
 
@@ -342,7 +342,7 @@ async def on_date_report_command(message: types.Message, command: CommandObject)
     try:
         on_date_report = await get_report(group_id, GetReportMode.ON_DATE, date)
 
-    except:# TODO: write a decorator-validator instead
+    except: #TODO: write a decorator-validator instead
         await message.answer("Помилка, задана дата не відповідає жодному звіту взводу")
         logging.error(f"get report failed, no reports on {date} date")
         return
@@ -351,6 +351,6 @@ async def on_date_report_command(message: types.Message, command: CommandObject)
     await message.answer(on_date_report.summary, disable_notification=True)
 
 
-# TODO: create a chat leave command, should delete any info of-group info
-# TODO: create a new_schedule_command
+#TODO: create a chat leave command, should delete any info of-group info
+#TODO: create a new_schedule_command
 

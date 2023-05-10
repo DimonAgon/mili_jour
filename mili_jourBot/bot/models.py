@@ -52,7 +52,7 @@ class Report(models.Model):
     summary = models.TextField(null=True)
 
 
-# TODO: add a model for schedule using hash-key
-# TODO: add a model for lessons
+#TODO: add a model for schedule using hash-key
+#TODO: add a model for lessons
 
-# TODO: add a model for event
+#TODO: add a model for event
