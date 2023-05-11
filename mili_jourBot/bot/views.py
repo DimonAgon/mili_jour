@@ -13,7 +13,7 @@ import prettytable
 
 import statistics
 
-import regex
+import regex #TODO: swap regex to re, where possible
 
 @database_sync_to_async
 def add_profile(data, user_id):
