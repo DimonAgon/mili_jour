@@ -42,7 +42,7 @@ class JournalEntry(models.Model):
     profile = models.ForeignKey(to='Profile', on_delete=models.CASCADE)
     date = models.DateField()
     lesson = models.IntegerField(null=True) #TODO: rename to lesson_ord
-    is_present = models.BooleanField(verbose_name="Присутність")
+    is_present = models.BooleanField(verbose_name="Присутність", null=True)
     status = models.CharField(verbose_name='Статус', max_length=60, null=True)
 
 
