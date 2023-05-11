@@ -42,7 +42,7 @@ def add_journal_entry(initial):
 
 
 @database_sync_to_async
-def initiate_today_entries(today, group_id, lesson=None, mode=WhoSPresentMode.default):
+def initiate_today_entries(today, group_id, lesson=None, mode=default):
     journal = Journal.objects.get(external_id=group_id)
 
     if mode == WhoSPresentMode.LIGHT_MODE:
@@ -124,7 +124,7 @@ def on_lesson_presence_check(user_id):
 
 
 @database_sync_to_async
-def set_status(data, user_id, lesson=None, mode=WhoSPresentMode.default): #TODO: if today status: status = today status. return
+def set_status(data, user_id, lesson=None, mode=default): #TODO: if today status: status = today status. return
     profile = Profile.objects.get(external_id=user_id)
     journal = profile.journal
     now = datetime.datetime.now()
@@ -160,7 +160,7 @@ def filled_absence_cell(entry, absence_cell):
     absence_cell.append(last_name if not status else last_name + "— " + status)
     return absence_cell
 
-def report_table(journal, entries, lessons, journal_strength, mode=WhoSPresentMode.default):
+def report_table(journal, entries, lessons, journal_strength, mode=default):
     table = prettytable.PrettyTable(["Студент"] + [l for l in lessons])
     table.border = False
 
@@ -195,7 +195,7 @@ def report_table(journal, entries, lessons, journal_strength, mode=WhoSPresentMo
 
     return table
 
-def report_summary(journal, entries, lessons, journal_strength, mode=WhoSPresentMode.default):
+def report_summary(journal, entries, lessons, journal_strength, mode=default):
     summary = prettytable.PrettyTable(["Зан.", "Сп.", "Пр.", "Відсутні"])
 
     if mode == WhoSPresentMode.LIGHT_MODE:
@@ -227,11 +227,11 @@ def report_summary(journal, entries, lessons, journal_strength, mode=WhoSPresent
     return summary
 
 @database_sync_to_async
-def report_today(today, group_id, lessons, mode=WhoSPresentMode.default): #TODO: separate report, make it sync
+def report(date, group_id, lessons, mode=default): #TODO: separate report, make it sync
     journal = Journal.objects.get(external_id=group_id)
     journal_strength = journal.strength
 
-    entries = JournalEntry.objects.filter(journal=journal, date=today)
+    entries = JournalEntry.objects.filter(journal=journal, date=date)
 
     report_details = {'journal': journal,
                       'entries': entries,
@@ -242,8 +242,8 @@ def report_today(today, group_id, lessons, mode=WhoSPresentMode.default): #TODO:
     table = report_table(**report_details)
     summary = report_summary(**report_details)
 
-    corresponding_report = Report.objects.get(journal=journal, date=today)
-    corresponding_report.date, corresponding_report.table, corresponding_report.summary = today, str(table), str(summary) #TODO: add tables itself instead, or add links to table files
+    corresponding_report = Report.objects.get(journal=journal, date=date)
+    corresponding_report.date, corresponding_report.table, corresponding_report.summary = date, str(table), str(summary) #TODO: add tables itself instead, or add links to table files
     corresponding_report.save()
     return corresponding_report
 
@@ -253,14 +253,23 @@ def get_report(group_id, mode, specified_date: datetime=None):
 
     match mode:
         case GetReportMode.TODAY:
-            today = datetime.datetime.today().date()
-            corresponding_report = Report.objects.get(date=today, journal=journal)
+            date = datetime.datetime.today().date()
+            corresponding_report = Report.objects.get(date=date, journal=journal)
 
         case GetReportMode.LAST:
             journal_reports = Report.objects.filter(journal=journal)
             corresponding_report = journal_reports.order_by('date')[len(journal_reports) - 1] # bare -1 is not supported
+            str_date = corresponding_report.date
+            date = datetime.datetime.strptime(str_date)
 
         case GetReportMode.ON_DATE:
             corresponding_report = Report.objects.get(date=specified_date, journal=journal)
-        #TODO: if report table is None: report()
+
+    str_lessons = corresponding_report.lessons
+    str_lessons_splitted = str_lessons.split()
+    lessons = [int(e) for e in str_lessons_splitted]
+
+    if corresponding_report.table is None:
+        return report(date, group_id, lessons, corresponding_report.mode)
+
     return corresponding_report

@@ -229,7 +229,7 @@ async def who_s_present_command(message: types.Message, command: CommandObject):
         await asyncio.sleep(till_deadline.seconds) #TODO: schedule instead
         await bot.stop_poll(chat_id=poll_message.chat.id, message_id=poll_message.message_id)
 
-    today_report = await report_today(today, group_id, lessons, mode)
+    today_report = await report(today, group_id, lessons, mode)
     await message.answer(today_report.table)
     await message.answer(today_report.summary, disable_notification=True)
 

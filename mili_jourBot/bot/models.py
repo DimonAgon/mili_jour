@@ -2,6 +2,8 @@ from django.db import models
 from django.urls import reverse_lazy
 from django.core.validators import validate_comma_separated_integer_list
 
+from .infrastructure.enums import *
+
 
 class Profile(models.Model):
     name = models.CharField(verbose_name="Ім'я, Прізвище", max_length=65)
@@ -50,6 +52,7 @@ class Report(models.Model):
     lessons = models.CharField(validate_comma_separated_integer_list, max_length=15, null=True)
     table = models.TextField(null=True)
     summary = models.TextField(null=True)
+    mode = models.CharField(max_length=12, choices=WhoSPresentMode.choices, default=default)
     #TODO: make both table and summary file fields
 
 #TODO: add a model for schedule using hash-key

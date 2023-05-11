@@ -1,4 +1,7 @@
 from enum import Enum, auto
+from django.db.models import TextChoices
+
+from django.utils.translation import gettext_lazy as _
 
 import datetime
 
@@ -6,14 +9,15 @@ import portion as P
 
 
 
-class WhoSPresentMode(Enum): #TODO: rewrite the _values_, add more string representations
-    LIGHT_MODE = 'light'
-    NORMAL_MODE = 'normal'
-    HARDCORE_MODE = 'hardcore'
+class WhoSPresentMode(TextChoices):
+    LIGHT_MODE = 'L', _('light')
+    NORMAL_MODE = 'N', _('normal')
+    HARDCORE_MODE = 'H', _('hardcore')
     SCHEDULE_MODE = 'schedule'
     ZOOM_MODE = 'zoom'
-    default = NORMAL_MODE
     #TODO: add an event mode
+
+default = WhoSPresentMode.NORMAL_MODE
 
 
 class GetReportMode(Enum):
