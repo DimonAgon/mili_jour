@@ -50,10 +50,9 @@ class Report(models.Model):
     journal = models.ForeignKey(to='Journal', on_delete=models.CASCADE, verbose_name="Журнал")
     date = models.DateField()
     lessons = models.CharField(validate_comma_separated_integer_list, max_length=15, null=True)
-    table = models.TextField(null=True)
-    summary = models.TextField(null=True)
+    table = models.FileField(null=True)
+    summary = models.FileField(null=True)
     mode = models.CharField(max_length=12, choices=WhoSPresentMode.choices, default=default)
-    #TODO: make both table and summary file fields
 
 #TODO: add a model for schedule using hash-key
 #TODO: add a model for lessons
