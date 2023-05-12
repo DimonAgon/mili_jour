@@ -20,7 +20,7 @@ class Profile(models.Model):
     class Meta:
         verbose_name = "Профіль"
         verbose_name_plural = "Взводи"
-        ordering = ['ordinal']
+        ordering = ['ordinal'] #TODO: oredering by ordinal is not working
 
 
 class Journal(models.Model):
