@@ -53,6 +53,7 @@ class Report(models.Model):
     table = models.FileField(null=True)
     summary = models.FileField(null=True)
     mode = models.CharField(max_length=12, choices=WhoSPresentMode.choices, default=default)
+    is_complete = models.BooleanField()
 
 #TODO: add a model for schedule using hash-key
 #TODO: add a model for lessons
