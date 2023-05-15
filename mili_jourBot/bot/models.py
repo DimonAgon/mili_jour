@@ -50,12 +50,7 @@ class Report(models.Model):
     journal = models.ForeignKey(to='Journal', on_delete=models.CASCADE, verbose_name="Журнал")
     date = models.DateField()
     lessons = models.CharField(validate_comma_separated_integer_list, max_length=15, null=True)
-
-    files_path = f'{journal.name}/%Y/'
-    table = models.FileField(null=True, upload_to=files_path)
-    summary = models.FileField(null=True, upload_to=files_path)
     mode = models.CharField(max_length=12, choices=WhoSPresentMode.choices, default=default)
-    is_complete = models.BooleanField()
 
 #TODO: add a model for schedule using hash-key
 #TODO: add a model for lessons
