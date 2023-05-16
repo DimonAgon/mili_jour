@@ -1,6 +1,7 @@
 import logging
 import re
 
+import htmldocx
 from aiogram import F
 from aiogram import types
 from aiogram.filters import Command, CommandObject
@@ -22,6 +23,8 @@ from ..infrastructure import enums
 import asyncio
 
 import datetime
+
+import docx
 
 import random
 
@@ -176,7 +179,7 @@ async def who_s_present_command(message: types.Message, command: CommandObject):
         poll_configuration.update({'question': question})
 
     if not mode == WhoSPresentMode.LIGHT_MODE:
-        await initiate_today_report(today, group_id, lessons)
+        await initiate_today_report(today, group_id, lessons, mode)
         for lesson in lessons:
 
             await initiate_today_entries(today, group_id, lesson, mode)
@@ -228,10 +231,6 @@ async def who_s_present_command(message: types.Message, command: CommandObject):
         poll_message = await message.answer_poll(**poll_configuration)
         await asyncio.sleep(till_deadline.seconds) #TODO: schedule instead
         await bot.stop_poll(chat_id=poll_message.chat.id, message_id=poll_message.message_id)
-
-    today_report = await report(today, group_id, lessons, mode)
-    await message.answer(today_report.table)
-    await message.answer(today_report.summary, disable_notification=True)
 
 
 class AbsenceReasonStates(StatesGroup): AbsenceReason = State()
@@ -307,27 +306,67 @@ async def cancel_registration_command(message: types.Message, state: FSMContext)
 
 
 @router.message(Command(commands='today_report'), IsAdminFilter())
-async def today_report_command(message: types.Message):
+async def today_report_command(message: types.Message, command: CommandObject):
+    pseudo_flag = command.args
+    if pseudo_flag:
+        if validate_is_mode(pseudo_flag, ReportMode.Flag):
+            flag = pseudo_flag
+        else:
+            await message.answer("Помилка, невірно вказаний режим") #TODO: add a Validation error for that text
+
+    else: flag = ReportMode.Flag.TEXT
+
     group_id = message.chat.id
+    today_report = await get_report(group_id, ReportMode.TODAY)
 
-    today_report = await get_report(group_id, GetReportMode.TODAY)
 
-    await message.answer(today_report.table)
-    await message.answer(today_report.summary, disable_notification=True)
 
 
 @router.message(Command(commands='last_report'), IsAdminFilter())
-async def last_report_command(message: types.Message): #TODO: use report model to answer
-    group_id = message.chat.id
-    last_report = await get_report(group_id, GetReportMode.LAST)
+async def last_report_command(message: types.Message, command: CommandObject):
+    pseudo_flag = command.args
+    if pseudo_flag:
+        if validate_is_mode(pseudo_flag, ReportMode.Flag):
+            flag = pseudo_flag
 
-    await message.answer(last_report.table)
-    await message.answer(last_report.summary, disable_notification=True)
+    else:
+        await message.answer("Помилка, невірно вказаний режим")
+
+    group_id = message.chat.id
+    journal = Journal.objects.get(external_id=group_id)
+    last_report = await get_report(group_id, ReportMode.LAST)
+    table = report_table(last_report)
+    summary = report_summary(last_report)
+
+    await message.answer(f"Таблиця присутності, Звіт {journal.name}")
+
+    match flag:
+        case ReportMode.Flag.TEXT:
+            await message.answer(str(table))
+            await message.answer(str(summary), disable_notification=True)
+
+        case ReportMode.Flag.DOCUMENT:
+            document = docx.Document()
+            parser = htmldocx.HtmlToDocx
+
+            table_html = table.get_html_string()
+            parser.add_html_to_document(table_html, document)
+            await message.answer_document(document)
+
+            document._body.clear_content()
+
+            summary_html = summary.get_html_string()
+            parser.add_html_to_document(summary_html, document)
+            await message.answer_document(document, disable_notification=True)
 
 
 @router.message(Command(commands='on_date_report'), IsAdminFilter())
 async def on_date_report_command(message: types.Message, command: CommandObject):
     aftercommand = command.args
+    try:
+        pseudomode, pseudoflag = aftercommand
+    except:
+        pseudomode = aftercommand
 
     if not aftercommand_check(aftercommand):
         await message.answer("Помилка, вкажіть аргументи")
@@ -341,7 +380,7 @@ async def on_date_report_command(message: types.Message, command: CommandObject)
     group_id = message.chat.id
 
     try:
-        on_date_report = await get_report(group_id, GetReportMode.ON_DATE, date)
+        on_date_report = await get_report(group_id, ReportMode.ON_DATE, date)
 
     except: #TODO: write a decorator-validator instead
         await message.answer("Помилка, задана дата не відповідає жодному звіту взводу")

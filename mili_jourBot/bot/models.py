@@ -50,6 +50,14 @@ class Report(models.Model):
     journal = models.ForeignKey(to='Journal', on_delete=models.CASCADE, verbose_name="Журнал")
     date = models.DateField()
     lessons = models.CharField(validate_comma_separated_integer_list, max_length=15, null=True)
+    @property
+    def lessons_integer_list(self):
+        lessons_list_string = self.lessons
+        lessons_string = lessons_list_string.replace('[', '').replace(']','')
+        lessons_integer_list = [int(e) for e in lessons_string]
+
+        return lessons_integer_list
+
     mode = models.CharField(max_length=12, choices=WhoSPresentMode.choices, default=default)
 
 #TODO: add a model for schedule using hash-key

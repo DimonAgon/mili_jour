@@ -14,7 +14,7 @@ from .dispatcher import bot
 class RegisteredExternalIdFilter(BaseFilter):
     key = "in_db"
 
-    def __init__(self, model: Type[models.Model], use_chat_id: bool = False):
+    def __init__(self, model: Type[models.Model], use_chat_id: bool = False): #TODO: rename use_chat_id to use_group_id
         self.model = model
         self.chat_mode = use_chat_id
 

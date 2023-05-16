@@ -20,10 +20,13 @@ class WhoSPresentMode(TextChoices):
 default = WhoSPresentMode.NORMAL_MODE
 
 
-class GetReportMode(Enum):
+class ReportMode(Enum):
     TODAY = auto()
     LAST = auto()
     ON_DATE = auto()
+    class Flag(Enum):
+        DOCUMENT = 'doc'
+        TEXT = 'text'
 
 
 class Schedule: #Do not try to deceive the poll

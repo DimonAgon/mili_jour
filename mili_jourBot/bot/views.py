@@ -11,9 +11,8 @@ import datetime
 
 import prettytable
 
-import statistics
-
 import regex #TODO: swap regex to re, where possible
+
 
 @database_sync_to_async
 def add_profile(data, user_id):
@@ -140,7 +139,7 @@ def set_status(data, user_id, lesson=None, mode=default): #TODO: if today status
 
 
 @database_sync_to_async
-def initiate_today_report(today, group_id, lessons):
+def initiate_today_report(today, group_id, lessons, mode=default):
     journal = Journal.objects.get(external_id=group_id)
 
     if not Report.objects.filter(date=today, journal=journal, lessons=lessons).exists():
@@ -151,7 +150,7 @@ def initiate_today_report(today, group_id, lessons):
 
         else:
             journal = Journal.objects.get(external_id=group_id)
-            report = Report.objects.create(journal=journal, date=today, lessons=lessons)
+            report = Report.objects.create(journal=journal, date=today, lessons=lessons, mode=mode, is_complete=False)
             report.save()
 
 def filled_absence_cell(entry, absence_cell):
@@ -160,7 +159,13 @@ def filled_absence_cell(entry, absence_cell):
     absence_cell.append(last_name if not status else last_name + "— " + status)
     return absence_cell
 
-def report_table(journal, entries, lessons, journal_strength, mode=default):
+@database_sync_to_async
+def report_table(report, flag) -> Type[prettytable.PrettyTable]:
+    journal = report.journal
+    date = report.date
+    entries = JournalEntry.objects.filter(journal=journal, date=date)
+    lessons = report.lessons_integer_list
+    mode = report.mode
     table = prettytable.PrettyTable(["Студент"] + [l for l in lessons])
     table.border = False
 
@@ -195,7 +200,14 @@ def report_table(journal, entries, lessons, journal_strength, mode=default):
 
     return table
 
-def report_summary(journal, entries, lessons, journal_strength, mode=default):
+@database_sync_to_async
+def report_summary(report, flag) -> Type[prettytable.PrettyTable]:
+    journal = report.journal
+    journal_strength = journal.strength
+    date = report.date
+    entries = JournalEntry.objects.filter(journal=journal, date=date)
+    lessons = report.lessons_integer_list
+    mode = report.mode
     summary = prettytable.PrettyTable(["Зан.", "Сп.", "Пр.", "Відсутні"])
 
     if mode == WhoSPresentMode.LIGHT_MODE:
@@ -226,50 +238,21 @@ def report_summary(journal, entries, lessons, journal_strength, mode=default):
 
     return summary
 
-@database_sync_to_async
-def report(date, group_id, lessons, mode=default): #TODO: separate report, make it sync
-    journal = Journal.objects.get(external_id=group_id)
-    journal_strength = journal.strength
-
-    entries = JournalEntry.objects.filter(journal=journal, date=date)
-
-    report_details = {'journal': journal,
-                      'entries': entries,
-                      'lessons': lessons,
-                      'journal_strength': journal_strength,
-                      'mode': mode}
-
-    table = report_table(**report_details)
-    summary = report_summary(**report_details)
-
-    corresponding_report = Report.objects.get(journal=journal, date=date)
-    corresponding_report.date, corresponding_report.table, corresponding_report.summary = date, str(table), str(summary) #TODO: add tables itself instead, or add links to table files
-    corresponding_report.save()
-    return corresponding_report
 
 @database_sync_to_async
-def get_report(group_id, mode, specified_date: datetime=None):
+def get_report(group_id, mode, specified_date: datetime=None) -> Type[Report]:
     journal = Journal.objects.get(external_id=group_id)
 
     match mode:
-        case GetReportMode.TODAY:
+        case ReportMode.TODAY:
             date = datetime.datetime.today().date()
             corresponding_report = Report.objects.get(date=date, journal=journal)
 
-        case GetReportMode.LAST:
+        case ReportMode.LAST:
             journal_reports = Report.objects.filter(journal=journal)
             corresponding_report = journal_reports.order_by('date')[len(journal_reports) - 1] # bare -1 is not supported
-            str_date = corresponding_report.date
-            date = datetime.datetime.strptime(str_date)
 
-        case GetReportMode.ON_DATE:
+        case ReportMode.ON_DATE:
             corresponding_report = Report.objects.get(date=specified_date, journal=journal)
-
-    str_lessons = corresponding_report.lessons
-    str_lessons_splitted = str_lessons.split()
-    lessons = [int(e) for e in str_lessons_splitted]
-
-    if corresponding_report.table is None:
-        return report(date, group_id, lessons, corresponding_report.mode)
 
     return corresponding_report
