@@ -29,6 +29,17 @@ import docx
 import random
 
 
+no_mode_validation_error_message = "Помилка, вкажіть режим"
+
+wrong_mode_validation_error_message = "Помилка, вказано невірний режим"
+
+no_arguments_validation_error_message = "Помилка, вкажіть аргументи"
+
+wrong_lessons_validation_error_mesage = "Помилка, очікується послідовність занять"
+
+wrong_date_validation_error_message = "Ввести дату коректно"
+
+
 def aftercommand_check(value):
     if value:
         return value
@@ -126,21 +137,21 @@ async def who_s_present_command(message: types.Message, command: CommandObject):
         pseudo_mode, *secondary = args
 
     else:
-        await message.answer("Помилка, вкажіть аргументи")
+        await message.answer(no_arguments_validation_error_message)
         return
 
     if validate_is_mode(pseudo_mode, WhoSPresentMode):
         mode = next((mode for mode in WhoSPresentMode if pseudo_mode == mode.value), None)
 
     else:
-        await message.answer("Помилка, вказано невірний режим")
+        await message.answer(wrong_mode_validation_error_message)
         return
 
     if mode == WhoSPresentMode.LIGHT_MODE or mode == WhoSPresentMode.NORMAL_MODE or mode == WhoSPresentMode.HARDCORE_MODE:
         if validate_lessons(secondary):
             lessons = [int(e) for e in secondary]
         else:
-            await message.answer("Помилка, очікується послідовність занять")
+            await message.answer(wrong_lessons_validation_error_mesage)
             return
 
 
@@ -312,7 +323,7 @@ async def today_report_command(message: types.Message, command: CommandObject):
         if validate_is_mode(pseudo_flag, ReportMode.Flag):
             flag = pseudo_flag
         else:
-            await message.answer("Помилка, невірно вказаний режим") #TODO: add a Validation error for that text
+            await message.answer(wrong_mode_validation_error_message) #TODO: add a Validation error for that text
 
     else: flag = ReportMode.Flag.TEXT
 
@@ -330,7 +341,7 @@ async def last_report_command(message: types.Message, command: CommandObject):
             flag = pseudo_flag
 
     else:
-        await message.answer("Помилка, невірно вказаний режим")
+        await message.answer(wrong_mode_validation_error_message)
 
     group_id = message.chat.id
     journal = Journal.objects.get(external_id=group_id)
@@ -369,13 +380,13 @@ async def on_date_report_command(message: types.Message, command: CommandObject)
         pseudomode = aftercommand
 
     if not aftercommand_check(aftercommand):
-        await message.answer("Помилка, вкажіть аргументи")
+        await message.answer(no_arguments_validation_error_message)
         return
 
     if validate_date_format(aftercommand):
         date = datetime.datetime.strptime(aftercommand, '%d.%m.%Y').date()
 
-    else: message.answer("Ввести дату коректно")
+    else: message.answer(wrong_date_validation_error_message)
 
     group_id = message.chat.id
 
