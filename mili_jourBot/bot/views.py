@@ -51,7 +51,7 @@ def initiate_today_entries(today, group_id, lesson=None, mode=default):
         if JournalEntry.objects.filter(journal=journal, date=today, lesson=lesson).exists(): return
 
     profiles = Profile.objects.filter(journal=journal)
-    ordered_profiles = profiles.order_by('ordinal')
+    ordered_profiles = profiles.order_by('name')
 
     for p in ordered_profiles: add_journal_entry({'journal': journal, 'profile': p, 'date': today, 'lesson': lesson})
 
