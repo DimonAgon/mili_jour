@@ -150,7 +150,7 @@ def initiate_today_report(today, group_id, lessons, mode=default):
 
         else:
             journal = Journal.objects.get(external_id=group_id)
-            report = Report.objects.create(journal=journal, date=today, lessons=lessons, mode=mode, is_complete=False)
+            report = Report.objects.create(journal=journal, date=today, lessons=lessons, mode=mode)
             report.save()
 
 def filled_absence_cell(entry, absence_cell):
