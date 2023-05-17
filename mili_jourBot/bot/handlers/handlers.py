@@ -331,8 +331,8 @@ async def today_report_command(message: types.Message, command: CommandObject):
 
     group_id = message.chat.id
     today_report = await get_report(group_id, ReportMode.TODAY)
-    table = report_table(today_report)
-    summary = report_summary(today_report)
+    table = await report_table(today_report)
+    summary = await report_summary(today_report)
 
     await message.answer(f"Таблиця присутності, Звіт за {today_report.date}")
 
@@ -371,8 +371,8 @@ async def last_report_command(message: types.Message, command: CommandObject):
 
     group_id = message.chat.id
     last_report = await get_report(group_id, ReportMode.LAST)
-    table = report_table(last_report)
-    summary = report_summary(last_report)
+    table = await report_table(last_report)
+    summary = await report_summary(last_report)
 
     await message.answer(f"Таблиця присутності, Звіт за {last_report.date}")
 
@@ -428,8 +428,8 @@ async def on_date_report_command(message: types.Message, command: CommandObject)
         logging.error(f"get report failed, no reports on {date} date")
         return
 
-    table = report_table(on_date_report)
-    summary = report_summary(on_date_report)
+    table = await report_table(on_date_report)
+    summary = await report_summary(on_date_report)
 
     await message.answer(f"Таблиця присутності, Звіт за {date}")
 
