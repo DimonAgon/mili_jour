@@ -53,8 +53,8 @@ class Report(models.Model):
     @property
     def lessons_integer_list(self):
         lessons_list_string = self.lessons
-        lessons_string = lessons_list_string.replace('[', '').replace(']','')
-        lessons_integer_list = [int(e) for e in lessons_string]
+        lessons_string_list = lessons_list_string.replace('[', '').replace(']','').split(',')
+        lessons_integer_list = [int(e) for e in lessons_string_list]
 
         return lessons_integer_list
 
