@@ -330,12 +330,11 @@ async def today_report_command(message: types.Message, command: CommandObject):
         flag = ReportMode.Flag.TEXT
 
     group_id = message.chat.id
-    journal = Journal.objects.get(external_id=group_id)
     today_report = await get_report(group_id, ReportMode.TODAY)
     table = report_table(today_report)
     summary = report_summary(today_report)
 
-    await message.answer(f"{journal.name} Таблиця присутності, Звіт за {today_report.date}")
+    await message.answer(f"Таблиця присутності, Звіт за {today_report.date}")
 
     match flag:
 
@@ -371,12 +370,11 @@ async def last_report_command(message: types.Message, command: CommandObject):
     else: flag = ReportMode.Flag.TEXT
 
     group_id = message.chat.id
-    journal = Journal.objects.get(external_id=group_id)
     last_report = await get_report(group_id, ReportMode.LAST)
     table = report_table(last_report)
     summary = report_summary(last_report)
 
-    await message.answer(f"{journal.name} Таблиця присутності, Звіт за {last_report.date}")
+    await message.answer(f"Таблиця присутності, Звіт за {last_report.date}")
 
     match flag:
 
@@ -421,7 +419,6 @@ async def on_date_report_command(message: types.Message, command: CommandObject)
         flag = next((flag for flag in ReportMode.Flag if pseudo_flag == flag.value), None)
 
     group_id = message.chat.id
-    journal = Journal.objects.get(external_id=group_id)
 
     try:
         on_date_report = await get_report(group_id, ReportMode.ON_DATE, date)
@@ -434,7 +431,7 @@ async def on_date_report_command(message: types.Message, command: CommandObject)
     table = report_table(on_date_report)
     summary = report_summary(on_date_report)
 
-    await message.answer(f"{journal.name} Таблиця присутності, Звіт за {date}")
+    await message.answer(f"Таблиця присутності, Звіт за {date}")
 
     match flag:
 
