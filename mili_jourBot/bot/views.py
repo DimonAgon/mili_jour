@@ -160,7 +160,7 @@ def filled_absence_cell(entry, absence_cell):
     return absence_cell
 
 @database_sync_to_async
-def report_table(report, flag) -> Type[prettytable.PrettyTable]:
+def report_table(report) -> Type[prettytable.PrettyTable]:
     journal = report.journal
     date = report.date
     entries = JournalEntry.objects.filter(journal=journal, date=date)
@@ -201,7 +201,7 @@ def report_table(report, flag) -> Type[prettytable.PrettyTable]:
     return table
 
 @database_sync_to_async
-def report_summary(report, flag) -> Type[prettytable.PrettyTable]:
+def report_summary(report) -> Type[prettytable.PrettyTable]:
     journal = report.journal
     journal_strength = journal.strength
     date = report.date

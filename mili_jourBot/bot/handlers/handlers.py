@@ -321,16 +321,41 @@ async def today_report_command(message: types.Message, command: CommandObject):
     pseudo_flag = command.args
     if pseudo_flag:
         if validate_is_mode(pseudo_flag, ReportMode.Flag):
-            flag = pseudo_flag
-        else:
-            await message.answer(wrong_mode_validation_error_message) #TODO: add a Validation error for that text
+            flag = next((flag for flag in ReportMode.Flag if pseudo_flag == flag.value), None)
 
-    else: flag = ReportMode.Flag.TEXT
+        else:
+            await message.answer(wrong_mode_validation_error_message)
+
+    else:
+        flag = ReportMode.Flag.TEXT
 
     group_id = message.chat.id
+    journal = Journal.objects.get(external_id=group_id)
     today_report = await get_report(group_id, ReportMode.TODAY)
+    table = report_table(today_report)
+    summary = report_summary(today_report)
 
+    await message.answer(f"{journal.name} Таблиця присутності, Звіт за {today_report.date}")
 
+    match flag:
+
+        case ReportMode.Flag.TEXT:
+            await message.answer(str(table))
+            await message.answer(str(summary), disable_notification=True)
+
+        case ReportMode.Flag.DOCUMENT:
+            document = docx.Document()
+            parser = htmldocx.HtmlToDocx
+
+            table_html = table.get_html_string()
+            parser.add_html_to_document(table_html, document)
+            await message.answer_document(document)
+
+            document._body.clear_content()
+
+            summary_html = summary.get_html_string()
+            parser.add_html_to_document(summary_html, document)
+            await message.answer_document(document, disable_notification=True)
 
 
 @router.message(Command(commands='last_report'), IsAdminFilter())
@@ -338,10 +363,12 @@ async def last_report_command(message: types.Message, command: CommandObject):
     pseudo_flag = command.args
     if pseudo_flag:
         if validate_is_mode(pseudo_flag, ReportMode.Flag):
-            flag = pseudo_flag
+            flag = next((flag for flag in ReportMode.Flag if pseudo_flag == flag.value), None)
 
-    else:
-        await message.answer(wrong_mode_validation_error_message)
+        else:
+            await message.answer(wrong_mode_validation_error_message)
+
+    else: flag = ReportMode.Flag.TEXT
 
     group_id = message.chat.id
     journal = Journal.objects.get(external_id=group_id)
@@ -349,9 +376,10 @@ async def last_report_command(message: types.Message, command: CommandObject):
     table = report_table(last_report)
     summary = report_summary(last_report)
 
-    await message.answer(f"Таблиця присутності, Звіт {journal.name}")
+    await message.answer(f"{journal.name} Таблиця присутності, Звіт за {last_report.date}")
 
     match flag:
+
         case ReportMode.Flag.TEXT:
             await message.answer(str(table))
             await message.answer(str(summary), disable_notification=True)
@@ -375,20 +403,25 @@ async def last_report_command(message: types.Message, command: CommandObject):
 async def on_date_report_command(message: types.Message, command: CommandObject):
     aftercommand = command.args
     try:
-        pseudomode, pseudoflag = aftercommand
+        pseudo_date, pseudo_flag = aftercommand
     except:
-        pseudomode = aftercommand
+        try:
+            pseudo_date = aftercommand
+        except:
+            await message.answer(no_arguments_validation_error_message)
 
-    if not aftercommand_check(aftercommand):
-        await message.answer(no_arguments_validation_error_message)
+    if validate_date_format(pseudo_date):
+        date = datetime.datetime.strptime(pseudo_date, '%d.%m.%Y').date()
+
+    else:
+        message.answer(wrong_date_validation_error_message)
         return
 
-    if validate_date_format(aftercommand):
-        date = datetime.datetime.strptime(aftercommand, '%d.%m.%Y').date()
-
-    else: message.answer(wrong_date_validation_error_message)
+    if validate_is_mode(pseudo_flag, ReportMode.Flag):
+        flag = next((flag for flag in ReportMode.Flag if pseudo_flag == flag.value), None)
 
     group_id = message.chat.id
+    journal = Journal.objects.get(external_id=group_id)
 
     try:
         on_date_report = await get_report(group_id, ReportMode.ON_DATE, date)
@@ -398,8 +431,30 @@ async def on_date_report_command(message: types.Message, command: CommandObject)
         logging.error(f"get report failed, no reports on {date} date")
         return
 
-    await message.answer(on_date_report.table)
-    await message.answer(on_date_report.summary, disable_notification=True)
+    table = report_table(on_date_report)
+    summary = report_summary(on_date_report)
+
+    await message.answer(f"{journal.name} Таблиця присутності, Звіт за {date}")
+
+    match flag:
+
+        case ReportMode.Flag.TEXT:
+            await message.answer(str(table))
+            await message.answer(str(summary), disable_notification=True)
+
+        case ReportMode.Flag.DOCUMENT:
+            document = docx.Document()
+            parser = htmldocx.HtmlToDocx
+
+            table_html = table.get_html_string()
+            parser.add_html_to_document(table_html, document)
+            await message.answer_document(document)
+
+            document._body.clear_content()
+
+            summary_html = summary.get_html_string()
+            parser.add_html_to_document(summary_html, document)
+            await message.answer_document(document, disable_notification=True)
 
 
 #TODO: create a chat leave command, should delete any info of-group info
