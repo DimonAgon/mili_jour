@@ -197,7 +197,11 @@ def report_table(report) -> Type[prettytable.PrettyTable]:
                 presence = entry.is_present
                 row.append("·" if presence else "н")
 
-            table.add_row(row)
+            try: table.add_row(row)
+            except:
+                missing_entries_count = len(headers) - len(row)
+                for i in range(missing_entries_count): row.append("_")
+                table.add_row(row)
 
     return table
 
