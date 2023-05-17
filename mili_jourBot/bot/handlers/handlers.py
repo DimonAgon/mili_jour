@@ -54,7 +54,7 @@ def validate_date_format(value):
         return value
 
     except:
-        raise ValidationError("wrong date format", code='format_match')
+        logging.error("wrong date format")
 
 
 def validate_is_mode(value, modes: Enum):
@@ -325,6 +325,7 @@ async def today_report_command(message: types.Message, command: CommandObject):
 
         else:
             await message.answer(wrong_mode_validation_error_message)
+            return
 
     else:
         flag = ReportMode.Flag.TEXT
@@ -366,6 +367,7 @@ async def last_report_command(message: types.Message, command: CommandObject):
 
         else:
             await message.answer(wrong_mode_validation_error_message)
+            return
 
     else: flag = ReportMode.Flag.TEXT
 
@@ -402,21 +404,30 @@ async def on_date_report_command(message: types.Message, command: CommandObject)
     aftercommand = command.args
     try:
         pseudo_date, pseudo_flag = aftercommand
+
+        if validate_is_mode(pseudo_flag, ReportMode.Flag):
+            flag = next((flag for flag in ReportMode.Flag if pseudo_flag == flag.value), None)
+
+        else:
+            await message.answer(wrong_mode_validation_error_message)
+            return
+
     except:
         try:
             pseudo_date = aftercommand
+            flag = ReportMode.Flag.TEXT
+
         except:
             await message.answer(no_arguments_validation_error_message)
+
 
     if validate_date_format(pseudo_date):
         date = datetime.datetime.strptime(pseudo_date, '%d.%m.%Y').date()
 
     else:
-        message.answer(wrong_date_validation_error_message)
+        await message.answer(wrong_date_validation_error_message)
         return
 
-    if validate_is_mode(pseudo_flag, ReportMode.Flag):
-        flag = next((flag for flag in ReportMode.Flag if pseudo_flag == flag.value), None)
 
     group_id = message.chat.id
 
