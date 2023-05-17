@@ -207,7 +207,7 @@ def report_summary(report) -> Type[prettytable.PrettyTable]:
     date = report.date
     entries = JournalEntry.objects.filter(journal=journal, date=date)
     lessons = report.lessons_integer_list
-    mode = report.mode
+    mode = report.mode #TODO COSMETICAL: use WhoSPresent(report.mode) instead
     summary = prettytable.PrettyTable(["Зан.", "Сп.", "Пр.", "Відсутні"])
 
     if mode == WhoSPresentMode.LIGHT_MODE:
