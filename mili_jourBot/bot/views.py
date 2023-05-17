@@ -166,7 +166,8 @@ def report_table(report) -> Type[prettytable.PrettyTable]:
     entries = JournalEntry.objects.filter(journal=journal, date=date)
     lessons = report.lessons_integer_list
     mode = report.mode
-    table = prettytable.PrettyTable(["Студент"] + [l for l in lessons])
+    headers = ["Студент"] + [l for l in lessons]
+    table = prettytable.PrettyTable(headers)
     table.border = False
 
     if mode == WhoSPresentMode.LIGHT_MODE:
@@ -208,7 +209,8 @@ def report_summary(report) -> Type[prettytable.PrettyTable]:
     entries = JournalEntry.objects.filter(journal=journal, date=date)
     lessons = report.lessons_integer_list
     mode = report.mode #TODO COSMETICAL: use WhoSPresent(report.mode) instead
-    summary = prettytable.PrettyTable(["Зан.", "Сп.", "Пр.", "Відсутні"])
+    headers = ["Зан.", "Сп.", "Пр.", "Відсутні"]
+    summary = prettytable.PrettyTable(headers)
 
     if mode == WhoSPresentMode.LIGHT_MODE:
         for lesson in lessons:
