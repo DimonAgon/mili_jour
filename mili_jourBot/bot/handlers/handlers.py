@@ -46,8 +46,11 @@ def aftercommand_check(value):
 
     logging.error("Command initiation failed\nError: no arguments")
 
-def validate_date_format(value):
+class NativeDateFormat:
     date_format = '%d.%m.%Y'
+
+def validate_date_format(value):
+    date_format = NativeDateFormat.date_format
 
     try:
         datetime.datetime.strptime(value, date_format).date()
@@ -170,7 +173,8 @@ async def who_s_present_command(message: types.Message, command: CommandObject):
     now = datetime.datetime.now()
     today = now.date()
     now_time = now.time()
-    string_today = str(today)
+    date_format = NativeDateFormat.date_format
+    today_string = today.strftime(date_format)
 
     group_id = message.chat.id
 
@@ -186,7 +190,7 @@ async def who_s_present_command(message: types.Message, command: CommandObject):
         deadline_time = last_lesson_time.upper
         deadline = now.replace(hour=deadline_time.hour, minute=deadline_time.minute, second=deadline_time.second)
         till_deadline = deadline - now
-        question = string_today + " Присутність"
+        question = today_string + " Присутність"
         poll_configuration.update({'question': question})
 
     if not mode == WhoSPresentMode.LIGHT_MODE:
@@ -195,7 +199,7 @@ async def who_s_present_command(message: types.Message, command: CommandObject):
 
             await initiate_today_entries(today, group_id, lesson, mode)
 
-            question = string_today + f" Заняття {str(lesson)}"
+            question = today_string + f" Заняття {str(lesson)}"
             poll_configuration.update({'question': question})
 
             lesson_time_interval = Schedule.lessons_intervals[lesson]
@@ -335,7 +339,10 @@ async def today_report_command(message: types.Message, command: CommandObject):
     table = await report_table(today_report)
     summary = await report_summary(today_report)
 
-    await message.answer(f"Таблиця присутності, Звіт за {today_report.date}")
+    date_format = NativeDateFormat.date_format
+    date_string = today_report.date.strftime(date_format)
+
+    await message.answer(f"Таблиця присутності, Звіт за {date_string}")
 
     match flag:
 
@@ -376,7 +383,10 @@ async def last_report_command(message: types.Message, command: CommandObject):
     table = await report_table(last_report)
     summary = await report_summary(last_report)
 
-    await message.answer(f"Таблиця присутності, Звіт за {last_report.date}")
+    date_format = NativeDateFormat.date_format
+    date_string = last_report.date.strftime(date_format)
+
+    await message.answer(f"Таблиця присутності, Звіт за {date_string}")
 
     match flag:
 
@@ -420,9 +430,9 @@ async def on_date_report_command(message: types.Message, command: CommandObject)
         except:
             await message.answer(no_arguments_validation_error_message)
 
-
+    date_format = NativeDateFormat.date_format
     if validate_date_format(pseudo_date):
-        date = datetime.datetime.strptime(pseudo_date, '%d.%m.%Y').date()
+        date = datetime.datetime.strptime(pseudo_date, date_format).date()
 
     else:
         await message.answer(wrong_date_validation_error_message)
@@ -442,7 +452,9 @@ async def on_date_report_command(message: types.Message, command: CommandObject)
     table = await report_table(on_date_report)
     summary = await report_summary(on_date_report)
 
-    await message.answer(f"Таблиця присутності, Звіт за {date}")
+    date_string = on_date_report.date.strftime(date_format)
+
+    await message.answer(f"Таблиця присутності, Звіт за {date_string}")
 
     match flag:
 
