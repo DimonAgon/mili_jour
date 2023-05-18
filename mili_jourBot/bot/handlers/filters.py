@@ -42,3 +42,6 @@ class IsAdminFilter(BaseFilter):
         is_admin = member.status == self.required_auth_level or member.status == self.creator
 
         return is_admin
+
+
+#TODO: add a filter for arguments
