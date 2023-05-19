@@ -26,6 +26,8 @@ import datetime
 
 import docx
 
+import tempfile, os
+
 import random
 
 
@@ -279,18 +281,24 @@ async def today_report_command(message: types.Message, command: CommandObject):
             await message.answer(str(summary), disable_notification=True)
 
         case ReportMode.Flag.DOCUMENT:
-            document = docx.Document()
-            parser = htmldocx.HtmlToDocx
+                temp_path = os.path.join(tempfile.gettempdir(), os.urandom(24).hex())
+                document = docx.Document()
+                parser = htmldocx.HtmlToDocx()
 
-            table_html = table.get_html_string()
-            parser.add_html_to_document(table_html, document)
-            await message.answer_document(document)
+                table_html = table.get_html_string()
+                parser.add_html_to_document(table_html, document)
+                document.save(temp_path)
+                input_file = types.FSInputFile(temp_path)
+                await message.answer_document(input_file)
 
-            document._body.clear_content()
+                document._body.clear_content()
 
-            summary_html = summary.get_html_string()
-            parser.add_html_to_document(summary_html, document)
-            await message.answer_document(document, disable_notification=True)
+
+                summary_html = summary.get_html_string()
+                parser.add_html_to_document(summary_html, document)
+                document.save(temp_path)
+                input_file = types.FSInputFile(temp_path)
+                await message.answer_document(input_file, disable_notification=True)
 
 
 @router.message(Command(commands='last_report'), IsAdminFilter(),
@@ -319,18 +327,23 @@ async def last_report_command(message: types.Message, command: CommandObject):
             await message.answer(str(summary), disable_notification=True)
 
         case ReportMode.Flag.DOCUMENT:
+            temp_path = os.path.join(tempfile.gettempdir(), os.urandom(24).hex())
             document = docx.Document()
-            parser = htmldocx.HtmlToDocx
+            parser = htmldocx.HtmlToDocx()
 
             table_html = table.get_html_string()
             parser.add_html_to_document(table_html, document)
-            await message.answer_document(document)
+            document.save(temp_path)
+            input_file = types.FSInputFile(temp_path)
+            await message.answer_document(input_file)
 
             document._body.clear_content()
 
             summary_html = summary.get_html_string()
             parser.add_html_to_document(summary_html, document)
-            await message.answer_document(document, disable_notification=True)
+            document.save(temp_path)
+            input_file = types.FSInputFile(temp_path)
+            await message.answer_document(input_file, disable_notification=True)
 
 
 @router.message(Command(commands='on_date_report'),
@@ -373,18 +386,23 @@ async def on_date_report_command(message: types.Message, command: CommandObject)
             await message.answer(str(summary), disable_notification=True)
 
         case ReportMode.Flag.DOCUMENT:
+            temp_path = os.path.join(tempfile.gettempdir(), os.urandom(24).hex())
             document = docx.Document()
-            parser = htmldocx.HtmlToDocx
+            parser = htmldocx.HtmlToDocx()
 
             table_html = table.get_html_string()
             parser.add_html_to_document(table_html, document)
-            await message.answer_document(document)
+            document.save(temp_path)
+            input_file = types.FSInputFile(temp_path)
+            await message.answer_document(input_file)
 
             document._body.clear_content()
 
             summary_html = summary.get_html_string()
             parser.add_html_to_document(summary_html, document)
-            await message.answer_document(document, disable_notification=True)
+            document.save(temp_path)
+            input_file = types.FSInputFile(temp_path)
+            await message.answer_document(input_file, disable_notification=True)
 
 
 #TODO: create a chat leave command, should delete any info of-group info
