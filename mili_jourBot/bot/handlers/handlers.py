@@ -258,7 +258,7 @@ async def cancel_registration_command(message: types.Message, state: FSMContext)
 async def today_report_command(message: types.Message, command: CommandObject):
     aftercommand = command.args
     if aftercommand:
-        arguments = aftercommand.split()
+        arguments = aftercommand
         flag = arguments
     else: flag = ReportMode.Flag.TEXT
 
@@ -272,7 +272,7 @@ async def today_report_command(message: types.Message, command: CommandObject):
 
     await message.answer(f"Таблиця присутності, Звіт за {date_string}")
 
-    match flag:
+    match ReportMode.Flag(flag):
 
         case ReportMode.Flag.TEXT:
             await message.answer(str(table))
@@ -298,7 +298,7 @@ async def today_report_command(message: types.Message, command: CommandObject):
 async def last_report_command(message: types.Message, command: CommandObject):
     aftercommand = command.args
     if aftercommand:
-        arguments = aftercommand.split()
+        arguments = aftercommand
         flag = arguments
     else: flag = ReportMode.Flag.TEXT
 
@@ -312,7 +312,7 @@ async def last_report_command(message: types.Message, command: CommandObject):
 
     await message.answer(f"Таблиця присутності, Звіт за {date_string}")
 
-    match flag:
+    match ReportMode.Flag(flag):
 
         case ReportMode.Flag.TEXT:
             await message.answer(str(table))

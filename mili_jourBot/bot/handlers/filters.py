@@ -157,13 +157,13 @@ class AftercommandFullCheck(BaseFilter):
             *additional_arguments, pseudo_flag = arguments
 
         elif self.mode_checking:
-            pseudo_mode = arguments
+            pseudo_mode = arguments[0]
 
         elif self.additional_arguments_checker:
             additional_arguments = arguments
 
         elif self.flag_checking:
-            pseudo_flag = arguments
+            pseudo_flag = arguments[0]
 
         if self.mode_checking:
             try: pseudo_mode
@@ -183,7 +183,7 @@ class AftercommandFullCheck(BaseFilter):
                     return False
 
         if self.flag_checking:
-            try: validate_is_mode(pseudo_flag, self.modes)
+            try: validate_is_mode(pseudo_flag, self.modes.Flag)
             except:
                 try:
                     self.additional_arguments_checker.validation_function(pseudo_flag)
