@@ -379,7 +379,7 @@ async def on_date_report_command(message: types.Message, command: CommandObject)
 
     await message.answer(f"Таблиця присутності, Звіт за {date_string}")
 
-    match flag:
+    match ReportMode.Flag(flag):
 
         case ReportMode.Flag.TEXT:
             await message.answer(str(table))
