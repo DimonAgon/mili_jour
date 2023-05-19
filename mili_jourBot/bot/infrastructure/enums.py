@@ -18,7 +18,7 @@ class WhoSPresentMode(TextChoices):
     ZOOM_MODE = 'zoom'
     #TODO: add an event mode
 
-default = WhoSPresentMode.NORMAL_MODE
+default = WhoSPresentMode.NORMAL_MODE #TODO: use def default instead
 
 
 class ReportMode(Enum):
