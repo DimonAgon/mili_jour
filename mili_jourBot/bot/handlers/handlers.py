@@ -281,7 +281,7 @@ async def today_report_command(message: types.Message, command: CommandObject):
             await message.answer(str(summary), disable_notification=True)
 
         case ReportMode.Flag.DOCUMENT:
-                temp_path = os.path.join(tempfile.gettempdir(), os.urandom(24).hex())
+                temp_path = os.path.join(tempfile.gettempdir(), os.urandom(24).hex()) + '.docx'
                 document = docx.Document()
                 parser = htmldocx.HtmlToDocx()
 
@@ -327,7 +327,7 @@ async def last_report_command(message: types.Message, command: CommandObject):
             await message.answer(str(summary), disable_notification=True)
 
         case ReportMode.Flag.DOCUMENT:
-            temp_path = os.path.join(tempfile.gettempdir(), os.urandom(24).hex())
+            temp_path = os.path.join(tempfile.gettempdir(), os.urandom(24).hex()) + '.docx'
             document = docx.Document()
             parser = htmldocx.HtmlToDocx()
 
@@ -386,7 +386,7 @@ async def on_date_report_command(message: types.Message, command: CommandObject)
             await message.answer(str(summary), disable_notification=True)
 
         case ReportMode.Flag.DOCUMENT:
-            temp_path = os.path.join(tempfile.gettempdir(), os.urandom(24).hex())
+            temp_path = os.path.join(tempfile.gettempdir(), os.urandom(24).hex()) + '.docx'
             document = docx.Document()
             parser = htmldocx.HtmlToDocx()
 
