@@ -29,63 +29,6 @@ import docx
 import random
 
 
-no_mode_validation_error_message = "Помилка, вкажіть режим"
-
-wrong_mode_validation_error_message = "Помилка, вказано невірний режим"
-
-no_arguments_validation_error_message = "Помилка, вкажіть аргументи"
-
-wrong_lessons_validation_error_mesage = "Помилка, очікується послідовність занять"
-
-wrong_date_validation_error_message = "Ввести дату коректно"
-
-
-def aftercommand_check(value):
-    if value:
-        return value
-
-    logging.error("Command initiation failed\nError: no arguments")
-
-class NativeDateFormat:
-    date_format = '%d.%m.%Y'
-
-def validate_date_format(value):
-    date_format = NativeDateFormat.date_format
-
-    try:
-        datetime.datetime.strptime(value, date_format).date()
-        return value
-
-    except:
-        logging.error("wrong date format")
-
-
-def validate_is_mode(value, modes: Enum):
-
-    mode = next((mode for mode in modes if mode.value == value), None)
-
-    if mode:
-        return  True
-
-    logging.error(f"Command initiation failed\nError:no such mode \"{value}\"")
-
-
-def validate_lessons(value):
-    try:
-        value[0]
-        value_integers = [int(e) for e in value]
-
-    except Exception as e:
-        logging.error(f"Command initiation failed\nError:{e}")
-        return
-
-    if [i for i in value_integers if i in Schedule.lessons_intervals.keys()] == [i for i in value_integers]:
-        return True
-
-    else:
-        logging.error("Command initiation failed\nError: wrong arguments")
-
-
 @router.message(Command(commands='start'))
 async def start_command(message: types.Message):  # Self-presintation of the bot
 
@@ -132,43 +75,33 @@ def presence_option_to_string(presence_option: Type[PresencePollOptions]):
 
 @router.message(Command(commands=['who_s_present', 'wp']),
                 F.chat.type.in_({'group', 'supergroup'}),
-                IsAdminFilter())
+                IsAdminFilter(),
+                AftercommandFullCheck(allow_no_argument=False,
+                                      modes=WhoSPresentMode,
+                                      mode_checking=True,
+                                      additional_arguments_checker=lessons_validator))
 async def who_s_present_command(message: types.Message, command: CommandObject):  # Checks who is present
-    aftercommand = command.args
-    if aftercommand_check(aftercommand):
-        args = aftercommand.split()
-        pseudo_mode, *secondary = args
+    arguments = command.args.split()
 
-    else:
-        await message.answer(no_arguments_validation_error_message)
-        return
+    try:
+        mode, *lessons_string_list = arguments
+        validate_is_mode(mode)
 
-    if validate_is_mode(pseudo_mode, WhoSPresentMode):
-        mode = next((mode for mode in WhoSPresentMode if pseudo_mode == mode.value), None)
-
-    else:
-        await message.answer(wrong_mode_validation_error_message)
-        return
+    except:
+        lessons_string_list = arguments
+        mode = default
 
     if mode == WhoSPresentMode.LIGHT_MODE or mode == WhoSPresentMode.NORMAL_MODE or mode == WhoSPresentMode.HARDCORE_MODE:
-        if validate_lessons(secondary):
-            lessons = [int(e) for e in secondary]
-        else:
-            await message.answer(wrong_lessons_validation_error_mesage)
-            return
-
+        lessons = [int(e) for e in lessons_string_list]
 
     else:
-        try:
-            validate_comma_separated_integer_list(secondary)
+        if lessons_string_list:
             await message.answer("Помилка, режим не потребує послідовності занять")
             logging.error("Command initiation failed\nError: no arguments expected")
-            return
-
-        except Exception:
-            pass #TODO: consider pass
+            pass
 
     lessons.sort()
+    unique_lessons = list(set(lessons))
 
     now = datetime.datetime.now()
     today = now.date()
@@ -185,7 +118,7 @@ async def who_s_present_command(message: types.Message, command: CommandObject):
                            'protect_content': True}
 
     if mode == WhoSPresentMode.LIGHT_MODE:
-        last_lesson = lessons[-1]
+        last_lesson = unique_lessons[-1]
         last_lesson_time = Schedule.lessons_intervals[last_lesson]
         deadline_time = last_lesson_time.upper
         deadline = now.replace(hour=deadline_time.hour, minute=deadline_time.minute, second=deadline_time.second)
@@ -194,8 +127,8 @@ async def who_s_present_command(message: types.Message, command: CommandObject):
         poll_configuration.update({'question': question})
 
     if not mode == WhoSPresentMode.LIGHT_MODE:
-        await initiate_today_report(today, group_id, lessons, mode)
-        for lesson in lessons:
+        await initiate_today_report(today, group_id, unique_lessons, mode)
+        for lesson in unique_lessons:
 
             await initiate_today_entries(today, group_id, lesson, mode)
 
@@ -242,7 +175,7 @@ async def who_s_present_command(message: types.Message, command: CommandObject):
 
     else:
         await initiate_today_entries(today, group_id) #TODO: the better choice may be to call function on every study day
-        await initiate_today_report(today, group_id, lessons)
+        await initiate_today_report(today, group_id, unique_lessons)
         poll_message = await message.answer_poll(**poll_configuration)
         await asyncio.sleep(till_deadline.seconds) #TODO: schedule instead
         await bot.stop_poll(chat_id=poll_message.chat.id, message_id=poll_message.message_id)
@@ -320,19 +253,14 @@ async def cancel_registration_command(message: types.Message, state: FSMContext)
 #TODO: reports should be able in both group and private chat
 
 
-@router.message(Command(commands='today_report'), IsAdminFilter())
+@router.message(Command(commands='today_report'), IsAdminFilter(),
+                AftercommandFullCheck(allow_no_argument=True, modes=ReportMode, flag_checking=True))
 async def today_report_command(message: types.Message, command: CommandObject):
-    pseudo_flag = command.args
-    if pseudo_flag:
-        if validate_is_mode(pseudo_flag, ReportMode.Flag):
-            flag = next((flag for flag in ReportMode.Flag if pseudo_flag == flag.value), None)
-
-        else:
-            await message.answer(wrong_mode_validation_error_message)
-            return
-
-    else:
-        flag = ReportMode.Flag.TEXT
+    aftercommand = command.args
+    if aftercommand:
+        arguments = aftercommand.split()
+        flag = arguments
+    else: flag = ReportMode.Flag.TEXT
 
     group_id = message.chat.id
     today_report = await get_report(group_id, ReportMode.TODAY)
@@ -365,17 +293,13 @@ async def today_report_command(message: types.Message, command: CommandObject):
             await message.answer_document(document, disable_notification=True)
 
 
-@router.message(Command(commands='last_report'), IsAdminFilter())
+@router.message(Command(commands='last_report'), IsAdminFilter(),
+                AftercommandFullCheck(allow_no_argument=True, modes=ReportMode, flag_checking=True))
 async def last_report_command(message: types.Message, command: CommandObject):
-    pseudo_flag = command.args
-    if pseudo_flag:
-        if validate_is_mode(pseudo_flag, ReportMode.Flag):
-            flag = next((flag for flag in ReportMode.Flag if pseudo_flag == flag.value), None)
-
-        else:
-            await message.answer(wrong_mode_validation_error_message)
-            return
-
+    aftercommand = command.args
+    if aftercommand:
+        arguments = aftercommand.split()
+        flag = arguments
     else: flag = ReportMode.Flag.TEXT
 
     group_id = message.chat.id
@@ -409,35 +333,22 @@ async def last_report_command(message: types.Message, command: CommandObject):
             await message.answer_document(document, disable_notification=True)
 
 
-@router.message(Command(commands='on_date_report'), IsAdminFilter())
+@router.message(Command(commands='on_date_report'),
+                IsAdminFilter(),
+                AftercommandFullCheck(allow_no_argument=False,
+                                      modes=ReportMode,
+                                      additional_arguments_checker=date_validator,
+                                      flag_checking=True))
 async def on_date_report_command(message: types.Message, command: CommandObject):
-    aftercommand = command.args
-    try:
-        pseudo_date, pseudo_flag = aftercommand
+    arguments = command.args.split()
 
-        if validate_is_mode(pseudo_flag, ReportMode.Flag):
-            flag = next((flag for flag in ReportMode.Flag if pseudo_flag == flag.value), None)
-
-        else:
-            await message.answer(wrong_mode_validation_error_message)
-            return
-
+    try: date_string, flag = arguments
     except:
-        try:
-            pseudo_date = aftercommand
-            flag = ReportMode.Flag.TEXT
-
-        except:
-            await message.answer(no_arguments_validation_error_message)
+        date_string = arguments[0]
+        flag = ReportMode.Flag.TEXT
 
     date_format = NativeDateFormat.date_format
-    if validate_date_format(pseudo_date):
-        date = datetime.datetime.strptime(pseudo_date, date_format).date()
-
-    else:
-        await message.answer(wrong_date_validation_error_message)
-        return
-
+    date = datetime.datetime.strptime(date_string, date_format).date()
 
     group_id = message.chat.id
 
@@ -452,7 +363,6 @@ async def on_date_report_command(message: types.Message, command: CommandObject)
     table = await report_table(on_date_report)
     summary = await report_summary(on_date_report)
 
-    date_string = on_date_report.date.strftime(date_format)
 
     await message.answer(f"Таблиця присутності, Звіт за {date_string}")
 
