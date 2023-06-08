@@ -15,7 +15,7 @@ import logging
 
 
 #TODO: add an ordinal filter
-
+#TODO forms: add logging errors for all the validations
 def validate_name_format(value: str):
 
     name_rePattern = "\p{Lu}\p{Ll}+\s\p{Lu}\p{Ll}+(?:[-]\p{Lu}\p{Ll}+)?" #for any language

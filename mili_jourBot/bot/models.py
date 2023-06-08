@@ -20,7 +20,7 @@ class Profile(models.Model):
     class Meta:
         verbose_name = "Профіль"
         verbose_name_plural = "Взводи"
-        ordering = ['ordinal']
+        ordering = ['ordinal'] #TODO: oredering by ordinal is not working
 
 
 class Journal(models.Model):
@@ -50,10 +50,15 @@ class Report(models.Model):
     journal = models.ForeignKey(to='Journal', on_delete=models.CASCADE, verbose_name="Журнал")
     date = models.DateField()
     lessons = models.CharField(validate_comma_separated_integer_list, max_length=15, null=True)
-    table = models.TextField(null=True)
-    summary = models.TextField(null=True)
+    @property
+    def lessons_integer_list(self):
+        lessons_list_string = self.lessons
+        lessons_string_list = lessons_list_string.replace('[', '').replace(']','').split(',')
+        lessons_integer_list = [int(e) for e in lessons_string_list]
+
+        return lessons_integer_list
+
     mode = models.CharField(max_length=12, choices=WhoSPresentMode.choices, default=default)
-    #TODO: make both table and summary file fields
 
 #TODO: add a model for schedule using hash-key
 #TODO: add a model for lessons

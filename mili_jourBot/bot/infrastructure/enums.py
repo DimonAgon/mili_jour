@@ -1,4 +1,5 @@
-from enum import Enum, auto
+
+from aenum import Enum, auto
 from django.db.models import TextChoices
 
 from django.utils.translation import gettext_lazy as _
@@ -17,13 +18,16 @@ class WhoSPresentMode(TextChoices):
     ZOOM_MODE = 'zoom'
     #TODO: add an event mode
 
-default = WhoSPresentMode.NORMAL_MODE
+default = WhoSPresentMode.NORMAL_MODE #TODO: use def default instead
 
 
-class GetReportMode(Enum):
+class ReportMode(Enum):
     TODAY = auto()
     LAST = auto()
     ON_DATE = auto()
+    class Flag(Enum):
+        DOCUMENT = 'doc'
+        TEXT = 'text'
 
 
 class Schedule: #Do not try to deceive the poll

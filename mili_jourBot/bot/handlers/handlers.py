@@ -1,6 +1,7 @@
 import logging
 import re
 
+import htmldocx
 from aiogram import F
 from aiogram import types
 from aiogram.filters import Command, CommandObject
@@ -23,50 +24,11 @@ import asyncio
 
 import datetime
 
+import docx
+
+import tempfile, os
+
 import random
-
-
-def aftercommand_check(value):
-    if value:
-        return value
-
-    logging.error("Command initiation failed\nError: no arguments")
-
-def validate_date_format(value):
-    date_format = '%d.%m.%Y'
-
-    try:
-        datetime.datetime.strptime(value, date_format).date()
-        return value
-
-    except:
-        raise ValidationError("wrong date format", code='format_match')
-
-
-def validate_is_mode(value, modes: Enum):
-
-    mode = next((mode for mode in modes if mode.value == value), None)
-
-    if mode:
-        return  True
-
-    logging.error(f"Command initiation failed\nError:no such mode \"{value}\"")
-
-
-def validate_lessons(value):
-    try:
-        value[0]
-        value_integers = [int(e) for e in value]
-
-    except Exception as e:
-        logging.error(f"Command initiation failed\nError:{e}")
-        return
-
-    if [i for i in value_integers if i in Schedule.lessons_intervals.keys()] == [i for i in value_integers]:
-        return True
-
-    else:
-        logging.error("Command initiation failed\nError: wrong arguments")
 
 
 @router.message(Command(commands='start'))
@@ -115,48 +77,39 @@ def presence_option_to_string(presence_option: Type[PresencePollOptions]):
 
 @router.message(Command(commands=['who_s_present', 'wp']),
                 F.chat.type.in_({'group', 'supergroup'}),
-                IsAdminFilter())
+                IsAdminFilter(),
+                AftercommandFullCheck(allow_no_argument=False,
+                                      modes=WhoSPresentMode,
+                                      mode_checking=True,
+                                      additional_arguments_checker=lessons_validator))
 async def who_s_present_command(message: types.Message, command: CommandObject):  # Checks who is present
-    aftercommand = command.args
-    if aftercommand_check(aftercommand):
-        args = aftercommand.split()
-        pseudo_mode, *secondary = args
+    arguments = command.args.split()
 
-    else:
-        await message.answer("Помилка, вкажіть аргументи")
-        return
+    try:
+        mode, *lessons_string_list = arguments
+        validate_is_mode(mode)
 
-    if validate_is_mode(pseudo_mode, WhoSPresentMode):
-        mode = next((mode for mode in WhoSPresentMode if pseudo_mode == mode.value), None)
-
-    else:
-        await message.answer("Помилка, вказано невірний режим")
-        return
+    except:
+        lessons_string_list = arguments
+        mode = default
 
     if mode == WhoSPresentMode.LIGHT_MODE or mode == WhoSPresentMode.NORMAL_MODE or mode == WhoSPresentMode.HARDCORE_MODE:
-        if validate_lessons(secondary):
-            lessons = [int(e) for e in secondary]
-        else:
-            await message.answer("Помилка, очікується послідовність занять")
-            return
-
+        lessons = [int(e) for e in lessons_string_list]
 
     else:
-        try:
-            validate_comma_separated_integer_list(secondary)
+        if lessons_string_list:
             await message.answer("Помилка, режим не потребує послідовності занять")
             logging.error("Command initiation failed\nError: no arguments expected")
-            return
-
-        except Exception:
-            pass #TODO: consider pass
+            pass
 
     lessons.sort()
+    unique_lessons = list(set(lessons))
 
     now = datetime.datetime.now()
     today = now.date()
     now_time = now.time()
-    string_today = str(today)
+    date_format = NativeDateFormat.date_format
+    today_string = today.strftime(date_format)
 
     group_id = message.chat.id
 
@@ -167,21 +120,21 @@ async def who_s_present_command(message: types.Message, command: CommandObject):
                            'protect_content': True}
 
     if mode == WhoSPresentMode.LIGHT_MODE:
-        last_lesson = lessons[-1]
+        last_lesson = unique_lessons[-1]
         last_lesson_time = Schedule.lessons_intervals[last_lesson]
         deadline_time = last_lesson_time.upper
         deadline = now.replace(hour=deadline_time.hour, minute=deadline_time.minute, second=deadline_time.second)
         till_deadline = deadline - now
-        question = string_today + " Присутність"
+        question = today_string + " Присутність"
         poll_configuration.update({'question': question})
 
     if not mode == WhoSPresentMode.LIGHT_MODE:
-        await initiate_today_report(today, group_id, lessons)
-        for lesson in lessons:
+        await initiate_today_report(today, group_id, unique_lessons, mode)
+        for lesson in unique_lessons:
 
             await initiate_today_entries(today, group_id, lesson, mode)
 
-            question = string_today + f" Заняття {str(lesson)}"
+            question = today_string + f" Заняття {str(lesson)}"
             poll_configuration.update({'question': question})
 
             lesson_time_interval = Schedule.lessons_intervals[lesson]
@@ -224,14 +177,10 @@ async def who_s_present_command(message: types.Message, command: CommandObject):
 
     else:
         await initiate_today_entries(today, group_id) #TODO: the better choice may be to call function on every study day
-        await initiate_today_report(today, group_id, lessons)
+        await initiate_today_report(today, group_id, unique_lessons)
         poll_message = await message.answer_poll(**poll_configuration)
         await asyncio.sleep(till_deadline.seconds) #TODO: schedule instead
         await bot.stop_poll(chat_id=poll_message.chat.id, message_id=poll_message.message_id)
-
-    today_report = await report(today, group_id, lessons, mode)
-    await message.answer(today_report.table)
-    await message.answer(today_report.summary, disable_notification=True)
 
 
 class AbsenceReasonStates(StatesGroup): AbsenceReason = State()
@@ -306,50 +255,154 @@ async def cancel_registration_command(message: types.Message, state: FSMContext)
 #TODO: reports should be able in both group and private chat
 
 
-@router.message(Command(commands='today_report'), IsAdminFilter())
-async def today_report_command(message: types.Message):
-    group_id = message.chat.id
-
-    today_report = await get_report(group_id, GetReportMode.TODAY)
-
-    await message.answer(today_report.table)
-    await message.answer(today_report.summary, disable_notification=True)
-
-
-@router.message(Command(commands='last_report'), IsAdminFilter())
-async def last_report_command(message: types.Message): #TODO: use report model to answer
-    group_id = message.chat.id
-    last_report = await get_report(group_id, GetReportMode.LAST)
-
-    await message.answer(last_report.table)
-    await message.answer(last_report.summary, disable_notification=True)
-
-
-@router.message(Command(commands='on_date_report'), IsAdminFilter())
-async def on_date_report_command(message: types.Message, command: CommandObject):
+@router.message(Command(commands='today_report'), IsAdminFilter(),
+                AftercommandFullCheck(allow_no_argument=True, modes=ReportMode, flag_checking=True))
+async def today_report_command(message: types.Message, command: CommandObject):
     aftercommand = command.args
+    if aftercommand:
+        arguments = aftercommand
+        flag = arguments
+    else: flag = ReportMode.Flag.TEXT
 
-    if not aftercommand_check(aftercommand):
-        await message.answer("Помилка, вкажіть аргументи")
-        return
+    group_id = message.chat.id
+    today_report = await get_report(group_id, ReportMode.TODAY)
+    table = await report_table(today_report)
+    summary = await report_summary(today_report)
 
-    if validate_date_format(aftercommand):
-        date = datetime.datetime.strptime(aftercommand, '%d.%m.%Y').date()
+    date_format = NativeDateFormat.date_format
+    date_string = today_report.date.strftime(date_format)
 
-    else: message.answer("Ввести дату коректно")
+    await message.answer(f"Таблиця присутності, Звіт за {date_string}")
+
+    match ReportMode.Flag(flag):
+
+        case ReportMode.Flag.TEXT:
+            await message.answer(str(table))
+            await message.answer(str(summary), disable_notification=True)
+
+        case ReportMode.Flag.DOCUMENT:
+                temp_path = os.path.join(tempfile.gettempdir(), os.urandom(24).hex()) + '.docx'
+                document = docx.Document()
+                parser = htmldocx.HtmlToDocx()
+
+                table_html = table.get_html_string()
+                parser.add_html_to_document(table_html, document)
+                document.save(temp_path)
+                input_file = types.FSInputFile(temp_path)
+                await message.answer_document(input_file)
+
+                document._body.clear_content()
+
+
+                summary_html = summary.get_html_string()
+                parser.add_html_to_document(summary_html, document)
+                document.save(temp_path)
+                input_file = types.FSInputFile(temp_path)
+                await message.answer_document(input_file, disable_notification=True)
+
+
+@router.message(Command(commands='last_report'), IsAdminFilter(),
+                AftercommandFullCheck(allow_no_argument=True, modes=ReportMode, flag_checking=True))
+async def last_report_command(message: types.Message, command: CommandObject):
+    aftercommand = command.args
+    if aftercommand:
+        arguments = aftercommand
+        flag = arguments
+    else: flag = ReportMode.Flag.TEXT
+
+    group_id = message.chat.id
+    last_report = await get_report(group_id, ReportMode.LAST)
+    table = await report_table(last_report)
+    summary = await report_summary(last_report)
+
+    date_format = NativeDateFormat.date_format
+    date_string = last_report.date.strftime(date_format)
+
+    await message.answer(f"Таблиця присутності, Звіт за {date_string}")
+
+    match ReportMode.Flag(flag):
+
+        case ReportMode.Flag.TEXT:
+            await message.answer(str(table))
+            await message.answer(str(summary), disable_notification=True)
+
+        case ReportMode.Flag.DOCUMENT:
+            temp_path = os.path.join(tempfile.gettempdir(), os.urandom(24).hex()) + '.docx'
+            document = docx.Document()
+            parser = htmldocx.HtmlToDocx()
+
+            table_html = table.get_html_string()
+            parser.add_html_to_document(table_html, document)
+            document.save(temp_path)
+            input_file = types.FSInputFile(temp_path)
+            await message.answer_document(input_file)
+
+            document._body.clear_content()
+
+            summary_html = summary.get_html_string()
+            parser.add_html_to_document(summary_html, document)
+            document.save(temp_path)
+            input_file = types.FSInputFile(temp_path)
+            await message.answer_document(input_file, disable_notification=True)
+
+
+@router.message(Command(commands='on_date_report'),
+                IsAdminFilter(),
+                AftercommandFullCheck(allow_no_argument=False,
+                                      modes=ReportMode,
+                                      additional_arguments_checker=date_validator,
+                                      flag_checking=True))
+async def on_date_report_command(message: types.Message, command: CommandObject):
+    arguments = command.args.split()
+
+    try: date_string, flag = arguments
+    except:
+        date_string = arguments[0]
+        flag = ReportMode.Flag.TEXT
+
+    date_format = NativeDateFormat.date_format
+    date = datetime.datetime.strptime(date_string, date_format).date()
 
     group_id = message.chat.id
 
     try:
-        on_date_report = await get_report(group_id, GetReportMode.ON_DATE, date)
+        on_date_report = await get_report(group_id, ReportMode.ON_DATE, date)
 
     except: #TODO: write a decorator-validator instead
         await message.answer("Помилка, задана дата не відповідає жодному звіту взводу")
         logging.error(f"get report failed, no reports on {date} date")
         return
 
-    await message.answer(on_date_report.table)
-    await message.answer(on_date_report.summary, disable_notification=True)
+    table = await report_table(on_date_report)
+    summary = await report_summary(on_date_report)
+
+
+    await message.answer(f"Таблиця присутності, Звіт за {date_string}")
+
+    match ReportMode.Flag(flag):
+
+        case ReportMode.Flag.TEXT:
+            await message.answer(str(table))
+            await message.answer(str(summary), disable_notification=True)
+
+        case ReportMode.Flag.DOCUMENT:
+            temp_path = os.path.join(tempfile.gettempdir(), os.urandom(24).hex()) + '.docx'
+            document = docx.Document()
+            parser = htmldocx.HtmlToDocx()
+
+            table_html = table.get_html_string()
+            parser.add_html_to_document(table_html, document)
+            document.save(temp_path)
+            input_file = types.FSInputFile(temp_path)
+            await message.answer_document(input_file)
+
+            document._body.clear_content()
+
+            summary_html = summary.get_html_string()
+            parser.add_html_to_document(summary_html, document)
+            document.save(temp_path)
+            input_file = types.FSInputFile(temp_path)
+            await message.answer_document(input_file, disable_notification=True)
 
 
 #TODO: create a chat leave command, should delete any info of-group info
