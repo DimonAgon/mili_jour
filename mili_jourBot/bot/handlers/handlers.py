@@ -87,7 +87,7 @@ async def who_s_present_command(message: types.Message, command: CommandObject):
 
     try:
         mode, *lessons_string_list = arguments
-        validate_is_mode(mode)
+        validate_is_mode(mode, WhoSPresentMode)
 
     except:
         lessons_string_list = arguments
