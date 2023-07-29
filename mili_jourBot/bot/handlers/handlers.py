@@ -93,7 +93,7 @@ async def who_s_present_command(message: types.Message, command: CommandObject):
         lessons_string_list = arguments
         mode = default
 
-    if mode == WhoSPresentMode.LIGHT_MODE or mode == WhoSPresentMode.NORMAL_MODE or mode == WhoSPresentMode.HARDCORE_MODE:
+    if mode in (WhoSPresentMode.LIGHT_MODE, WhoSPresentMode.NORMAL_MODE, WhoSPresentMode.HARDCORE_MODE):
         lessons = [int(e) for e in lessons_string_list]
 
     else:
