@@ -22,7 +22,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 
 # SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = 'django-insecure-js)v*7e=e9!871qptz9ve$m7f_zy%l76z91sz$&*lhno3wp(0h'
-TELEGRAM_BOT_API_KEY = '5403799231:AAH-Pteb3UQvOOcakhraYG0Gn-fsN5puZKw'
+TELEGRAM_BOT_API_KEY = '5403799231:AAFb79kw2hIvbejb94jVJBeyqsTJCGmTQvw'
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
