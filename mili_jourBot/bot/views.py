@@ -205,6 +205,13 @@ def report_table(report) -> Type[prettytable.PrettyTable]:
 
     return table
 
+
+
+
+def all_entries_empty(entries):
+    if not entries.filter(is_present=True) and not entries.filter(is_present=False):
+        return True
+
 @database_sync_to_async
 def report_summary(report) -> Type[prettytable.PrettyTable]:
     journal = report.journal
@@ -236,10 +243,16 @@ def report_summary(report) -> Type[prettytable.PrettyTable]:
             absence_cell = []
 
             for entry in lesson_entries:
-                if not entry.is_present:
+                if entry.is_present == False: #Do not replace with recomended
                     absence_cell = filled_absence_cell(entry, absence_cell)
 
-            present_count = int(journal_strength) - len(absence_cell)
+            absent = len(absence_cell)
+            if absent == 0:
+                if all_entries_empty(lesson_entries) or not lesson_entries:
+                    present_count = '?'
+                else: present_count = int(journal_strength) - absent
+            else:
+                present_count = int(journal_strength) - absent
             summary.add_row([lesson, journal_strength, present_count, "\n".join(absence_cell)])
 
     return summary
