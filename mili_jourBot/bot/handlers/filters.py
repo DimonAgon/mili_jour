@@ -123,10 +123,14 @@ class IsAdminFilter(BaseFilter):
 class AftercommandFullCheck(BaseFilter):
     key = 'aftercommand'
 
-    def __init__(self, allow_no_argument: bool, modes: Enum, mode_checking=False,
+    def __init__(self, allow_no_argument: bool, modes: Enum, mode_checking: bool=False, allow_no_mode: bool=False,
                  additional_arguments_checker: Type[AdditionalArgumentsValidator]=None,
                  flag_checking=False):
+        """
+        :param allow_no_mode: Specify if mode checking is True. By default is set False
+        """
         self.allow_no_argument = allow_no_argument
+        self.allow_no_mode = allow_no_mode
         self.modes = modes
         self.mode_checking = mode_checking
         self.additional_arguments_checker = additional_arguments_checker
@@ -173,12 +177,17 @@ class AftercommandFullCheck(BaseFilter):
 
             try: validate_is_mode(pseudo_mode, self.modes)
             except:
-                try:
-                    self.additional_arguments_checker.validation_function(pseudo_mode)
-                    additional_argument = pseudo_mode
-                    additional_arguments.insert(0, additional_argument)
 
-                except:
+                if self.allow_no_mode:
+                    try:
+                        self.additional_arguments_checker.validation_function(pseudo_mode)
+                        additional_argument = pseudo_mode
+                        additional_arguments.insert(0, additional_argument)
+
+                    except:
+                        await message.answer(wrong_mode_validation_error_message)
+                        return False
+                else:
                     await message.answer(wrong_mode_validation_error_message)
                     return False
 

@@ -81,6 +81,7 @@ def presence_option_to_string(presence_option: Type[PresencePollOptions]):
                 AftercommandFullCheck(allow_no_argument=False,
                                       modes=WhoSPresentMode,
                                       mode_checking=True,
+                                      allow_no_mode= True,
                                       additional_arguments_checker=lessons_validator))
 async def who_s_present_command(message: types.Message, command: CommandObject):  # Checks who is present
     arguments = command.args.split()
