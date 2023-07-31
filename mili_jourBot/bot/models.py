@@ -7,7 +7,7 @@ from .infrastructure.enums import *
 
 class Profile(models.Model):
     name = models.CharField(verbose_name="Ім'я, Прізвище", max_length=65)
-    ordinal = models.CharField(verbose_name="Номер в списку", max_length=2)
+    ordinal = models.SmallIntegerField(verbose_name="Номер в списку")
     journal = models.ForeignKey(to='Journal', on_delete=models.CASCADE, verbose_name="Журнал")
     external_id = models.PositiveIntegerField(verbose_name='Telegram id')
 
