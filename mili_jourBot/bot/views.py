@@ -243,7 +243,7 @@ def report_summary(report) -> Type[prettytable.PrettyTable]:
             absence_cell = []
 
             for entry in lesson_entries:
-                if entry.is_present == False: #Do not replace with recomended
+                if not entry.is_present:
                     absence_cell = filled_absence_cell(entry, absence_cell)
 
             absent = len(absence_cell)
