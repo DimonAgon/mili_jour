@@ -17,6 +17,7 @@ import regex #TODO: swap regex to re, where possible
 @database_sync_to_async
 def add_profile(data, user_id):
     initial = data
+    initial['ordinal'] = int(initial['ordinal'])
     initial['external_id'], initial['journal'] = user_id, Journal.objects.get(name=data['journal'])
 
     new_profile = Profile.objects.create(**initial)
@@ -51,7 +52,7 @@ def initiate_today_entries(today, group_id, lesson=None, mode=default):
         if JournalEntry.objects.filter(journal=journal, date=today, lesson=lesson).exists(): return
 
     profiles = Profile.objects.filter(journal=journal)
-    ordered_profiles = profiles.order_by('name')
+    ordered_profiles = profiles.order_by('ordinal')
 
     for p in ordered_profiles: add_journal_entry({'journal': journal, 'profile': p, 'date': today, 'lesson': lesson})
 
@@ -145,7 +146,7 @@ def initiate_today_report(today, group_id, lessons, mode=default):
     if not Report.objects.filter(date=today, journal=journal, lessons=lessons).exists():
         if Report.objects.filter(date=today, journal=journal).exists():
             corresponding_report = Report.objects.get(date=today, journal=journal)
-            corresponding_report.lessons_intervals = lessons
+            corresponding_report.lessons = lessons
             corresponding_report.save()
 
         else:
@@ -205,6 +206,13 @@ def report_table(report) -> Type[prettytable.PrettyTable]:
 
     return table
 
+
+
+
+def all_entries_empty(entries):
+    if not entries.filter(is_present=True) and not entries.filter(is_present=False):
+        return True
+
 @database_sync_to_async
 def report_summary(report) -> Type[prettytable.PrettyTable]:
     journal = report.journal
@@ -239,7 +247,13 @@ def report_summary(report) -> Type[prettytable.PrettyTable]:
                 if not entry.is_present:
                     absence_cell = filled_absence_cell(entry, absence_cell)
 
-            present_count = int(journal_strength) - len(absence_cell)
+            absent = len(absence_cell)
+            if absent == 0:
+                if all_entries_empty(lesson_entries) or not lesson_entries:
+                    present_count = '?'
+                else: present_count = int(journal_strength) - absent
+            else:
+                present_count = int(journal_strength) - absent
             summary.add_row([lesson, journal_strength, present_count, "\n".join(absence_cell)])
 
     return summary

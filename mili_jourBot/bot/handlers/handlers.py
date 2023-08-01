@@ -81,19 +81,20 @@ def presence_option_to_string(presence_option: Type[PresencePollOptions]):
                 AftercommandFullCheck(allow_no_argument=False,
                                       modes=WhoSPresentMode,
                                       mode_checking=True,
+                                      allow_no_mode= True,
                                       additional_arguments_checker=lessons_validator))
 async def who_s_present_command(message: types.Message, command: CommandObject):  # Checks who is present
     arguments = command.args.split()
 
     try:
         mode, *lessons_string_list = arguments
-        validate_is_mode(mode)
+        validate_is_mode(mode, WhoSPresentMode)
 
     except:
         lessons_string_list = arguments
         mode = default
 
-    if mode == WhoSPresentMode.LIGHT_MODE or mode == WhoSPresentMode.NORMAL_MODE or mode == WhoSPresentMode.HARDCORE_MODE:
+    if mode in (WhoSPresentMode.LIGHT_MODE, WhoSPresentMode.NORMAL_MODE, WhoSPresentMode.HARDCORE_MODE):
         lessons = [int(e) for e in lessons_string_list]
 
     else:
