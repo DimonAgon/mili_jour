@@ -250,7 +250,6 @@ def report_summary(report) -> Type[prettytable.PrettyTable]:
             absent = len(absence_cell)
             if absent == 0:
                 if all_entries_empty(lesson_entries) or not lesson_entries:
-                    # TODO: if lesson is over
                     present_count = '?'
                 else: present_count = int(journal_strength) - absent
             else:
