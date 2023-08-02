@@ -243,18 +243,36 @@ def report_summary(report) -> Type[prettytable.PrettyTable]:
 
             absence_cell = []
 
-            for entry in lesson_entries:
-                if not entry.is_present:
-                    absence_cell = filled_absence_cell(entry, absence_cell)
+            lesson_time_interval = Schedule.lessons_intervals[lesson]
+            lesson_start_time = lesson_time_interval.lower
+            lesson_end_time = lesson_time_interval.upper
+            now_time = datetime.datetime.now().time()
+            if now_time > lesson_start_time:
 
-            absent = len(absence_cell)
-            if absent == 0:
-                if all_entries_empty(lesson_entries) or not lesson_entries:
-                    present_count = '?'
-                else: present_count = int(journal_strength) - absent
+                for entry in lesson_entries:
+                    if not entry.is_present:
+                        absence_cell = filled_absence_cell(entry, absence_cell)
+
+                absent_count = len(absence_cell)
+                present_count = int(journal_strength) - absent_count
+
+                if present_count == 0:
+                    if now_time < lesson_end_time:
+                        if all_entries_empty(lesson_entries) or not lesson_entries:
+                            presence_indicator = '?'
+                        else:
+                            presence_indicator = present_count
+                    else:
+                        presence_indicator = present_count
+                else:
+                    presence_indicator = present_count
             else:
-                present_count = int(journal_strength) - absent
-            summary.add_row([lesson, journal_strength, present_count, "\n".join(absence_cell)])
+                presence_indicator = '?'
+
+            summary.add_row([lesson, journal_strength, presence_indicator, "\n".join(absence_cell)])
+
+
+
 
     return summary
 
