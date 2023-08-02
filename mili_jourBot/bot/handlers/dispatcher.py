@@ -12,10 +12,6 @@ from django.core.exceptions import PermissionDenied
 from django.conf import settings
 #django
 
-#pyTelegramBotAPI
-from telebot import TeleBot
-#pyTelegramBotAPI
-
 #bot
 
 #bot
