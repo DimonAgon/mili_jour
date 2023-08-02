@@ -143,15 +143,15 @@ def set_status(data, user_id, lesson=None, mode=default): #TODO: if today status
 def initiate_today_report(today, group_id, lessons, mode=default):
     journal = Journal.objects.get(external_id=group_id)
 
-    if not Report.objects.filter(date=today, journal=journal, lessons=lessons).exists():
-        if Report.objects.filter(date=today, journal=journal).exists():
-            corresponding_report = Report.objects.get(date=today, journal=journal)
+    if not ReportParameters.objects.filter(date=today, journal=journal, lessons=lessons).exists():
+        if ReportParameters.objects.filter(date=today, journal=journal).exists():
+            corresponding_report = ReportParameters.objects.get(date=today, journal=journal)
             corresponding_report.lessons = lessons
             corresponding_report.save()
 
         else:
             journal = Journal.objects.get(external_id=group_id)
-            report = Report.objects.create(journal=journal, date=today, lessons=lessons, mode=mode)
+            report = ReportParameters.objects.create(journal=journal, date=today, lessons=lessons, mode=mode)
             report.save()
 
 def filled_absence_cell(entry, absence_cell):
@@ -260,19 +260,19 @@ def report_summary(report) -> Type[prettytable.PrettyTable]:
 
 
 @database_sync_to_async
-def get_report(group_id, mode, specified_date: datetime=None) -> Type[Report]:
+def get_report(group_id, mode, specified_date: datetime=None) -> Type[ReportParameters]:
     journal = Journal.objects.get(external_id=group_id)
 
     match mode:
         case ReportMode.TODAY:
             date = datetime.datetime.today().date()
-            corresponding_report = Report.objects.get(date=date, journal=journal)
+            corresponding_report = ReportParameters.objects.get(date=date, journal=journal)
 
         case ReportMode.LAST:
-            journal_reports = Report.objects.filter(journal=journal)
+            journal_reports = ReportParameters.objects.filter(journal=journal)
             corresponding_report = journal_reports.order_by('date')[len(journal_reports) - 1] # bare -1 is not supported
 
         case ReportMode.ON_DATE:
-            corresponding_report = Report.objects.get(date=specified_date, journal=journal)
+            corresponding_report = ReportParameters.objects.get(date=specified_date, journal=journal)
 
     return corresponding_report
