@@ -38,3 +38,14 @@ def presence_option_to_string(presence_option: Type[PresencePollOptions]):
             return "Я"
         case PresencePollOptions.Absent:
             return "Відсутній"
+
+
+no_mode_validation_error_message = "Помилка, вкажіть режим"
+
+wrong_mode_validation_error_message = "Помилка, вказано невірний режим"
+
+no_arguments_validation_error_message = "Помилка, вкажіть аргументи"
+
+wrong_lessons_validation_error_mesage = "Помилка, очікується послідовність занять"
+
+wrong_date_validation_error_message = "Помилка, очікується дата"
