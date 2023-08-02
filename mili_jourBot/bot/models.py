@@ -46,7 +46,7 @@ class JournalEntry(models.Model):
     status = models.CharField(verbose_name='Статус', max_length=60, null=True)
 
 
-class Report(models.Model):
+class ReportParameters(models.Model):
     journal = models.ForeignKey(to='Journal', on_delete=models.CASCADE, verbose_name="Журнал")
     date = models.DateField()
     lessons = models.CharField(validate_comma_separated_integer_list, max_length=15, null=True)

@@ -19,6 +19,7 @@ from ..views import *
 from .filters import *
 from ..infrastructure.enums import *
 from ..infrastructure import enums
+from .static_text import *
 
 import asyncio
 
@@ -34,45 +35,14 @@ import random
 @router.message(Command(commands='start'))
 async def start_command(message: types.Message):  # Self-presintation of the bot
 
-    greeting = "Mili_jour (Military Journal)." \
-               " Бота створено для підтримки роботи командирського складу учбових взводів." \
-               " Надано можливість ведення журналу відвідувань через команди. Проект на стадії розробки." \
-               " Дійовість деяких аспектів буде перевірена та перероблена за необхідності."
-
-    await message.reply(greeting)
+    await message.reply(greeting_text)
 
 
 @router.message(Command(commands='help'))
 async def help_command(message: types.Message):
-    HELPFUL_REPLY = f"Для роботи необхідно виконати реєстрацію журналу взводу та ЗАРЕЕСТРУВАТИСЬ." \
-                    "\nПодальше, право на взаємодію із ботом покладається на командирський склад." \
-                    "\nСписок команд наведено нижче:" \
-                    "\n/start– введення у бот" \
-                    "\n/help– інструкція до взаємодії із ботом" \
-                    "\n/register– реєструвати профіль" \
-                    "\n/register_journal– створити журнал відвідувань" \
-                    "\n/cancel_registration– відмінити реєстрацію" \
-                    "\n/who_s_present– створити опитування щодо присутності" \
-                    "\n/absence_reason– вказати причину відсутності" \
-                    "\n/today_report– викликати звіт за сьогоднішній день" \
-                    "\n/last_report– викликати останній звіт" \
-                    "\n/on_date_report– викликати звіт за датою"
-
     #TODO: on_update_info
 
     await message.reply(HELPFUL_REPLY)
-
-
-class PresencePollOptions(Enum):
-    Present = 0
-    Absent = 1
-
-def presence_option_to_string(presence_option: Type[PresencePollOptions]):
-    match presence_option:
-        case PresencePollOptions.Present:
-            return "Я"
-        case PresencePollOptions.Absent:
-            return "Відсутній"
 
 
 @router.message(Command(commands=['who_s_present', 'wp']),
@@ -233,7 +203,7 @@ async def absence_reason_command(message: types.Message, forms: FormsManager):
 @router.message(Command(commands='register'), F.chat.type.in_({'private'}), RegisteredExternalIdFilter(Profile))
 async def register_command(message: types.Message, forms: FormsManager):
 
-    await message.reply(text='ініціюю реєстрацію')
+    await message.reply(text=profile_registration_text)
     await asyncio.sleep(3)
 
     await forms.show('profileform')
@@ -243,7 +213,7 @@ async def register_command(message: types.Message, forms: FormsManager):
                 RegisteredExternalIdFilter(Journal, use_chat_id=True))
 async def register_journal_command(message: types.Message, forms: FormsManager):
 
-    await message.reply(text="Ініціюю реєстрацію взводу")
+    await message.reply(text=group_registration_text)
     await asyncio.sleep(3)
 
     await forms.show('journalform')
@@ -252,7 +222,7 @@ async def register_journal_command(message: types.Message, forms: FormsManager):
 @router.message(Command(commands='cancel_registration'))
 async def cancel_registration_command(message: types.Message, state: FSMContext):
     await state.clear()
-    await message.reply(text="Процес реєстрації було перервано")
+    await message.reply(text=registration_canceling_text)
 #TODO: reports should be able in both group and private chat
 
 

@@ -214,3 +214,4 @@ ENV/
 *.pyc
 mili_jourBot/Dockerfile
 mili_jourBot/requirements.txt
+mili_jourBot/mili_jourBot/settings.py
