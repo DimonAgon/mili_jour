@@ -1,4 +1,9 @@
 
+from typing import Type
+
+from ..infrastructure.enums import PresencePollOptions
+
+
 greeting_text = "Mili_jour (Military Journal)." \
                " Бота створено для підтримки роботи командирського складу учбових взводів." \
                " Надано можливість ведення журналу відвідувань через команди. Проект на стадії розробки." \
@@ -25,3 +30,11 @@ profile_registration_text = "ініціюю реєстрацію"
 group_registration_text = "Ініціюю реєстрацію взводу"
 
 registration_canceling_text = "Процес реєстрації було перервано"
+
+
+def presence_option_to_string(presence_option: Type[PresencePollOptions]):
+    match presence_option:
+        case PresencePollOptions.Present:
+            return "Я"
+        case PresencePollOptions.Absent:
+            return "Відсутній"

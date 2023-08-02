@@ -54,3 +54,8 @@ class Schedule: #Do not try to deceive the poll
 
                 return l
         return None
+
+
+class PresencePollOptions(Enum):
+    Present = 0
+    Absent = 1

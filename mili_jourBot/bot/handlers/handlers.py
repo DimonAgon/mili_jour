@@ -45,18 +45,6 @@ async def help_command(message: types.Message):
     await message.reply(HELPFUL_REPLY)
 
 
-class PresencePollOptions(Enum):
-    Present = 0
-    Absent = 1
-
-def presence_option_to_string(presence_option: Type[PresencePollOptions]):
-    match presence_option:
-        case PresencePollOptions.Present:
-            return "Я"
-        case PresencePollOptions.Absent:
-            return "Відсутній"
-
-
 @router.message(Command(commands=['who_s_present', 'wp']),
                 F.chat.type.in_({'group', 'supergroup'}),
                 IsAdminFilter(),
