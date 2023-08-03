@@ -238,7 +238,7 @@ async def today_report_command(message: types.Message, command: CommandObject):
     group_id = message.chat.id
     today_report = await get_report(group_id, ReportMode.TODAY)
     table = await report_table(today_report)
-    summary = await report_summary(today_report)
+    summary = await report_summary(today_report, ReportMode.TODAY)
 
     date_format = NativeDateFormat.date_format
     date_string = today_report.date.strftime(date_format)
@@ -284,7 +284,7 @@ async def last_report_command(message: types.Message, command: CommandObject):
     group_id = message.chat.id
     last_report = await get_report(group_id, ReportMode.LAST)
     table = await report_table(last_report)
-    summary = await report_summary(last_report)
+    summary = await report_summary(last_report, ReportMode.LAST)
 
     date_format = NativeDateFormat.date_format
     date_string = last_report.date.strftime(date_format)
@@ -345,7 +345,7 @@ async def on_date_report_command(message: types.Message, command: CommandObject)
         return
 
     table = await report_table(on_date_report)
-    summary = await report_summary(on_date_report)
+    summary = await report_summary(on_date_report, ReportMode.ON_DATE)
 
 
     await message.answer(f"Таблиця присутності, Звіт за {date_string}")
