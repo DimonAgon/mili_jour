@@ -112,7 +112,7 @@ async def who_s_present_command(message: types.Message, command: CommandObject):
             if lesson_time_interval.contains(now_time): start_time = start_time = (now + datetime.timedelta(seconds=1)).time()
             elif now_time < lesson_time_interval.lower:  start_time = lesson_time_interval.lower
             else:
-                message.answer(f"Заняття {lesson} пропущено, час заняття вичерпано")
+                await message.answer(f"Заняття {lesson} пропущено, час заняття вичерпано")
                 logging.info(f"lesson {lesson} iteration skipped, lesson time is over")
                 continue
 
