@@ -164,6 +164,7 @@ async def absence_reason_handler_T(message: types.Message, forms: FormsManager):
 async def absence_reason_handler_H(message: types.Message, state: FSMContext):
     await state.clear()
 
+
 @router.poll_answer() #TODO: add a flag for vote-answer mode, add an every-lesson mode
 async def who_s_present_poll_handler (poll_answer: types.poll_answer, state: FSMContext):  #TODO: add an ability to re-answer
     is_present = poll_answer.option_ids == [PresencePollOptions.Present.value]
@@ -189,6 +190,7 @@ async def absence_reason_command(message: types.Message, forms: FormsManager):
 
     except:
         await message.answer(out_of_lesson_absence_reason_sharing_error_message)
+        return
 
     if not await on_lesson_presence_check(user_id):
         await forms.show('absenceform')

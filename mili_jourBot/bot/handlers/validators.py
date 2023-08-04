@@ -72,5 +72,4 @@ async def validate_on_lesson_presence(user_id):
         await on_lesson_presence_check(user_id)
 
     except:
-        logging.error(f"failed to set a status for user {user_id}, lesson is None")
-        return
+        raise ValidationError(f"failed to set a status for user {user_id}, lesson is None", code='presence check')
