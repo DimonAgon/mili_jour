@@ -185,14 +185,12 @@ async def absence_reason_command(message: types.Message, forms: FormsManager):
     user_id = message.from_user.id
     #TODO: pass the lesson if lesson is none, then answer and return
     try:
-        current_lesson_presence = await on_lesson_presence_check(user_id)
+        await validate_on_lesson_presence(user_id)
 
     except:
-        await message.answer(out_of_lesson_absence_reason_sharing_error_message) #TODO: consider
-        logging.error(f"failed to set a status for user {user_id}, lesson is None")
-        return
+        await message.answer(out_of_lesson_absence_reason_sharing_error_message)
 
-    if not current_lesson_presence:
+    if not await on_lesson_presence_check(user_id):
         await forms.show('absenceform')
 
     else:
