@@ -33,7 +33,7 @@ import random
 
 
 @router.message(Command(commands='start'))
-async def start_command(message: types.Message):  # Self-presintation of the bot
+async def start_command(message: types.Message):  # Self-presentation of the bot
 
     await message.reply(greeting_text)
 
@@ -69,7 +69,7 @@ async def who_s_present_command(message: types.Message, command: CommandObject):
 
     else:
         if lessons_string_list:
-            await message.answer("Помилка, режим не потребує послідовності занять")
+            await message.answer(no_additional_arguments_required)
             logging.error("Command initiation failed\nError: no arguments expected")
             pass
 
@@ -112,6 +112,7 @@ async def who_s_present_command(message: types.Message, command: CommandObject):
             if lesson_time_interval.contains(now_time): start_time = start_time = (now + datetime.timedelta(seconds=1)).time()
             elif now_time < lesson_time_interval.lower:  start_time = lesson_time_interval.lower
             else:
+                message.answer(f"Заняття {lesson} пропущено, час заняття вичерпано")
                 logging.info(f"lesson {lesson} iteration skipped, lesson time is over")
                 continue
 
@@ -156,13 +157,17 @@ async def who_s_present_command(message: types.Message, command: CommandObject):
 
 class AbsenceReasonStates(StatesGroup): AbsenceReason = State()
 
-@router.message(AbsenceReasonStates.AbsenceReason, F.text.regexp(r'Т'))
+@router.message(AbsenceReasonStates.AbsenceReason, F.text.regexp(r'Т'), F.chat.type.in_({'private'}))
 async def absence_reason_handler_T(message: types.Message, forms: FormsManager):
     await forms.show('absenceform')
 
-@router.message(AbsenceReasonStates.AbsenceReason, F.text.regexp(r'Н'))
+@router.message(AbsenceReasonStates.AbsenceReason, F.text.regexp(r'Н'), F.chat.type.in_({'private'}))
 async def absence_reason_handler_H(message: types.Message, state: FSMContext):
     await state.clear()
+
+@router.message(AbsenceReasonStates.AbsenceReason, F.text.regexp(r'[^ТН]'), F.chat.type.in_({'private'}))
+async def absence_reason_handler_invalid(message: types.Message, state: FSMContext):
+    await message.answer(absence_reason_share_suggestion_text)
 
 @router.poll_answer() #TODO: add a flag for vote-answer mode, add an every-lesson mode
 async def who_s_present_poll_handler (poll_answer: types.poll_answer, state: FSMContext):  #TODO: add an ability to re-answer
@@ -177,7 +182,7 @@ async def who_s_present_poll_handler (poll_answer: types.poll_answer, state: FSM
             await set_status({'status': today_status}, user_id)
 
         else:
-            await bot.send_message(user_id, 'Вказати причину відстутності? Т/Н')
+            await bot.send_message(user_id, absence_reason_share_suggestion_text)
             await state.set_state(AbsenceReasonStates.AbsenceReason)
 
 @router.message(Command(commands='absence_reason'), F.chat.type.in_({'private'}))
@@ -185,19 +190,18 @@ async def absence_reason_command(message: types.Message, forms: FormsManager):
     user_id = message.from_user.id
     #TODO: pass the lesson if lesson is none, then answer and return
     try:
-        current_lesson_presence = await on_lesson_presence_check(user_id)
+        await validate_on_lesson_presence(user_id)
 
     except:
-        await message.answer("Помилка, причину відсутності вказати впродовж відповідного заняття") #TODO: consider
-        logging.error(f"failed to set a status for user {user_id}, lesson is None")
+        await message.answer(out_of_lesson_absence_reason_sharing_error_message)
         return
 
-    if not current_lesson_presence:
+    if not await on_lesson_presence_check(user_id):
         await forms.show('absenceform')
 
     else:
         logging.error(f"Absence reason set is impossible, user {user_id} is present")
-        await message.answer("Помилка, вас відмічено як присутнього")
+        await message.answer(on_present_absence_reason_sharing_error_message)
         logging.error(f"failed to set a status for user {user_id}, is_present: True")
 
 @router.message(Command(commands='register'), F.chat.type.in_({'private'}), RegisteredExternalIdFilter(Profile))
@@ -219,8 +223,8 @@ async def register_journal_command(message: types.Message, forms: FormsManager):
     await forms.show('journalform')
 
 
-@router.message(Command(commands='cancel_registration'))
-async def cancel_registration_command(message: types.Message, state: FSMContext):
+@router.message(Command(commands='cancel'))
+async def cancel_command(message: types.Message, state: FSMContext):
     await state.clear()
     await message.reply(text=registration_canceling_text)
 #TODO: reports should be able in both group and private chat
@@ -238,7 +242,7 @@ async def today_report_command(message: types.Message, command: CommandObject):
     group_id = message.chat.id
     today_report = await get_report(group_id, ReportMode.TODAY)
     table = await report_table(today_report)
-    summary = await report_summary(today_report)
+    summary = await report_summary(today_report, ReportMode.TODAY)
 
     date_format = NativeDateFormat.date_format
     date_string = today_report.date.strftime(date_format)
@@ -284,7 +288,7 @@ async def last_report_command(message: types.Message, command: CommandObject):
     group_id = message.chat.id
     last_report = await get_report(group_id, ReportMode.LAST)
     table = await report_table(last_report)
-    summary = await report_summary(last_report)
+    summary = await report_summary(last_report, ReportMode.LAST)
 
     date_format = NativeDateFormat.date_format
     date_string = last_report.date.strftime(date_format)
@@ -340,12 +344,12 @@ async def on_date_report_command(message: types.Message, command: CommandObject)
         on_date_report = await get_report(group_id, ReportMode.ON_DATE, date)
 
     except: #TODO: write a decorator-validator instead
-        await message.answer("Помилка, задана дата не відповідає жодному звіту взводу")
+        await message.answer(on_invalid_date_report_error_message)
         logging.error(f"get report failed, no reports on {date} date")
         return
 
     table = await report_table(on_date_report)
-    summary = await report_summary(on_date_report)
+    summary = await report_summary(on_date_report, ReportMode.ON_DATE)
 
 
     await message.answer(f"Таблиця присутності, Звіт за {date_string}")
