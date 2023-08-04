@@ -156,15 +156,15 @@ async def who_s_present_command(message: types.Message, command: CommandObject):
 
 class AbsenceReasonStates(StatesGroup): AbsenceReason = State()
 
-@router.message(AbsenceReasonStates.AbsenceReason, F.text.regexp(r'Т'))
+@router.message(AbsenceReasonStates.AbsenceReason, F.text.regexp(r'Т'), F.chat.type.in_({'private'}))
 async def absence_reason_handler_T(message: types.Message, forms: FormsManager):
     await forms.show('absenceform')
 
-@router.message(AbsenceReasonStates.AbsenceReason, F.text.regexp(r'Н'))
+@router.message(AbsenceReasonStates.AbsenceReason, F.text.regexp(r'Н'), F.chat.type.in_({'private'}))
 async def absence_reason_handler_H(message: types.Message, state: FSMContext):
     await state.clear()
 
-@router.message(AbsenceReasonStates.AbsenceReason, F.text.regexp(r'[^ТН]'))
+@router.message(AbsenceReasonStates.AbsenceReason, F.text.regexp(r'[^ТН]'), F.chat.type.in_({'private'}))
 async def absence_reason_handler_invalid(message: types.Message, state: FSMContext):
     await message.answer(absence_reason_share_suggestion_text)
 
