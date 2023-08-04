@@ -33,7 +33,7 @@ import random
 
 
 @router.message(Command(commands='start'))
-async def start_command(message: types.Message):  # Self-presintation of the bot
+async def start_command(message: types.Message):  # Self-presentation of the bot
 
     await message.reply(greeting_text)
 
@@ -112,6 +112,7 @@ async def who_s_present_command(message: types.Message, command: CommandObject):
             if lesson_time_interval.contains(now_time): start_time = start_time = (now + datetime.timedelta(seconds=1)).time()
             elif now_time < lesson_time_interval.lower:  start_time = lesson_time_interval.lower
             else:
+                message.answer(f"Заняття {lesson} пропущено, час заняття вичерпано")
                 logging.info(f"lesson {lesson} iteration skipped, lesson time is over")
                 continue
 
