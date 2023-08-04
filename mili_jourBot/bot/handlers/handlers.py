@@ -33,7 +33,7 @@ import random
 
 
 @router.message(Command(commands='start'))
-async def start_command(message: types.Message):  # Self-presintation of the bot
+async def start_command(message: types.Message):  # Self-presentation of the bot
 
     await message.reply(greeting_text)
 
