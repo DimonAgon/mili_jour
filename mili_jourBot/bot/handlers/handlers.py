@@ -69,7 +69,7 @@ async def who_s_present_command(message: types.Message, command: CommandObject):
 
     else:
         if lessons_string_list:
-            await message.answer("Помилка, режим не потребує послідовності занять")
+            await message.answer(no_additional_arguments_required)
             logging.error("Command initiation failed\nError: no arguments expected")
             pass
 
@@ -177,7 +177,7 @@ async def who_s_present_poll_handler (poll_answer: types.poll_answer, state: FSM
             await set_status({'status': today_status}, user_id)
 
         else:
-            await bot.send_message(user_id, 'Вказати причину відстутності? Т/Н')
+            await bot.send_message(user_id, absence_reason_share_suggestion_text)
             await state.set_state(AbsenceReasonStates.AbsenceReason)
 
 @router.message(Command(commands='absence_reason'), F.chat.type.in_({'private'}))
@@ -188,7 +188,7 @@ async def absence_reason_command(message: types.Message, forms: FormsManager):
         current_lesson_presence = await on_lesson_presence_check(user_id)
 
     except:
-        await message.answer("Помилка, причину відсутності вказати впродовж відповідного заняття") #TODO: consider
+        await message.answer(out_of_lesson_absence_reason_sharing_error_message) #TODO: consider
         logging.error(f"failed to set a status for user {user_id}, lesson is None")
         return
 
@@ -197,7 +197,7 @@ async def absence_reason_command(message: types.Message, forms: FormsManager):
 
     else:
         logging.error(f"Absence reason set is impossible, user {user_id} is present")
-        await message.answer("Помилка, вас відмічено як присутнього")
+        await message.answer(on_present_absence_reason_sharing_error_message)
         logging.error(f"failed to set a status for user {user_id}, is_present: True")
 
 @router.message(Command(commands='register'), F.chat.type.in_({'private'}), RegisteredExternalIdFilter(Profile))
@@ -340,7 +340,7 @@ async def on_date_report_command(message: types.Message, command: CommandObject)
         on_date_report = await get_report(group_id, ReportMode.ON_DATE, date)
 
     except: #TODO: write a decorator-validator instead
-        await message.answer("Помилка, задана дата не відповідає жодному звіту взводу")
+        await message.answer(on_invalid_date_report_error_message)
         logging.error(f"get report failed, no reports on {date} date")
         return
 
