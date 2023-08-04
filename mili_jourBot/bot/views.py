@@ -118,10 +118,7 @@ def on_lesson_presence_check(user_id):
     on_lesson_entry = JournalEntry.objects.get(profile=profile, lesson=current_lesson, date=today)
     presence = on_lesson_entry.is_present
 
-    if presence:
-        return True
-
-    return False
+    return presence
 
 
 @database_sync_to_async
