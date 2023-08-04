@@ -164,6 +164,9 @@ async def absence_reason_handler_T(message: types.Message, forms: FormsManager):
 async def absence_reason_handler_H(message: types.Message, state: FSMContext):
     await state.clear()
 
+@router.message(AbsenceReasonStates.AbsenceReason, F.text.regexp(r'[^ТН]'))
+async def absence_reason_handler_invalid(message: types.Message, state: FSMContext):
+    await message.answer(absence_reason_share_suggestion_text)
 
 @router.poll_answer() #TODO: add a flag for vote-answer mode, add an every-lesson mode
 async def who_s_present_poll_handler (poll_answer: types.poll_answer, state: FSMContext):  #TODO: add an ability to re-answer
