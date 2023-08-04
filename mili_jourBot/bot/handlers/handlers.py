@@ -222,8 +222,8 @@ async def register_journal_command(message: types.Message, forms: FormsManager):
     await forms.show('journalform')
 
 
-@router.message(Command(commands='cancel_registration'))
-async def cancel_registration_command(message: types.Message, state: FSMContext):
+@router.message(Command(commands='cancel'))
+async def cancel_command(message: types.Message, state: FSMContext):
     await state.clear()
     await message.reply(text=registration_canceling_text)
 #TODO: reports should be able in both group and private chat
