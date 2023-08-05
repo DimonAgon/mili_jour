@@ -99,10 +99,11 @@ def amend_statuses(date, group_id):
 
     for profile in journal_profiles:
         on_date_profile_entries = JournalEntry.objects.filter(date=date, profile=profile)
+        ordered_on_date_profile_entries = on_date_profile_entries.order_by('-lesson')
 
         most_relevant_status = None
 
-        for entry in on_date_profile_entries:
+        for entry in ordered_on_date_profile_entries:
             entry_status = entry.status
             if entry_status: most_relevant_status = entry_status
             else:
