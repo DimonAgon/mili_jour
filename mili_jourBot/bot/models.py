@@ -5,6 +5,10 @@ from django.core.validators import validate_comma_separated_integer_list
 from .infrastructure.enums import *
 
 
+class Superuser(models.Model):
+    external_id = models.PositiveIntegerField(verbose_name='Telegram id')
+
+
 class Profile(models.Model):
     name = models.CharField(verbose_name="Ім'я, Прізвище", max_length=65)
     ordinal = models.SmallIntegerField(verbose_name="Номер в списку")

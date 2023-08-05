@@ -31,6 +31,8 @@ import tempfile, os
 
 import random
 
+from key_generator import key_generator
+
 
 @router.message(Command(commands='start'))
 async def start_command(message: types.Message):  # Self-presentation of the bot
@@ -203,6 +205,48 @@ async def absence_reason_command(message: types.Message, forms: FormsManager):
     else:
         await message.answer(on_present_absence_reason_sharing_error_message)
         logging.error(f"Absence reason set is impossible for user {user_id}, is_present: True")
+
+
+class SuperuserKeyStates(StatesGroup): key = State()
+
+@router.message(SuperuserKeyStates.key, F.chat.type.in_({'private'}))
+async def super_user_registrator(message: types.Message, state: FSMContext):
+    callback_text = "Cуперкористувача зареєстровано"
+    on_registration_fail_text = "Помилка, реєстрацію скасовано"
+    user_id = message.from_user.id
+    authentic_key = await state.get_data()
+
+    try:
+        validate_super_user_key(message.text, authentic_key['key'], user_id)
+    except:
+        await message.answer("Ключ суперкористувача не є дійсним. Ввусти ключ повторно")
+        return
+
+    try:
+        await add_superuser(user_id)
+        await message.answer(text=callback_text)
+        logging.info(f"A superuser created for user_id {user_id}")
+
+    except Exception as e:
+        await message.answer(text=on_registration_fail_text)
+        logging.error(f"Failed to create a superuser for user_id {user_id}\nError:{e}")
+
+
+@router.message(Command(commands='register_superuser'), F.chat.type.in_({'private'}), RegisteredExternalIdFilter(Superuser))
+async def register_superuser_command(message: types.Message, state: FSMContext):
+    user_id = message.from_user.id
+    logging.info(f"superuser registration form initiated for user {user_id}")
+    await message.reply(text=profile_registration_text)
+    await asyncio.sleep(3)
+
+    key = key_generator.generate().get_key()
+
+    await state.set_state(SuperuserKeyStates.key)
+    await state.update_data(key=key)
+    await message.answer("Ввести ключ суперкористувача")
+    logging.info(f'user {user_id} superuser key: {key}')
+
+
 
 @router.message(Command(commands='register'), F.chat.type.in_({'private'}), RegisteredExternalIdFilter(Profile))
 async def register_command(message: types.Message, forms: FormsManager):

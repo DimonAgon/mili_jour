@@ -15,6 +15,12 @@ import regex #TODO: swap regex to re, where possible
 
 
 @database_sync_to_async
+def add_superuser(user_id):
+    new_superuser = Superuser.objects.create(external_id=user_id)
+    new_superuser.save()
+
+
+@database_sync_to_async
 def add_profile(data, user_id):
     initial = data
     initial['ordinal'] = int(initial['ordinal'])
