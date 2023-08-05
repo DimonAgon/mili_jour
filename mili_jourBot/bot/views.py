@@ -141,11 +141,25 @@ def set_status(data, user_id, lesson=None, mode=default): #TODO: if today status
 def initiate_today_report(today, group_id, lessons, mode=default):
     journal = Journal.objects.get(external_id=group_id)
 
-    if not ReportParameters.objects.filter(date=today, journal=journal, lessons=lessons).exists():
+    if not ReportParameters.objects.filter(date=today, journal=journal, lessons=lessons, mode=mode).exists():
+
         if ReportParameters.objects.filter(date=today, journal=journal).exists():
-            corresponding_report = ReportParameters.objects.get(date=today, journal=journal)
-            corresponding_report.lessons = lessons
-            corresponding_report.save()
+            if ReportParameters.objects.filter(date=today, journal=journal, mode=mode).exists():
+                corresponding_report = ReportParameters.objects.get(date=today, journal=journal)
+                corresponding_report.lessons = lessons
+                corresponding_report.save()
+
+            if ReportParameters.objects.filter(date=today, journal=journal, lessons=lessons).exists():
+                corresponding_report = ReportParameters.objects.get(date=today, journal=journal)
+                corresponding_report.mode = mode
+                corresponding_report.save()
+
+            else:
+                corresponding_report = ReportParameters.objects.get(date=today, journal=journal)
+                corresponding_report.lessons = lessons
+                corresponding_report = ReportParameters.objects.get(date=today, journal=journal)
+                corresponding_report.mode = mode
+                corresponding_report.save()
 
         else:
             journal = Journal.objects.get(external_id=group_id)
