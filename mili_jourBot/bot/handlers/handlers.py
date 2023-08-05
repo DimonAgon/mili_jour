@@ -177,13 +177,9 @@ async def who_s_present_poll_handler (poll_answer: types.poll_answer, state: FSM
     await presence_view(is_present, user_id)
 
     if not is_present:
-        today_status = await get_today_status(user_id)
-        if today_status:
-            await set_status({'status': today_status}, user_id)
+        await bot.send_message(user_id, absence_reason_share_suggestion_text)
+        await state.set_state(AbsenceReasonStates.AbsenceReason)
 
-        else:
-            await bot.send_message(user_id, absence_reason_share_suggestion_text)
-            await state.set_state(AbsenceReasonStates.AbsenceReason)
 
 @router.message(Command(commands='absence_reason'), F.chat.type.in_({'private'}))
 async def absence_reason_command(message: types.Message, forms: FormsManager):

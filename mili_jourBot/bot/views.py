@@ -81,16 +81,6 @@ def presence_view(is_present, user_id):
         corresponding_entry.is_present = False
         corresponding_entry.save()
 
-@database_sync_to_async
-def get_today_status(user_id):
-    profile = Profile.objects.get(external_id=user_id)
-    today = datetime.datetime.today()
-    profile_entries = JournalEntry.objects.filter(profile=profile, date=today)
-    for entry in profile_entries:
-        status = entry.status
-        if status:
-            return status
-
 
 @database_sync_to_async
 def amend_statuses(date, group_id):
