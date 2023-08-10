@@ -31,6 +31,8 @@ import tempfile, os
 
 import random
 
+from key_generator import key_generator
+
 
 @router.message(Command(commands='start'))
 async def start_command(message: types.Message):  # Self-presentation of the bot
@@ -112,7 +114,7 @@ async def who_s_present_command(message: types.Message, command: CommandObject):
             if lesson_time_interval.contains(now_time): start_time = start_time = (now + datetime.timedelta(seconds=1)).time()
             elif now_time < lesson_time_interval.lower:  start_time = lesson_time_interval.lower
             else:
-                message.answer(f"Заняття {lesson} пропущено, час заняття вичерпано")
+                await message.answer(f"Заняття {lesson} пропущено, час заняття вичерпано")
                 logging.info(f"lesson {lesson} iteration skipped, lesson time is over")
                 continue
 
@@ -141,16 +143,18 @@ async def who_s_present_command(message: types.Message, command: CommandObject):
             await asyncio.sleep(till_poll.seconds)
             till_deadline = deadline - now #TODO: create an async scheduler
             poll_message = await message.answer_poll(**poll_configuration) #TODO: consider using poll configuration dict
+            logging.info(f"lesson {lesson} poll sent to {group_id} mode: {mode}")
             await asyncio.sleep(till_deadline.seconds)  #TODO: schedule instead
             await bot.stop_poll(chat_id=poll_message.chat.id, message_id=poll_message.message_id)
 
         await amend_statuses(today, group_id)
-
+        logging.info(f"statuses amended for group {group_id}")
 
     else:
         await initiate_today_entries(today, group_id) #TODO: the better choice may be to call function on every study day
         await initiate_today_report(today, group_id, unique_lessons)
         poll_message = await message.answer_poll(**poll_configuration)
+        logging.info(f"poll sent to {group_id} mode: {mode}")
         await asyncio.sleep(till_deadline.seconds) #TODO: schedule instead
         await bot.stop_poll(chat_id=poll_message.chat.id, message_id=poll_message.message_id)
 
@@ -174,16 +178,14 @@ async def who_s_present_poll_handler (poll_answer: types.poll_answer, state: FSM
     is_present = poll_answer.option_ids == [PresencePollOptions.Present.value]
     user_id = poll_answer.user.id
 
+    logging.info(f"poll answer {poll_answer.option_ids}:{is_present} from {user_id}")
     await presence_view(is_present, user_id)
+    logging.info(f"presence set for user {user_id}")
 
     if not is_present:
-        today_status = await get_today_status(user_id)
-        if today_status:
-            await set_status({'status': today_status}, user_id)
+        await bot.send_message(user_id, absence_reason_share_suggestion_text)
+        await state.set_state(AbsenceReasonStates.AbsenceReason)
 
-        else:
-            await bot.send_message(user_id, absence_reason_share_suggestion_text)
-            await state.set_state(AbsenceReasonStates.AbsenceReason)
 
 @router.message(Command(commands='absence_reason'), F.chat.type.in_({'private'}))
 async def absence_reason_command(message: types.Message, forms: FormsManager):
@@ -197,16 +199,59 @@ async def absence_reason_command(message: types.Message, forms: FormsManager):
         return
 
     if not await on_lesson_presence_check(user_id):
+        logging.info(f"absence reason form initiated for user {user_id}")
         await forms.show('absenceform')
 
     else:
-        logging.error(f"Absence reason set is impossible, user {user_id} is present")
         await message.answer(on_present_absence_reason_sharing_error_message)
-        logging.error(f"failed to set a status for user {user_id}, is_present: True")
+        logging.error(f"Absence reason set is impossible for user {user_id}, is_present: True")
+
+
+class SuperuserKeyStates(StatesGroup): key = State()
+
+@router.message(SuperuserKeyStates.key, F.chat.type.in_({'private'}))
+async def super_user_registrator(message: types.Message, state: FSMContext):
+    callback_text = "Cуперкористувача зареєстровано"
+    on_registration_fail_text = "Помилка, реєстрацію скасовано"
+    user_id = message.from_user.id
+    authentic_key = await state.get_data()
+
+    try:
+        validate_super_user_key(message.text, authentic_key['key'], user_id)
+    except:
+        await message.answer("Ключ суперкористувача не є дійсним. Ввусти ключ повторно")
+        return
+
+    try:
+        await add_superuser(user_id)
+        await message.answer(text=callback_text)
+        logging.info(f"A superuser created for user_id {user_id}")
+
+    except Exception as e:
+        await message.answer(text=on_registration_fail_text)
+        logging.error(f"Failed to create a superuser for user_id {user_id}\nError:{e}")
+
+
+@router.message(Command(commands='register_superuser'), F.chat.type.in_({'private'}), RegisteredExternalIdFilter(Superuser))
+async def register_superuser_command(message: types.Message, state: FSMContext):
+    user_id = message.from_user.id
+    logging.info(f"superuser registration form initiated for user {user_id}")
+    await message.reply(text=profile_registration_text)
+    await asyncio.sleep(3)
+
+    key = key_generator.generate().get_key()
+
+    await state.set_state(SuperuserKeyStates.key)
+    await state.update_data(key=key)
+    await message.answer("Ввести ключ суперкористувача")
+    logging.info(f'user {user_id} superuser key: {key}')
+
+
 
 @router.message(Command(commands='register'), F.chat.type.in_({'private'}), RegisteredExternalIdFilter(Profile))
 async def register_command(message: types.Message, forms: FormsManager):
-
+    user_id = message.from_user.id
+    logging.info(f"profile registration form initiated for user {user_id}")
     await message.reply(text=profile_registration_text)
     await asyncio.sleep(3)
 
@@ -216,7 +261,8 @@ async def register_command(message: types.Message, forms: FormsManager):
 @router.message(Command(commands='register_journal'), F.chat.type.in_({'group', 'supergroup'}), IsAdminFilter(),
                 RegisteredExternalIdFilter(Journal, use_chat_id=True))
 async def register_journal_command(message: types.Message, forms: FormsManager):
-
+    chat_id = message.chat.id
+    logging.info(f"journal registration form initiated at {chat_id}")
     await message.reply(text=group_registration_text)
     await asyncio.sleep(3)
 
@@ -225,7 +271,9 @@ async def register_journal_command(message: types.Message, forms: FormsManager):
 
 @router.message(Command(commands='cancel'))
 async def cancel_command(message: types.Message, state: FSMContext):
+    chat_id = message.chat.id
     await state.clear()
+    logging.info(f"registration canceled at {chat_id}")
     await message.reply(text=registration_canceling_text)
 #TODO: reports should be able in both group and private chat
 
@@ -247,6 +295,7 @@ async def today_report_command(message: types.Message, command: CommandObject):
     date_format = NativeDateFormat.date_format
     date_string = today_report.date.strftime(date_format)
 
+    logging.info(f"report requested at {group_id}, mode: TODAY, flag: {flag}")
     await message.answer(f"Таблиця присутності, Звіт за {date_string}")
 
     match ReportMode.Flag(flag):
@@ -293,6 +342,7 @@ async def last_report_command(message: types.Message, command: CommandObject):
     date_format = NativeDateFormat.date_format
     date_string = last_report.date.strftime(date_format)
 
+    logging.info(f"report requested at {group_id}, mode: LAST, flag: {flag}")
     await message.answer(f"Таблиця присутності, Звіт за {date_string}")
 
     match ReportMode.Flag(flag):
@@ -351,7 +401,7 @@ async def on_date_report_command(message: types.Message, command: CommandObject)
     table = await report_table(on_date_report)
     summary = await report_summary(on_date_report, ReportMode.ON_DATE)
 
-
+    logging.info(f"report requested at {group_id}, mode: ON_DATE, flag: {flag}")
     await message.answer(f"Таблиця присутності, Звіт за {date_string}")
 
     match ReportMode.Flag(flag):

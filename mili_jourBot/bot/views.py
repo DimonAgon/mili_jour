@@ -15,6 +15,12 @@ import regex #TODO: swap regex to re, where possible
 
 
 @database_sync_to_async
+def add_superuser(user_id):
+    new_superuser = Superuser.objects.create(external_id=user_id)
+    new_superuser.save()
+
+
+@database_sync_to_async
 def add_profile(data, user_id):
     initial = data
     initial['ordinal'] = int(initial['ordinal'])
@@ -81,16 +87,6 @@ def presence_view(is_present, user_id):
         corresponding_entry.is_present = False
         corresponding_entry.save()
 
-@database_sync_to_async
-def get_today_status(user_id):
-    profile = Profile.objects.get(external_id=user_id)
-    today = datetime.datetime.today()
-    profile_entries = JournalEntry.objects.filter(profile=profile, date=today)
-    for entry in profile_entries:
-        status = entry.status
-        if status:
-            return status
-
 
 @database_sync_to_async
 def amend_statuses(date, group_id):
@@ -99,10 +95,11 @@ def amend_statuses(date, group_id):
 
     for profile in journal_profiles:
         on_date_profile_entries = JournalEntry.objects.filter(date=date, profile=profile)
+        ordered_on_date_profile_entries = on_date_profile_entries.order_by('-lesson')
 
         most_relevant_status = None
 
-        for entry in on_date_profile_entries:
+        for entry in ordered_on_date_profile_entries:
             entry_status = entry.status
             if entry_status: most_relevant_status = entry_status
             else:
@@ -141,11 +138,25 @@ def set_status(data, user_id, lesson=None, mode=default): #TODO: if today status
 def initiate_today_report(today, group_id, lessons, mode=default):
     journal = Journal.objects.get(external_id=group_id)
 
-    if not ReportParameters.objects.filter(date=today, journal=journal, lessons=lessons).exists():
+    if not ReportParameters.objects.filter(date=today, journal=journal, lessons=lessons, mode=mode).exists():
+
         if ReportParameters.objects.filter(date=today, journal=journal).exists():
-            corresponding_report = ReportParameters.objects.get(date=today, journal=journal)
-            corresponding_report.lessons = lessons
-            corresponding_report.save()
+            if ReportParameters.objects.filter(date=today, journal=journal, mode=mode).exists():
+                corresponding_report = ReportParameters.objects.get(date=today, journal=journal)
+                corresponding_report.lessons = lessons
+                corresponding_report.save()
+
+            if ReportParameters.objects.filter(date=today, journal=journal, lessons=lessons).exists():
+                corresponding_report = ReportParameters.objects.get(date=today, journal=journal)
+                corresponding_report.mode = mode
+                corresponding_report.save()
+
+            else:
+                corresponding_report = ReportParameters.objects.get(date=today, journal=journal)
+                corresponding_report.lessons = lessons
+                corresponding_report = ReportParameters.objects.get(date=today, journal=journal)
+                corresponding_report.mode = mode
+                corresponding_report.save()
 
         else:
             journal = Journal.objects.get(external_id=group_id)

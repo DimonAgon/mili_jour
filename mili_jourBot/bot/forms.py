@@ -12,6 +12,9 @@ from .views import *
 from .models import *
 
 import logging
+from django.core.exceptions import ValidationError as DjangoCoreValidationError
+
+from key_generator.key_generator import generate
 
 
 #TODO: add an ordinal filter
@@ -74,6 +77,13 @@ def validate_strength_format(value: str):
     if not regex.fullmatch(pattern=sterngth_rePattern, string=value):
 
         raise ValidationError("Ввести чисельність коректно", code='regex_match')
+
+
+def validate_super_user_key(value: str, authentic_key, user_id):
+
+    if not value == authentic_key:
+
+        raise DjangoCoreValidationError(f"Failed to create superuser for user {user_id}, superuser key is unauthentic", code='superuser_key')
 
 
 @dispatcher.register('profileform')
