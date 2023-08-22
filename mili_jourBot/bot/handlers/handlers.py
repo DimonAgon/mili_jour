@@ -159,8 +159,6 @@ async def who_s_present_command(message: types.Message, command: CommandObject):
         await bot.stop_poll(chat_id=poll_message.chat.id, message_id=poll_message.message_id)
 
 
-class AbsenceReasonStates(StatesGroup): AbsenceReason = State()
-
 @router.message(AbsenceReasonStates.AbsenceReason, F.text.regexp(r'Т'), F.chat.type.in_({'private'}))
 async def absence_reason_handler_T(message: types.Message, forms: FormsManager):
     await forms.show('absenceform')
@@ -206,8 +204,6 @@ async def absence_reason_command(message: types.Message, forms: FormsManager):
         await message.answer(on_present_absence_reason_sharing_error_message)
         logging.error(f"Absence reason set is impossible for user {user_id}, is_present: True")
 
-
-class SuperuserKeyStates(StatesGroup): key = State()
 
 @router.message(SuperuserKeyStates.key, F.chat.type.in_({'private'}))
 async def super_user_registrator(message: types.Message, state: FSMContext):

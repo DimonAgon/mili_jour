@@ -3,6 +3,7 @@ from aiogram import types
 
 from aiogram_forms import Form, fields, dispatcher, FormsManager
 from aiogram_forms.errors import ValidationError
+from aiogram.filters.state import State, StatesGroup
 
 from channels.db import database_sync_to_async
 
@@ -167,3 +168,8 @@ class AbsenceReason(Form):
         except Exception as e:
             await message.answer(text=cls.on_registration_fail_text)
             logging.error(f"Failed to set a status for journal_entry for an entry of profile of user id of {user_id}\nError:{e}")
+
+
+class SuperuserKeyStates(StatesGroup): key = State()
+
+class AbsenceReasonStates(StatesGroup): AbsenceReason = State()
