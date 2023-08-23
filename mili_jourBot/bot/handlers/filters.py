@@ -36,7 +36,7 @@ class RegisteredExternalIdFilter(BaseFilter):
 
         return await on_id_object_exists()
 
-class IsAdminFilter(BaseFilter):
+class IsAdminFilter(BaseFilter): #TODO: add a middleware to check both is admin or is superuser rights when is admin checking
     key = 'is_admin'
     required_auth_level = 'administrator'
     creator = 'creator'
@@ -64,7 +64,7 @@ class IsSuperUserFilter(BaseFilter):
             return False
 
 
-class AftercommandFullCheck(BaseFilter):
+class AftercommandFullCheck(BaseFilter): #TODO: pass all arguments to middleware to handler
     key = 'aftercommand'
 
     def __init__(self, allow_no_argument: bool, modes: Enum, mode_checking: bool=False, allow_no_mode: bool=False,
