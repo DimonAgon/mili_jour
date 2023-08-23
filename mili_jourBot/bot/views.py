@@ -48,6 +48,12 @@ def add_journal_entry(initial):
 
 
 @database_sync_to_async
+def get_journal_by_name_async(journal_name):
+    journal = Journal.objects.get(name=journal_name)
+    return journal
+
+
+@database_sync_to_async
 def initiate_today_entries(today, group_id, lesson=None, mode=default):
     journal = Journal.objects.get(external_id=group_id)
 
@@ -333,3 +339,5 @@ def get_report(group_id, mode, specified_date: datetime=None) -> Type[ReportPara
             corresponding_report = ReportParameters.objects.get(date=specified_date, journal=journal)
 
     return corresponding_report
+
+

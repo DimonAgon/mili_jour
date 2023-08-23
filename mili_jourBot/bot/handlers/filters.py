@@ -14,6 +14,8 @@ from .validators import *
 
 from ..infrastructure.enums import *
 
+import logging
+
 
 
 class RegisteredExternalIdFilter(BaseFilter):
@@ -47,6 +49,19 @@ class IsAdminFilter(BaseFilter):
         is_admin = member.status == self.required_auth_level or member.status == self.creator
 
         return is_admin
+
+class IsSuperUserFilter(BaseFilter):
+    async def __call__(self, message: types.Message) -> bool:
+
+        user_id = message.from_user.id
+
+        if await is_superuser(user_id):
+                return True
+
+        else:
+            logging.error(f"{user_id} unauthorised as superuser")
+            message.answer("Вас не було авторизовано, як суперкористувача")
+            return False
 
 
 class AftercommandFullCheck(BaseFilter):
@@ -145,3 +160,4 @@ class AftercommandFullCheck(BaseFilter):
                 return False
 
         return True
+

@@ -55,10 +55,10 @@ def validate_journal_name_available(value: str):
 
 
 @database_sync_to_async
-def validate_journal_name_in_base(value: str):
+def check_journal_exists(value: str):
 
     if not Journal.objects.filter(name=value).exists():
-
+        #raise ValidationError(f"no such journal: {journal_name}")
         raise ValidationError("Взвод не зареєстровано", code='name_in_db')
 
 
@@ -89,7 +89,7 @@ def validate_super_user_key(value: str, authentic_key, user_id):
 
 @dispatcher.register('profileform')
 class ProfileForm(Form):
-    journal = fields.TextField("Ввести номер взводу", validators=[validate_journal_format, validate_journal_name_in_base])
+    journal = fields.TextField("Ввести номер взводу", validators=[validate_journal_format, check_journal_exists])
     name = fields.TextField("Ввести Прізвище та Ім'я", validators=[validate_name_format, validate_name_available]) # TODO: accent on order
     ordinal = fields.TextField("Ввести номер у списку", validators=[validate_ordinal_format])
 
@@ -173,3 +173,7 @@ class AbsenceReason(Form):
 class SuperuserKeyStates(StatesGroup): key = State()
 
 class AbsenceReasonStates(StatesGroup): AbsenceReason = State()
+
+class JournalStatesGroup(StatesGroup):
+    setting_journal = State()
+    set_journal_name = State()

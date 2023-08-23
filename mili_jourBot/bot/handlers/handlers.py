@@ -17,6 +17,7 @@ from ..models import *
 from ..forms import *
 from ..views import *
 from .filters import *
+from .middleware import *
 from ..infrastructure.enums import *
 from ..infrastructure import enums
 from .static_text import *
@@ -32,6 +33,9 @@ import tempfile, os
 import random
 
 from key_generator import key_generator
+
+
+reports_router.message.middleware(SuperuserGetReportCommand())
 
 
 @commands_router.message(Command(commands='start'))
@@ -276,14 +280,15 @@ async def cancel_command(message: types.Message, state: FSMContext):
 
 @reports_router.message(Command(commands='today_report'), IsAdminFilter(),
                          AftercommandFullCheck(allow_no_argument=True, modes=ReportMode, flag_checking=True))
-async def today_report_command(message: types.Message, command: CommandObject):
+async def today_report_command(message: types.Message, command: CommandObject, set_journal_group_id=None):
     aftercommand = command.args
+
     if aftercommand:
         arguments = aftercommand
         flag = arguments
     else: flag = ReportMode.Flag.TEXT
 
-    group_id = message.chat.id
+    group_id = message.chat.id if not set_journal_group_id else set_journal_group_id
     today_report = await get_report(group_id, ReportMode.TODAY)
     table = await report_table(today_report)
     summary = await report_summary(today_report, ReportMode.TODAY)
@@ -321,16 +326,18 @@ async def today_report_command(message: types.Message, command: CommandObject):
                 await message.answer_document(input_file, disable_notification=True)
 
 
+
 @reports_router.message(Command(commands='last_report'), IsAdminFilter(),
                          AftercommandFullCheck(allow_no_argument=True, modes=ReportMode, flag_checking=True))
-async def last_report_command(message: types.Message, command: CommandObject):
+async def last_report_command(message: types.Message, command: CommandObject, set_journal_group_id=None):
     aftercommand = command.args
+
     if aftercommand:
         arguments = aftercommand
         flag = arguments
     else: flag = ReportMode.Flag.TEXT
 
-    group_id = message.chat.id
+    group_id = message.chat.id if not set_journal_group_id else set_journal_group_id
     last_report = await get_report(group_id, ReportMode.LAST)
     table = await report_table(last_report)
     summary = await report_summary(last_report, ReportMode.LAST)
@@ -373,7 +380,7 @@ async def last_report_command(message: types.Message, command: CommandObject):
                                       modes=ReportMode,
                                       additional_arguments_checker=date_validator,
                                       flag_checking=True))
-async def on_date_report_command(message: types.Message, command: CommandObject):
+async def on_date_report_command(message: types.Message, command: CommandObject, set_journal_group_id=None):
     arguments = command.args.split()
 
     try: date_string, flag = arguments
@@ -384,7 +391,7 @@ async def on_date_report_command(message: types.Message, command: CommandObject)
     date_format = NativeDateFormat.date_format
     date = datetime.datetime.strptime(date_string, date_format).date()
 
-    group_id = message.chat.id
+    group_id = message.chat.id if not set_journal_group_id else set_journal_group_id
 
     try:
         on_date_report = await get_report(group_id, ReportMode.ON_DATE, date)
@@ -424,6 +431,38 @@ async def on_date_report_command(message: types.Message, command: CommandObject)
             document.save(temp_path)
             input_file = types.FSInputFile(temp_path)
             await message.answer_document(input_file, disable_notification=True)
+
+
+@commands_router.message(JournalStatesGroup.setting_journal)
+async def set_journal_handler(message: types.Message, state: FSMContext):
+    response = message.text
+    try:
+        validate_journal_format(response)
+
+    except ValidationError as e:
+        error_message = e.message
+        await message.answer(error_message)
+        return
+
+    try:
+        await check_journal_exists(response)
+
+    except ValidationError as e:
+        error_message = e.message
+        await message.answer(error_message)
+        return
+
+    set_journal_name = response
+
+    await state.set_state(JournalStatesGroup.set_journal_name)
+    await state.update_data(set_journal_name=set_journal_name)
+    await message.answer(f"Журнал взводу {set_journal_name} відкрито")
+
+@commands_router.message(Command(commands=['set_journal', 'sj']), F.chat.type.in_({'private'}), IsSuperUserFilter())
+async def set_journal_command(message: types.Message, state: FSMContext):
+    await state.set_state(JournalStatesGroup.setting_journal)
+    await message.answer("Ввести номер взводу")
+
 
 
 #TODO: create a chat leave command, should delete any info of-group info

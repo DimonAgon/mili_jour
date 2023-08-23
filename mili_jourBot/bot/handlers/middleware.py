@@ -11,10 +11,9 @@ from channels.db import database_sync_to_async
 from ..models import *
 from .validators import *
 from ..forms import *
+from ..views import *
 
-@database_sync_to_async
-def _is_superuser(user_id):
-    return Superuser.objects.filter(external_id=user_id).exists()
+
 
 class SuperuserGetReportCommand(BaseMiddleware):
 
@@ -23,25 +22,20 @@ class SuperuserGetReportCommand(BaseMiddleware):
                        event: Message,
                        data: Dict[str, Any]) -> Any:
 
-        set_journal_name = await FSMContext.get_data(JournalStatesGroup.journal)
-
-        @database_sync_to_async
-        def process_super_user_get_report_command():
-
-            if event.chat.type == 'private':
-                if check_journal_set():
-                    set_journal = Journal.objects.get(name=set_journal_name)
-                    set_journal_external_id = set_journal.external_id
-                    await handler(event, data, set_journal_group_id=set_journal_external_id)
-                else:
-                    raise logging.error(f"no journal set for superuser {user_id}")
-                    await event.answer("журнал не було відкрито")
-
-                return await handler(event, data)
-
         user_id = event.from_user.id
-        if _is_superuser(user_id):
-            return process_super_user_get_report_command()
+        if event.chat.type == 'private':
+            state = data['state']
+            if await check_journal_set(state):
+                set_journal_name = (await state.get_data())['set_journal_name']
+                set_journal = await get_journal_by_name_async(set_journal_name)
+                set_journal_external_id = set_journal.external_id
+                data['set_journal_group_id'] = set_journal_external_id
+
+            else:
+                logging.error(f"no journal set for superuser {user_id}")
+                await event.answer("Журнал не було відкрито, необхідно відкрити журнал")
+                return
+
 
         return await handler(event, data)
 

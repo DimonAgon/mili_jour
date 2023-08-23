@@ -3,6 +3,8 @@ import logging
 
 from django.core.exceptions import ValidationError
 
+from channels.db import database_sync_to_async
+
 from aenum import Enum
 
 from ..infrastructure.enums import *
@@ -11,8 +13,15 @@ from .static_text import *
 
 from ..views import on_lesson_presence_check
 
+from ..models import Journal, Superuser
 
-def aftercommand_check(value):
+from ..forms import JournalStatesGroup
+
+from aiogram.fsm.context import FSMContext
+
+
+
+def aftercommand_check(value): #TODO: pass a command object instead
     if value:
         return True
 
@@ -73,3 +82,14 @@ async def validate_on_lesson_presence(user_id):
 
     except:
         raise ValidationError(f"failed to set a status for user {user_id}, lesson is None", code='presence check')
+
+
+async def check_journal_set(state: FSMContext):
+    return await state.get_state() == JournalStatesGroup.set_journal_name
+
+
+@database_sync_to_async
+def is_superuser(user_id):
+    return Superuser.objects.filter(external_id=user_id).exists()
+
+
