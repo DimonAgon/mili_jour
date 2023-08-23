@@ -12,7 +12,7 @@ from aiogram.filters.state import State, StatesGroup
 from aiogram_forms import FormsManager
 from aiogram_forms.errors import ValidationError
 
-from .dispatcher import dp, router, bot
+from .dispatcher import dp, commands_router, reports_router, bot
 from ..models import *
 from ..forms import *
 from ..views import *
@@ -34,23 +34,23 @@ import random
 from key_generator import key_generator
 
 
-@router.message(Command(commands='start'))
+@commands_router.message(Command(commands='start'))
 async def start_command(message: types.Message):  # Self-presentation of the bot
 
     await message.reply(greeting_text)
 
 
-@router.message(Command(commands='help'))
+@commands_router.message(Command(commands='help'))
 async def help_command(message: types.Message):
     #TODO: on_update_info
 
     await message.reply(HELPFUL_REPLY)
 
 
-@router.message(Command(commands=['who_s_present', 'wp']),
-                F.chat.type.in_({'group', 'supergroup'}),
-                IsAdminFilter(),
-                AftercommandFullCheck(allow_no_argument=False,
+@commands_router.message(Command(commands=['who_s_present', 'wp']),
+                         F.chat.type.in_({'group', 'supergroup'}),
+                         IsAdminFilter(),
+                         AftercommandFullCheck(allow_no_argument=False,
                                       modes=WhoSPresentMode,
                                       mode_checking=True,
                                       allow_no_mode= True,
@@ -159,19 +159,19 @@ async def who_s_present_command(message: types.Message, command: CommandObject):
         await bot.stop_poll(chat_id=poll_message.chat.id, message_id=poll_message.message_id)
 
 
-@router.message(AbsenceReasonStates.AbsenceReason, F.text.regexp(r'Т'), F.chat.type.in_({'private'}))
+@commands_router.message(AbsenceReasonStates.AbsenceReason, F.text.regexp(r'Т'), F.chat.type.in_({'private'}))
 async def absence_reason_handler_T(message: types.Message, forms: FormsManager):
     await forms.show('absenceform')
 
-@router.message(AbsenceReasonStates.AbsenceReason, F.text.regexp(r'Н'), F.chat.type.in_({'private'}))
+@commands_router.message(AbsenceReasonStates.AbsenceReason, F.text.regexp(r'Н'), F.chat.type.in_({'private'}))
 async def absence_reason_handler_H(message: types.Message, state: FSMContext):
     await state.clear()
 
-@router.message(AbsenceReasonStates.AbsenceReason, F.text.regexp(r'[^ТН]'), F.chat.type.in_({'private'}))
+@commands_router.message(AbsenceReasonStates.AbsenceReason, F.text.regexp(r'[^ТН]'), F.chat.type.in_({'private'}))
 async def absence_reason_handler_invalid(message: types.Message, state: FSMContext):
     await message.answer(absence_reason_share_suggestion_text)
 
-@router.poll_answer() #TODO: add a flag for vote-answer mode, add an every-lesson mode
+@commands_router.poll_answer() #TODO: add a flag for vote-answer mode, add an every-lesson mode
 async def who_s_present_poll_handler (poll_answer: types.poll_answer, state: FSMContext):  #TODO: add an ability to re-answer
     is_present = poll_answer.option_ids == [PresencePollOptions.Present.value]
     user_id = poll_answer.user.id
@@ -185,7 +185,7 @@ async def who_s_present_poll_handler (poll_answer: types.poll_answer, state: FSM
         await state.set_state(AbsenceReasonStates.AbsenceReason)
 
 
-@router.message(Command(commands='absence_reason'), F.chat.type.in_({'private'}))
+@commands_router.message(Command(commands='absence_reason'), F.chat.type.in_({'private'}))
 async def absence_reason_command(message: types.Message, forms: FormsManager):
     user_id = message.from_user.id
     #TODO: pass the lesson if lesson is none, then answer and return
@@ -205,7 +205,7 @@ async def absence_reason_command(message: types.Message, forms: FormsManager):
         logging.error(f"Absence reason set is impossible for user {user_id}, is_present: True")
 
 
-@router.message(SuperuserKeyStates.key, F.chat.type.in_({'private'}))
+@commands_router.message(SuperuserKeyStates.key, F.chat.type.in_({'private'}))
 async def super_user_registrator(message: types.Message, state: FSMContext):
     callback_text = "Cуперкористувача зареєстровано"
     on_registration_fail_text = "Помилка, реєстрацію скасовано"
@@ -228,7 +228,7 @@ async def super_user_registrator(message: types.Message, state: FSMContext):
         logging.error(f"Failed to create a superuser for user_id {user_id}\nError:{e}")
 
 
-@router.message(Command(commands='register_superuser'), F.chat.type.in_({'private'}), RegisteredExternalIdFilter(Superuser))
+@commands_router.message(Command(commands='register_superuser'), F.chat.type.in_({'private'}), RegisteredExternalIdFilter(Superuser))
 async def register_superuser_command(message: types.Message, state: FSMContext):
     user_id = message.from_user.id
     logging.info(f"superuser registration form initiated for user {user_id}")
@@ -244,7 +244,7 @@ async def register_superuser_command(message: types.Message, state: FSMContext):
 
 
 
-@router.message(Command(commands='register'), F.chat.type.in_({'private'}), RegisteredExternalIdFilter(Profile))
+@commands_router.message(Command(commands='register'), F.chat.type.in_({'private'}), RegisteredExternalIdFilter(Profile))
 async def register_command(message: types.Message, forms: FormsManager):
     user_id = message.from_user.id
     logging.info(f"profile registration form initiated for user {user_id}")
@@ -254,8 +254,8 @@ async def register_command(message: types.Message, forms: FormsManager):
     await forms.show('profileform')
 
 
-@router.message(Command(commands='register_journal'), F.chat.type.in_({'group', 'supergroup'}), IsAdminFilter(),
-                RegisteredExternalIdFilter(Journal, use_chat_id=True))
+@commands_router.message(Command(commands='register_journal'), F.chat.type.in_({'group', 'supergroup'}), IsAdminFilter(),
+                         RegisteredExternalIdFilter(Journal, use_chat_id=True))
 async def register_journal_command(message: types.Message, forms: FormsManager):
     chat_id = message.chat.id
     logging.info(f"journal registration form initiated at {chat_id}")
@@ -265,7 +265,7 @@ async def register_journal_command(message: types.Message, forms: FormsManager):
     await forms.show('journalform')
 
 
-@router.message(Command(commands='cancel'))
+@commands_router.message(Command(commands='cancel'))
 async def cancel_command(message: types.Message, state: FSMContext):
     chat_id = message.chat.id
     await state.clear()
@@ -274,8 +274,8 @@ async def cancel_command(message: types.Message, state: FSMContext):
 #TODO: reports should be able in both group and private chat
 
 
-@router.message(Command(commands='today_report'), IsAdminFilter(),
-                AftercommandFullCheck(allow_no_argument=True, modes=ReportMode, flag_checking=True))
+@reports_router.message(Command(commands='today_report'), IsAdminFilter(),
+                         AftercommandFullCheck(allow_no_argument=True, modes=ReportMode, flag_checking=True))
 async def today_report_command(message: types.Message, command: CommandObject):
     aftercommand = command.args
     if aftercommand:
@@ -321,8 +321,8 @@ async def today_report_command(message: types.Message, command: CommandObject):
                 await message.answer_document(input_file, disable_notification=True)
 
 
-@router.message(Command(commands='last_report'), IsAdminFilter(),
-                AftercommandFullCheck(allow_no_argument=True, modes=ReportMode, flag_checking=True))
+@reports_router.message(Command(commands='last_report'), IsAdminFilter(),
+                         AftercommandFullCheck(allow_no_argument=True, modes=ReportMode, flag_checking=True))
 async def last_report_command(message: types.Message, command: CommandObject):
     aftercommand = command.args
     if aftercommand:
@@ -367,9 +367,9 @@ async def last_report_command(message: types.Message, command: CommandObject):
             await message.answer_document(input_file, disable_notification=True)
 
 
-@router.message(Command(commands='on_date_report'),
-                IsAdminFilter(),
-                AftercommandFullCheck(allow_no_argument=False,
+@reports_router.message(Command(commands='on_date_report'),
+                         IsAdminFilter(),
+                         AftercommandFullCheck(allow_no_argument=False,
                                       modes=ReportMode,
                                       additional_arguments_checker=date_validator,
                                       flag_checking=True))
