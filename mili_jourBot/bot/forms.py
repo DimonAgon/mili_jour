@@ -79,13 +79,9 @@ def validate_strength_format(value: str):
 
 @dispatcher.register('profileform')
 class ProfileForm(Form):
-    journal = fields.TextField("Ввести номер взводу", validators=[validate_journal_format, validate_journal_name_in_base])
-    name = fields.TextField("Ввести Прізвище та Ім'я", validators=[validate_name_format, validate_name_available]) # TODO: accent on order
-    ordinal = fields.TextField("Ввести номер у списку", validators=[validate_ordinal_format])
-
-
-    сallback_text = "Профіль зареєстровано"
-    on_registration_fail_text = "Помилка, реєстрацію скасовано"
+    journal = fields.TextField(journal_field_message, validators=[validate_journal_format, validate_journal_name_in_base])
+    name = fields.TextField(name_field_message, validators=[validate_name_format, validate_name_available]) # TODO: accent on order
+    ordinal = fields.TextField(ordinal_field_message, validators=[validate_ordinal_format])
 
     @classmethod
     async def callback(cls, message: types.Message, forms: FormsManager, **data) -> None:
@@ -96,12 +92,12 @@ class ProfileForm(Form):
 
         try:
             await add_profile(data, user_id)
-            await message.answer(text=cls.сallback_text)
+            await message.answer(text=profile_form_callback_message)
             logging.info(f"A profile created for user_id {user_id}")
 
 
         except Exception as e:
-            await message.answer(text=cls.on_registration_fail_text)
+            await message.answer(text=on_registration_fail_text)
             logging.error(f"Failed to create a profile for user_id {user_id}\nError:{e}")
 
         # else:
@@ -111,11 +107,8 @@ class ProfileForm(Form):
 
 @dispatcher.register('journalform')
 class JournalForm(Form):
-    name = fields.TextField("Ввести номер взводу", validators=[validate_journal_format, validate_journal_name_available])
-    strength = fields.TextField("Ввести чисельність взводу", validators=[validate_strength_format])
-
-    сallback_text = "Журнал відвідувань до взводу створено"
-    on_registration_fail_text = "Помилка, реєстрацію скасовано"
+    name = fields.TextField(journal_field_message, validators=[validate_journal_format, validate_journal_name_available])
+    strength = fields.TextField(strength_field_message, validators=[validate_strength_format])
 
     @classmethod
     async def callback(cls, message: types.Message, forms: FormsManager, **data) -> None:
@@ -126,11 +119,11 @@ class JournalForm(Form):
 
         try:
             await add_journal(data, group_id)
-            await message.answer(text=cls.сallback_text)
+            await message.answer(text=journal_form_callback_message)
             logging.info(f"A journal created for group_id {group_id}")
 
         except Exception as e:
-            await message.answer(text=cls.on_registration_fail_text) #Does not work, no message
+            await message.answer(text=on_registration_fail_text) #Does not work, no message
             logging.error(f"Failed to create a journal for group_id {group_id}\nError:{e}")
 
         # else:
@@ -139,10 +132,7 @@ class JournalForm(Form):
 
 @dispatcher.register('absenceform')
 class AbsenceReason(Form):
-    status = fields.TextField("Ввести причину відсутності (мінімальна кількість слів)")
-
-    сallback_text = "Причину записано"
-    on_registration_fail_text = "Помилка, причину не записано"
+    status = fields.TextField(status_field_message)
 
     @classmethod
     async def callback(cls, message: types.Message, forms: FormsManager, **data) -> None:
@@ -153,8 +143,8 @@ class AbsenceReason(Form):
 
         try:
             await set_status(data, user_id)
-            await message.answer(text=cls.сallback_text)
+            await message.answer(text=absence_reason_form_сallback_text)
 
         except Exception as e:
-            await message.answer(text=cls.on_registration_fail_text)
+            await message.answer(text=absence_reason_fail_text)
             logging.error(f"Failed to set a status for journal_entry for an entry of profile of user id of {user_id}\nError:{e}")
