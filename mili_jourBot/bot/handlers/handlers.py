@@ -207,8 +207,6 @@ async def absence_reason_command(message: types.Message, forms: FormsManager):
 
 @commands_router.message(SuperuserKeyStates.key, F.chat.type.in_({'private'}))
 async def super_user_registrator(message: types.Message, state: FSMContext):
-    callback_text = "Cуперкористувача зареєстровано"
-    on_registration_fail_text = "Помилка, реєстрацію скасовано"
     user_id = message.from_user.id
     authentic_key = await state.get_data()
 
@@ -220,7 +218,7 @@ async def super_user_registrator(message: types.Message, state: FSMContext):
 
     try:
         await add_superuser(user_id)
-        await message.answer(text=callback_text)
+        await message.answer(text=superuser_form_callback_message)
         logging.info(f"A superuser created for user_id {user_id}")
 
     except Exception as e:
@@ -239,7 +237,7 @@ async def register_superuser_command(message: types.Message, state: FSMContext):
 
     await state.set_state(SuperuserKeyStates.key)
     await state.update_data(key=key)
-    await message.answer("Ввести ключ суперкористувача")
+    await message.answer(superuser_key_field_message)
     logging.info(f'user {user_id} superuser key: {key}')
 
 

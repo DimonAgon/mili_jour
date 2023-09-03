@@ -78,6 +78,8 @@ strength_format_validation_error_message = "Ввести чисельність 
 
 #forms
 #fields
+superuser_key_field_message = "Ввести ключ суперкористувача"
+
 journal_field_message = "Ввести номер взводу"
 
 name_field_message = "Ввести Прізвище та Ім'я"
@@ -89,6 +91,8 @@ strength_field_message = "Ввести чисельність взводу"
 status_field_message = "Ввести причину відсутності (мінімальна кількість слів)"
 
 #callback
+superuser_form_callback_message = "Cуперкористувача зареєстровано"
+
 profile_form_callback_message = "Профіль зареєстровано"
 
 journal_form_callback_message = "Журнал відвідувань до взводу створено"
