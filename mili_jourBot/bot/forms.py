@@ -10,6 +10,7 @@ import regex, re #TODO: adapt validators to re, where possible
 
 from .views import *
 from .models import *
+from .handlers.static_text import *
 
 import logging
 
@@ -22,7 +23,7 @@ def validate_name_format(value: str):
 
     if not regex.fullmatch(pattern=name_rePattern, string=value):
 
-        raise ValidationError("Ввести ім'я коректно", code='regex_match')
+        raise ValidationError(name_format_validation_error_message, code='regex_match')
 
 
 @database_sync_to_async
@@ -30,7 +31,7 @@ def validate_name_available(value: str):
 
     if Profile.objects.filter(name=value).exists():
 
-        raise ValidationError("Профіль вже зареєстровано", code='name_in_db')
+        raise ValidationError(name_availability_validation_error_message, code='name_in_db')
 
 
 def validate_journal_format(value: str):
@@ -39,7 +40,7 @@ def validate_journal_format(value: str):
 
     if not regex.fullmatch(pattern=journal_rePattern, string=value):
 
-        raise ValidationError("Ввести номер взводу коректно", code='regex_match')
+        raise ValidationError(journal_format_validation_error_message, code='regex_match')
 
 
 @database_sync_to_async
@@ -47,7 +48,7 @@ def validate_journal_name_available(value: str):
 
     if Journal.objects.filter(name=value).exists():
 
-        raise ValidationError("Взвод вже зареєстровано", code='name_in_db')
+        raise ValidationError(journal_name_availability_validation_error_message, code='name_in_db')
 
 
 @database_sync_to_async
@@ -55,7 +56,7 @@ def validate_journal_name_in_base(value: str):
 
     if not Journal.objects.filter(name=value).exists():
 
-        raise ValidationError("Взвод не зареєстровано", code='name_in_db')
+        raise ValidationError(journal_name_in_base_validation_error_message, code='name_in_db')
 
 
 def validate_ordinal_format(value: str):
@@ -64,7 +65,7 @@ def validate_ordinal_format(value: str):
 
     if not regex.fullmatch(pattern=ordinal_rePattern, string=value):
 
-        raise ValidationError("Ввести номер коректно", code='regex_match')
+        raise ValidationError(ordinal_format_validation_error_message, code='regex_match')
 
 
 def validate_strength_format(value: str):
@@ -73,7 +74,7 @@ def validate_strength_format(value: str):
 
     if not regex.fullmatch(pattern=sterngth_rePattern, string=value):
 
-        raise ValidationError("Ввести чисельність коректно", code='regex_match')
+        raise ValidationError(strength_format_validation_error_message, code='regex_match')
 
 
 @dispatcher.register('profileform')

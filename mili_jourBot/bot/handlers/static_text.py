@@ -61,6 +61,21 @@ on_present_absence_reason_sharing_error_message = "Помилка, вас від
 
 on_invalid_date_report_error_message = "Помилка, задана дата не відповідає жодному звіту взводу"
 
+#formsvalidation
+name_format_validation_error_message = "Ввести ім'я коректно"
+
+name_availability_validation_error_message = "Профіль вже зареєстровано"
+
+journal_format_validation_error_message = "Ввести номер взводу коректно"
+
+journal_name_availability_validation_error_message = "Взвод вже зареєстровано"
+
+journal_name_in_base_validation_error_message = "Взвод не зареєстровано"
+
+ordinal_format_validation_error_message = "Ввести номер коректно"
+
+strength_format_validation_error_message = "Ввести чисельність коректно"
+
 #logging
 
 
