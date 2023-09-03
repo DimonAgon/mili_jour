@@ -9,6 +9,8 @@ from ..infrastructure.enums import *
 
 from .static_text import *
 
+from ..views import on_lesson_presence_check
+
 
 def aftercommand_check(value):
     if value:
@@ -63,3 +65,11 @@ def validate_date_format(value):
         raise ValidationError("wrong date format", code='format')
 
 date_validator = AdditionalArgumentsValidator(validate_date_format, wrong_date_validation_error_message)
+
+
+async def validate_on_lesson_presence(user_id):
+    try:
+        await on_lesson_presence_check(user_id)
+
+    except:
+        raise ValidationError(f"failed to set a status for user {user_id}, lesson is None", code='presence check')

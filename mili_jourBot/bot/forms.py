@@ -3,6 +3,7 @@ from aiogram import types
 
 from aiogram_forms import Form, fields, dispatcher, FormsManager
 from aiogram_forms.errors import ValidationError
+from aiogram.filters.state import State, StatesGroup
 
 from channels.db import database_sync_to_async
 
@@ -13,6 +14,9 @@ from .models import *
 from .handlers.static_text import *
 
 import logging
+from django.core.exceptions import ValidationError as DjangoCoreValidationError
+
+from key_generator.key_generator import generate
 
 
 #TODO: add an ordinal filter
@@ -75,6 +79,13 @@ def validate_strength_format(value: str):
     if not regex.fullmatch(pattern=sterngth_rePattern, string=value):
 
         raise ValidationError(strength_format_validation_error_message, code='regex_match')
+
+
+def validate_super_user_key(value: str, authentic_key, user_id):
+
+    if not value == authentic_key:
+
+        raise DjangoCoreValidationError(f"Failed to create superuser for user {user_id}, superuser key is unauthentic", code='superuser_key')
 
 
 @dispatcher.register('profileform')
@@ -148,3 +159,8 @@ class AbsenceReason(Form):
         except Exception as e:
             await message.answer(text=absence_reason_fail_text)
             logging.error(f"Failed to set a status for journal_entry for an entry of profile of user id of {user_id}\nError:{e}")
+
+
+class SuperuserKeyStates(StatesGroup): key = State()
+
+class AbsenceReasonStates(StatesGroup): AbsenceReason = State()
