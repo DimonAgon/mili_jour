@@ -4,5 +4,4 @@ from .models import Superuser
 
 @admin.register(Superuser)
 class AdminProfile(admin.ModelAdmin):
-    list_display = ('journal_id', 'name')
-
+    pass
