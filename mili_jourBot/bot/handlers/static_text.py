@@ -29,10 +29,19 @@ profile_registration_text = "ініціюю реєстрацію"
 
 group_registration_text = "Ініціюю реєстрацію взводу"
 
-registration_canceling_text = "Процес реєстрації було перервано"
+canceling_text = "Процес вводу було перервано"
 
 #absence
 absence_reason_share_suggestion_text = "Вказати причину відстутності? Т/Н"
+
+#comands
+enter_profile_name_message = "Ввести Прізвище та Ім'я студента"
+
+#states
+inform_message = "Повідомлення від викладача:"
+
+#filters
+is_not_now_speaking_error_message = "*дочекатись відповіді співрозмовника"
 
 #presence options
 def presence_option_to_string(presence_option: Type[PresencePollOptions]):
@@ -65,6 +74,8 @@ on_invalid_date_report_error_message = "Помилка, задана дата н
 name_format_validation_error_message = "Ввести ім'я коректно"
 
 name_availability_validation_error_message = "Профіль вже зареєстровано"
+
+profile_by_name_not_in_db_error_message = "Профіль за заданим ім'ям не зареєстровано"
 
 journal_format_validation_error_message = "Ввести номер взводу коректно"
 

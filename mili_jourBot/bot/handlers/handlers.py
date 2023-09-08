@@ -272,7 +272,7 @@ async def cancel_command(message: types.Message, state: FSMContext):
     chat_id = message.chat.id
     await state.clear()
     logging.info(f"registration canceled at {chat_id}")
-    await message.reply(text=registration_canceling_text)
+    await message.reply(text=canceling_text)
 #TODO: reports should be able in both group and private chat
 
 
@@ -461,6 +461,48 @@ async def set_journal_command(message: types.Message, state: FSMContext):
     await state.set_state(JournalStatesGroup.setting_journal)
     await message.answer("Ввести номер взводу")
 
+
+@commands_router.message(InformStatesGroup.receiver_id, F.chat.type.in_({'private'}))
+async def inform_handler(message: types.Message, state: FSMContext):
+    user_id = message.from_user.id
+    interlocutor_id = await state.get_data()
+    await bot.send_message(interlocutor_id['Interlocutor_id'], message.text)
+    await state.update_data(receiver_id=user_id)
+
+@commands_router.message(InformStatesGroup.call, F.chat.type.in_({'private'}))
+async def call_handler(message: types.Message, state: FSMContext):
+    response = message.text
+    user_id = message.from_user.id
+
+    @database_sync_to_async
+    def get_profile_by_name(name):
+        return Profile.objects.get(name=name)
+
+    try:
+        validate_name_format(response)
+    except Exception:
+        await message.answer(name_format_validation_error_message)
+        await state.clear()
+        return
+    name = response
+    try:
+        profile = await get_profile_by_name(name)
+    except Exception as e:
+        print(e)
+        await message.answer(profile_by_name_not_in_db_error_message)
+        await state.clear()
+        return
+
+    profile_id = profile.external_id
+    await state.set_state(InformStatesGroup.receiver_id)
+    await state.update_data(Interlocutor_id=profile_id)
+    await message.answer(f"Студенту {name}, надіслати наступні повідомлення")
+    await bot.send_message(profile_id, inform_message)
+
+@commands_router.message(Command(commands=['call']), F.chat.type.in_({'private'}), IsSuperUserFilter())
+async def call_command(message: types.Message, state: FSMContext):
+    await state.set_state(InformStatesGroup.call)
+    await message.answer(enter_profile_name_message)
 
 
 #TODO: create a chat leave command, should delete any info of-group info

@@ -168,3 +168,7 @@ class AbsenceReasonStates(StatesGroup): AbsenceReason = State()
 class JournalStatesGroup(StatesGroup):
     setting_journal = State()
     set_journal_name = State()
+
+class InformStatesGroup(StatesGroup):
+    call = State()
+    receiver_id = State()
