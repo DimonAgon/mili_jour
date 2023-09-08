@@ -61,6 +61,48 @@ on_present_absence_reason_sharing_error_message = "Помилка, вас від
 
 on_invalid_date_report_error_message = "Помилка, задана дата не відповідає жодному звіту взводу"
 
+#forms validation
+name_format_validation_error_message = "Ввести ім'я коректно"
+
+name_availability_validation_error_message = "Профіль вже зареєстровано"
+
+journal_format_validation_error_message = "Ввести номер взводу коректно"
+
+journal_name_availability_validation_error_message = "Взвод вже зареєстровано"
+
+journal_name_in_base_validation_error_message = "Взвод не зареєстровано"
+
+ordinal_format_validation_error_message = "Ввести номер коректно"
+
+strength_format_validation_error_message = "Ввести чисельність коректно"
+
+#forms
+#fields
+superuser_key_field_message = "Ввести ключ суперкористувача"
+
+journal_field_message = "Ввести номер взводу"
+
+name_field_message = "Ввести Прізвище та Ім'я"
+
+ordinal_field_message = "Ввести номер у списку"
+
+strength_field_message = "Ввести чисельність взводу"
+
+status_field_message = "Ввести причину відсутності (мінімальна кількість слів)"
+
+#callback
+superuser_form_callback_message = "Cуперкористувача зареєстровано"
+
+profile_form_callback_message = "Профіль зареєстровано"
+
+journal_form_callback_message = "Журнал відвідувань до взводу створено"
+
+absence_reason_form_сallback_text = "Причину записано"
+
+on_registration_fail_text = "Помилка, реєстрацію скасовано"
+
+absence_reason_fail_text = "Помилка, причину не записано"
+
 #logging
 
 
