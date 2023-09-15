@@ -170,7 +170,8 @@ async def cancel_command(message: types.Message, state: FSMContext):
     current_state = await state.get_state()
     states_canceling_messages = {AbsenceReasonStates.AbsenceReason: absence_reason_share_canceling_message,
                                  JournalStatesGroup.set_journal_name: journal_unset_message,
-                                 InformStatesGroup.receiver_id: call_canceling_message}
+                                 InformStatesGroup.receiver_id: call_canceling_message,
+                                 GroupInformStatesGroup.receiver_id: group_inform_canceling_message}
 
     for state_key, canceling_message in states_canceling_messages.items():
         if current_state == state_key.state:
@@ -521,6 +522,52 @@ async def call_command(message: types.Message, state: FSMContext):
     await state.set_state(InformStatesGroup.call)
     await message.answer(enter_profile_name_message)
 
+async def inform_all_journal_users(journal, message_text):
+    all_journal_profiles = await get_all_journal_profiles(journal)
+    for profile in all_journal_profiles:
+        await bot.send_message(profile.external_id, message_text)
+
+    await bot.send_message(journal.external_id, message_text)
+
+
+@commands_router.message(NoCommandFilter(), GroupInformStatesGroup.receiver_id)
+async def group_inform_handler(message: types.Message, state: FSMContext):
+    journal_external_id = await state.get_data()
+    journal = await get_journal_by_external_id_async(journal_external_id['receiver_id'])
+    await inform_all_journal_users(journal, message.text)
+    await state.clear()
+
+@commands_router.message(GroupInformStatesGroup.call, F.chat.type.in_({'private'}))
+async def group_call_handler(message: types.Message, state: FSMContext):
+    response = message.text
+
+    try:
+        validate_journal_format(response)
+
+    except Exception:
+        await message.answer(journal_format_validation_error_message)
+        await state.clear()
+        return
+    journal_name = response
+    try:
+        journal = await get_journal_by_name_async(journal_name)
+
+    except Exception as e:
+        print(e)
+        await message.answer(journal_name_in_base_validation_error_message)
+        await state.clear()
+        return
+
+    await state.set_state(GroupInformStatesGroup.receiver_id)
+    await state.update_data(receiver_id=journal.external_id)
+    await message.answer(f"Взвод {journal_name} сповістити:")
+    await inform_all_journal_users(journal, group_inform_message)
+
+
+@commands_router.message(Command(commands=['groupcall', 'gc']), F.chat.type.in_({'private'}), IsSuperUserFilter())
+async def group_call_command(message: types.Message, state: FSMContext):
+    await state.set_state(GroupInformStatesGroup.call)
+    await message.answer(enter_journal_name_message)
 
 #TODO: reports should be able in both group and private chat
 

@@ -33,7 +33,10 @@ group_registration_text = "Ініціюю реєстрацію взводу"
 absence_reason_share_suggestion_text = "Вказати причину відстутності? Т/Н"
 
 #comands
+#call
 enter_profile_name_message = "Ввести Прізвище та Ім'я студента"
+#groupcall
+enter_journal_name_message = "Ввести номер взводу"
 #cancel
 registration_canceling_message = "Реєстрацію було перервано"
 
@@ -43,10 +46,13 @@ journal_unset_message = "Журнал закрито"
 
 call_canceling_message = "Прийняття повідомлень завершено"
 
+group_inform_canceling_message = "Оповіщення скасовано"
+
 no_state_message = "Стан не встановлено, або було скасовано"
 
 #states
 inform_message = "Повідомлення від викладача:"
+group_inform_message = "Об'ява:"
 
 #filters
 is_not_now_speaking_error_message = "*дочекатись відповіді співрозмовника"

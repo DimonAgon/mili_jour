@@ -52,6 +52,15 @@ def get_journal_by_name_async(journal_name):
     journal = Journal.objects.get(name=journal_name)
     return journal
 
+@database_sync_to_async
+def get_journal_by_external_id_async(journal_external_id):
+    journal = Journal.objects.get(external_id=journal_external_id)
+    return journal
+
+@database_sync_to_async
+def get_all_journal_profiles(journal):
+    return Profile.objects.filter(journal=journal)
+
 
 @database_sync_to_async
 def initiate_today_entries(today, group_id, lesson=None, mode=default):
@@ -339,5 +348,4 @@ def get_report(group_id, mode, specified_date: datetime=None) -> Type[ReportPara
             corresponding_report = ReportParameters.objects.get(date=specified_date, journal=journal)
 
     return corresponding_report
-
 
