@@ -158,7 +158,7 @@ async def presence_command(message: types.Message, command: CommandObject):  # C
 
     else:
         await initiate_today_entries(today, group_id) #TODO: the better choice may be to call function on every study day
-        await initiate_today_report(today, group_id, unique_lessons)
+        await initiate_today_report(today, group_id, unique_lessons, mode='L')
         poll_message = await message.answer_poll(**poll_configuration)
         logging.info(f"poll sent to {group_id} mode: {mode}")
         await asyncio.sleep(till_deadline.seconds) #TODO: schedule instead

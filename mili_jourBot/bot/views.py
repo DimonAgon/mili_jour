@@ -93,8 +93,13 @@ def presence_view(is_present, user_id):
     if lesson:
         profile = Profile.objects.get(external_id=user_id)
         journal = profile.journal
+        report = ReportParameters.objects.get(date=now_date, journal=journal)
+        mode = report.mode
+        if not mode == Presence.LIGHT_MODE:
+            corresponding_entry = JournalEntry.objects.get(journal=journal, profile=profile, date=now_date, lesson=lesson)
+        else:
+            corresponding_entry = JournalEntry.objects.get(journal=journal, profile=profile, date=now_date)
 
-        corresponding_entry = JournalEntry.objects.get(journal=journal, profile=profile, date=now_date, lesson=lesson)
         corresponding_entry.lesson = lesson
 
     if is_present:
