@@ -86,6 +86,9 @@ def presence_view(is_present, user_id):
     now_date = now.date()
 
     lesson = Schedule.lesson_match(now_time)
+    if not lesson:
+        after_recess_time = now_time + Schedule.recess
+        lesson = Schedule.lesson_match(after_recess_time) #If user voted during recess
 
     if lesson:
         profile = Profile.objects.get(external_id=user_id)
