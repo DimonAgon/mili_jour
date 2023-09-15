@@ -17,7 +17,7 @@ HELPFUL_REPLY = f"Для роботи необхідно виконати реє
                     "\n/help– інструкція до взаємодії із ботом" \
                     "\n/register– реєструвати профіль" \
                     "\n/register_journal– створити журнал відвідувань" \
-                    "\n/cancel– відмінити реєстрацію aбо вказання причини відсутності" \
+                    "\n/cancel– перервати ввід даних" \
                     "\n/who_s_present– створити опитування щодо присутності" \
                     "\n/absence_reason– вказати причину відсутності" \
                     "\n/today_report– викликати звіт за сьогоднішній день" \
@@ -29,13 +29,21 @@ profile_registration_text = "ініціюю реєстрацію"
 
 group_registration_text = "Ініціюю реєстрацію взводу"
 
-canceling_text = "Процес вводу було перервано"
-
 #absence
 absence_reason_share_suggestion_text = "Вказати причину відстутності? Т/Н"
 
 #comands
 enter_profile_name_message = "Ввести Прізвище та Ім'я студента"
+#cancel
+registration_canceling_message = "Реєстрацію було перервано"
+
+absence_reason_share_canceling_message = "Вказання причини відсутності перервано"
+
+journal_unset_message = "Журнал закрито"
+
+call_canceling_message = "Прийняття повідомлень завершено"
+
+no_state_message = "Стан не встановлено, або було скасовано"
 
 #states
 inform_message = "Повідомлення від викладача:"

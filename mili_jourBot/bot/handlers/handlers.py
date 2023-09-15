@@ -34,6 +34,8 @@ import random
 
 from key_generator import key_generator
 
+from typing import Any
+
 
 reports_router.message.middleware(SuperuserGetReportCommand())
 
@@ -163,6 +165,31 @@ async def who_s_present_command(message: types.Message, command: CommandObject):
         await bot.stop_poll(chat_id=poll_message.chat.id, message_id=poll_message.message_id)
 
 
+@commands_router.message(Command(commands='cancel'))
+async def cancel_command(message: types.Message, state: FSMContext):
+    current_state = await state.get_state()
+    states_canceling_messages = {AbsenceReasonStates.AbsenceReason: absence_reason_share_canceling_message,
+                                 JournalStatesGroup.set_journal_name: journal_unset_message,
+                                 InformStatesGroup.receiver_id: call_canceling_message}
+
+    for state_key, canceling_message in states_canceling_messages.items():
+        if current_state == state_key.state:
+            callback_message = canceling_message
+            break
+
+    else:
+        if current_state is None:
+            callback_message = no_state_message
+
+        else:
+            callback_message = registration_canceling_message
+
+    chat_id = message.chat.id
+    await state.clear()
+    logging.info(f"data entering canceled at {chat_id}")
+    await message.reply(text=callback_message)
+
+
 @commands_router.message(AbsenceReasonStates.AbsenceReason, F.text.regexp(r'Т'), F.chat.type.in_({'private'}))
 async def absence_reason_handler_T(message: types.Message, forms: FormsManager):
     await forms.show('absenceform')
@@ -245,7 +272,6 @@ async def register_superuser_command(message: types.Message, state: FSMContext):
     logging.info(f'user {user_id} superuser key: {key}')
 
 
-
 @commands_router.message(Command(commands='register'), F.chat.type.in_({'private'}), RegisteredExternalIdFilter(Profile))
 async def register_command(message: types.Message, forms: FormsManager):
     user_id = message.from_user.id
@@ -265,15 +291,6 @@ async def register_journal_command(message: types.Message, forms: FormsManager):
     await asyncio.sleep(3)
 
     await forms.show('journalform')
-
-
-@commands_router.message(Command(commands='cancel'))
-async def cancel_command(message: types.Message, state: FSMContext):
-    chat_id = message.chat.id
-    await state.clear()
-    logging.info(f"registration canceled at {chat_id}")
-    await message.reply(text=canceling_text)
-#TODO: reports should be able in both group and private chat
 
 
 @reports_router.message(Command(commands='today_report'), IsAdminFilter(),
@@ -503,6 +520,9 @@ async def call_handler(message: types.Message, state: FSMContext):
 async def call_command(message: types.Message, state: FSMContext):
     await state.set_state(InformStatesGroup.call)
     await message.answer(enter_profile_name_message)
+
+
+#TODO: reports should be able in both group and private chat
 
 
 #TODO: create a chat leave command, should delete any info of-group info
