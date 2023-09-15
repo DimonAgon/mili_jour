@@ -53,26 +53,26 @@ async def help_command(message: types.Message):
     await message.reply(HELPFUL_REPLY)
 
 
-@commands_router.message(Command(commands=['who_s_present', 'wp']),
+@commands_router.message(Command(commands=['presence', 'p']),
                          F.chat.type.in_({'group', 'supergroup'}),
                          IsAdminFilter(),
                          AftercommandFullCheck(allow_no_argument=False,
-                                      modes=WhoSPresentMode,
+                                      modes=Presence,
                                       mode_checking=True,
                                       allow_no_mode= True,
                                       additional_arguments_checker=lessons_validator))
-async def who_s_present_command(message: types.Message, command: CommandObject):  # Checks who is present
+async def presence_command(message: types.Message, command: CommandObject):  # Checks who is present
     arguments = command.args.split()
 
     try:
         mode, *lessons_string_list = arguments
-        validate_is_mode(mode, WhoSPresentMode)
+        validate_is_mode(mode, Presence)
 
     except:
         lessons_string_list = arguments
         mode = default
 
-    if mode in (WhoSPresentMode.LIGHT_MODE, WhoSPresentMode.NORMAL_MODE, WhoSPresentMode.HARDCORE_MODE):
+    if mode in (Presence.LIGHT_MODE, Presence.NORMAL_MODE, Presence.HARDCORE_MODE):
         lessons = [int(e) for e in lessons_string_list]
 
     else:
@@ -98,7 +98,7 @@ async def who_s_present_command(message: types.Message, command: CommandObject):
                            'allows_multiple_answers': False,
                            'protect_content': True}
 
-    if mode == WhoSPresentMode.LIGHT_MODE:
+    if mode == Presence.LIGHT_MODE:
         last_lesson = unique_lessons[-1]
         last_lesson_time = Schedule.lessons_intervals[last_lesson]
         deadline_time = last_lesson_time.upper
@@ -107,7 +107,7 @@ async def who_s_present_command(message: types.Message, command: CommandObject):
         question = today_string + " Присутність"
         poll_configuration.update({'question': question})
 
-    if not mode == WhoSPresentMode.LIGHT_MODE:
+    if not mode == Presence.LIGHT_MODE:
         await initiate_today_report(today, group_id, unique_lessons, mode)
         for lesson in unique_lessons:
 
@@ -128,7 +128,7 @@ async def who_s_present_command(message: types.Message, command: CommandObject):
             deadline = now.replace(hour=end_time.hour, minute=end_time.minute, second=end_time.second)
 
 
-            if mode == WhoSPresentMode.HARDCORE_MODE:
+            if mode == Presence.HARDCORE_MODE:
                 lower = start_time
                 upper = end_time
                 lower_today = now.replace(hour=lower.hour, minute=lower.minute, second=lower.second)
@@ -204,7 +204,7 @@ async def absence_reason_handler_invalid(message: types.Message, state: FSMConte
     await message.answer(absence_reason_share_suggestion_text)
 
 @commands_router.poll_answer() #TODO: add a flag for vote-answer mode, add an every-lesson mode
-async def who_s_present_poll_handler (poll_answer: types.poll_answer, state: FSMContext):  #TODO: add an ability to re-answer
+async def presence_handler (poll_answer: types.poll_answer, state: FSMContext):  #TODO: add an ability to re-answer
     is_present = poll_answer.option_ids == [PresencePollOptions.Present.value]
     user_id = poll_answer.user.id
 

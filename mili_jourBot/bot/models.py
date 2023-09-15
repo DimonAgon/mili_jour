@@ -62,7 +62,7 @@ class ReportParameters(models.Model):
 
         return lessons_integer_list
 
-    mode = models.CharField(max_length=12, choices=WhoSPresentMode.choices, default=default)
+    mode = models.CharField(max_length=12, choices=Presence.choices, default=default)
 
 #TODO: add a model for schedule using hash-key
 #TODO: add a model for lessons

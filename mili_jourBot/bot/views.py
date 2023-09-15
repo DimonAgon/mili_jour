@@ -66,7 +66,7 @@ def get_all_journal_profiles(journal):
 def initiate_today_entries(today, group_id, lesson=None, mode=default):
     journal = Journal.objects.get(external_id=group_id)
 
-    if mode == WhoSPresentMode.LIGHT_MODE:
+    if mode == Presence.LIGHT_MODE:
         if JournalEntry.objects.filter(journal=journal, date=today).exists(): return
 
     else:
@@ -190,7 +190,7 @@ def report_table(report) -> Type[prettytable.PrettyTable]:
     table = prettytable.PrettyTable(headers)
     table.border = False
 
-    if wp_mode == WhoSPresentMode.LIGHT_MODE:
+    if wp_mode == Presence.LIGHT_MODE:
         for entry in entries:
             profile = entry.profile
 
@@ -239,7 +239,7 @@ def filled_absence_cell_row(entry, absence_cell):
 def filled_absence_cell(entries, wp_mode, lesson):
     absence_cell = []
 
-    if wp_mode == WhoSPresentMode.LIGHT_MODE:
+    if wp_mode == Presence.LIGHT_MODE:
         for entry in entries:
             entry_lesson = entry.lesson
             if not entry_lesson or entry_lesson > lesson:
@@ -254,7 +254,7 @@ def filled_absence_cell(entries, wp_mode, lesson):
 
 def summary_row(wp_mode, report_mode, lesson, entries, journal_strength, report_date=None, today=None, now_time=None):
 
-    if wp_mode == WhoSPresentMode.LIGHT_MODE:
+    if wp_mode == Presence.LIGHT_MODE:
 
         absence_cell = filled_absence_cell(entries, wp_mode, lesson)
 
@@ -313,7 +313,7 @@ def report_summary(report, report_mode) -> Type[prettytable.PrettyTable]:
     headers = ["Зан.", "Сп.", "Пр.", "Відсутні"]
     summary = prettytable.PrettyTable(headers)
 
-    if wp_mode == WhoSPresentMode.LIGHT_MODE:
+    if wp_mode == Presence.LIGHT_MODE:
         for lesson in lessons:
             lesson_row = summary_row(wp_mode, report_mode, lesson, entries, journal_strength)
             summary.add_row(lesson_row)
