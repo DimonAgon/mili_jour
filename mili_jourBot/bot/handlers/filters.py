@@ -16,6 +16,7 @@ from ..infrastructure.enums import *
 
 import logging
 
+import re
 
 
 class RegisteredExternalIdFilter(BaseFilter):
@@ -176,3 +177,9 @@ class AftercommandFullCheck(BaseFilter): #TODO: pass all arguments to middleware
 
         return True
 
+
+class NoCommandFilter(BaseFilter):
+    async def __call__(self, message: types.Message) -> bool:
+        command_pattern_compiled = re.compile('\/.*')
+
+        return not command_pattern_compiled.fullmatch(message.text)
