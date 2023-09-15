@@ -173,6 +173,8 @@ class InformStatesGroup(StatesGroup):
     call = State()
     receiver_id = State()
 
-class GroupInformStatesGroup(StatesGroup):
-    call = State()
-    receiver_id = State()
+class UserInformStatesGroup(InformStatesGroup):
+    pass
+
+class GroupInformStatesGroup(InformStatesGroup):
+    pass
