@@ -500,7 +500,6 @@ async def call_handler(message: types.Message, state: FSMContext):
         validate_name_format(response)
     except Exception:
         await message.answer(name_format_validation_error_message)
-        await state.clear()
         return
     name = response
     try:
@@ -546,7 +545,6 @@ async def group_call_handler(message: types.Message, state: FSMContext):
 
     except Exception:
         await message.answer(journal_format_validation_error_message)
-        await state.clear()
         return
     journal_name = response
     try:
