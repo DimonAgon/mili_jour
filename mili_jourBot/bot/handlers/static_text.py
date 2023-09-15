@@ -85,7 +85,7 @@ on_present_absence_reason_sharing_error_message = "Помилка, вас від
 on_invalid_date_report_error_message = "Помилка, задана дата не відповідає жодному звіту взводу"
 
 #forms validation
-name_format_validation_error_message = "Ввести ім'я коректно"
+name_format_validation_error_message = "Ввести Прізвище, ім'я коректно"
 
 name_availability_validation_error_message = "Профіль вже зареєстровано"
 
