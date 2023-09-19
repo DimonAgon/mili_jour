@@ -32,7 +32,7 @@ class SuperuserGetReportCommand(BaseMiddleware):
                 data['set_journal_group_id'] = set_journal_external_id
 
             else:
-                logging.error(f"no journal set for superuser {user_id}")
+                logging.error(no_journal_set_error_message)
                 await event.answer("Журнал не було відкрито, необхідно відкрити журнал")
                 return
 

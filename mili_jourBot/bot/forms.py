@@ -104,12 +104,12 @@ class ProfileForm(Form):
         try:
             await add_profile(data, user_id)
             await message.answer(text=profile_form_callback_message)
-            logging.info(f"A profile created for user_id {user_id}")
+            logging.info(profile_created_info_message.format(user_id))
 
 
         except Exception as e:
             await message.answer(text=on_registration_fail_text)
-            logging.error(f"Failed to create a profile for user_id {user_id}\nError:{e}")
+            logging.error(profile_creation_error_message.format(user_id, e))
 
         # else:
         #     await message.answer(text="Помилка, профіль за цим telegram-ID існує")
@@ -131,11 +131,11 @@ class JournalForm(Form):
         try:
             await add_journal(data, group_id)
             await message.answer(text=journal_form_callback_message)
-            logging.info(f"A journal created for group_id {group_id}")
+            logging.info(journal_created_info_message.format(group_id))
 
         except Exception as e:
             await message.answer(text=on_registration_fail_text) #Does not work, no message
-            logging.error(f"Failed to create a journal for group_id {group_id}\nError:{e}")
+            logging.error(journal_creation_error_message)
 
         # else:
         #     await message.answer(text="Помилка, журнал за цим telegram-ID існує")
@@ -158,7 +158,7 @@ class AbsenceReason(Form):
 
         except Exception as e:
             await message.answer(text=absence_reason_fail_text)
-            logging.error(f"Failed to set a status for journal_entry for an entry of profile of user id of {user_id}\nError:{e}")
+            logging.error(status_set_error_message.format(user_id, e))
 
 
 class SuperuserKeyStates(StatesGroup): key = State()

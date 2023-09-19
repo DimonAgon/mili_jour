@@ -33,6 +33,8 @@ group_registration_text = "Ініціюю реєстрацію взводу"
 absence_reason_share_suggestion_text = "Вказати причину відстутності? Т/Н"
 
 #comands
+#set_journal
+
 #call
 enter_profile_name_message = "Ввести Прізвище та Ім'я студента"
 #groupcall
@@ -129,5 +131,50 @@ on_registration_fail_text = "Помилка, реєстрацію скасова
 absence_reason_fail_text = "Помилка, причину не записано"
 
 #logging
+#info
+statuses_amended_for_group_info_message = "statuses amended for group {}"
+
+lesson_poll_sent_to_group_info_message = "lesson {} poll sent to {} mode: {}"
+
+data_entering_canceled = "data entering canceled at {}"
+
+poll_answer_info_message = "poll answer {}:{} from {}"
+
+presence_set_for_user_info_message = "presence set for user {}"
+
+absence_reason_form_initiated_info_message = "absence reason form initiated for user {}"
+
+superuser_created_info_message = "A superuser created for user_id {}"
+
+superuser_registration_form_initiated_info_message = "superuser registration form initiated for user {}"
+
+superuser_key_info_message = 'user {} superuser key: {}'
+
+profile_registration_form_initiated_info_message = "profile registration form initiated for user {}"
+
+profile_created_info_message = "A profile created for user_id {}"
+
+journal_registration_form_initiated_info_message = "journal registration form initiated at {}"
+
+journal_created_info_message = "A journal created for group_id {}"
+
+report_requested_info_message = "report requested at {}, mode: {}, flag: {}"
+
+#error
+no_arguments_logging_error_message = "Command initiation failed\nError: no arguments expected"
+
+lesson_skipped_logging_error_message = "lesson {} iteration skipped, lesson time is over"
+
+superuser_creation_error_message = "Failed to create a superuser for user_id {}\nError:{}"
+
+absence_reason_set_impossible_error_message = "Absence reason set is impossible for user {}, is_present: True"
+
+profile_creation_error_message = "Failed to create a profile for user_id {}\nError:{}"
+
+journal_creation_error_message = "Failed to create a journal for group_id {}\nError:{}"
+
+status_set_error_message = "Failed to set a status for journal_entry for an entry of profile of user id of {}\nError:{}"
+
+no_journal_set_error_message = "no journal set for superuser {}"
 
 
