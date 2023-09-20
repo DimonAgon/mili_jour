@@ -157,7 +157,7 @@ async def presence_command(message: types.Message, command: CommandObject):  # C
         logging.info(statuses_amended_for_group_info_message.format(group_id))
 
     else:
-        await initiate_today_entries(today, group_id) #TODO: the better choice may be to call function on every study day
+        await initiate_today_entries(today, group_id, mode=mode) #TODO: the better choice may be to call function on every study day
         await initiate_today_report(today, group_id, unique_lessons, mode='L')
         poll_message = await message.answer_poll(**poll_configuration)
         logging.info(f"poll sent to {group_id} mode: {mode}")

@@ -66,11 +66,17 @@ def get_all_journal_profiles(journal):
 def initiate_today_entries(today, group_id, lesson=None, mode=default):
     journal = Journal.objects.get(external_id=group_id)
 
+    report_parameters = ReportParameters.objects.get(journal=journal, date=today)
+
     if mode == Presence.LIGHT_MODE:
+        if old_mode:= report_parameters.mode != mode:
+            JournalEntry.objects.filter(journal=journal, date=today).delete()
+
         if JournalEntry.objects.filter(journal=journal, date=today).exists(): return
 
     else:
         if JournalEntry.objects.filter(journal=journal, date=today, lesson=lesson).exists(): return
+
 
     profiles = Profile.objects.filter(journal=journal)
     ordered_profiles = profiles.order_by('ordinal')
