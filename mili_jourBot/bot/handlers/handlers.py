@@ -120,7 +120,7 @@ async def presence_command(message: types.Message, command: CommandObject):  # C
             if lesson_time_interval.contains(now_time): start_time = start_time = (now + datetime.timedelta(seconds=1)).time()
             elif now_time < lesson_time_interval.lower:  start_time = lesson_time_interval.lower
             else:
-                await message.answer(f"Заняття {lesson} пропущено, час заняття вичерпано")
+                await message.answer(lesson_skipped_text.format(lesson))
                 logging.info(lesson_skipped_logging_error_message.format(lesson))
                 continue
 
@@ -245,7 +245,7 @@ async def super_user_registrator(message: types.Message, state: FSMContext):
     try:
         validate_super_user_key(message.text, authentic_key['key'], user_id)
     except:
-        await message.answer("Ключ суперкористувача не є дійсним. Ввусти ключ повторно")
+        await message.answer(key_is_unauthentic_text)
         return
 
     try:
@@ -313,7 +313,7 @@ async def today_report_command(message: types.Message, command: CommandObject, s
     date_string = today_report.date.strftime(date_format)
 
     logging.info(report_requested_info_message.format(group_id, "TODAY", flag))
-    await message.answer(f"Таблиця присутності, Звіт за {date_string}")
+    await message.answer(report_text.format(date_string))
 
     match ReportMode.Flag(flag):
 
@@ -362,7 +362,7 @@ async def last_report_command(message: types.Message, command: CommandObject, se
     date_string = last_report.date.strftime(date_format)
 
     logging.info(report_requested_info_message.format(group_id, "LAST", flag))
-    await message.answer(f"Таблиця присутності, Звіт за {date_string}")
+    await message.answer(report_text.format(date_string))
 
     match ReportMode.Flag(flag):
 
@@ -414,14 +414,14 @@ async def on_date_report_command(message: types.Message, command: CommandObject,
 
     except: #TODO: write a decorator-validator instead
         await message.answer(on_invalid_date_report_error_message)
-        logging.error(f"get report failed, no reports on {date} date")
+        logging.error(get_report_failed_error_message.format(date))
         return
 
     table = await report_table(on_date_report)
     summary = await report_summary(on_date_report, ReportMode.ON_DATE)
 
     logging.info(report_requested_info_message.format(group_id, "ON DATE", flag))
-    await message.answer(f"Таблиця присутності, Звіт за {date_string}")
+    await message.answer(report_text.format(date_string))
 
     match ReportMode.Flag(flag):
 
@@ -472,7 +472,7 @@ async def set_journal_handler(message: types.Message, state: FSMContext):
 
     await state.set_state(JournalStatesGroup.set_journal_name)
     await state.update_data(set_journal_name=set_journal_name)
-    await message.answer(f"Журнал взводу {set_journal_name} відкрито")
+    await message.answer(journal_set_text.format(set_journal_name))
 
 @commands_router.message(Command(commands=['set_journal', 'sj']), F.chat.type.in_({'private'}), IsSuperUserFilter())
 async def set_journal_command(message: types.Message, state: FSMContext):
@@ -513,7 +513,7 @@ async def call_handler(message: types.Message, state: FSMContext):
     profile_id = profile.external_id
     await state.set_state(InformStatesGroup.receiver_id)
     await state.update_data(Interlocutor_id=profile_id)
-    await message.answer(f"Студенту {name}, надіслати наступні повідомлення")
+    await message.answer(user_inform_text.format(name))
     await bot.send_message(profile_id, inform_message)
 
 @commands_router.message(Command(commands=['call']), F.chat.type.in_({'private'}), IsSuperUserFilter())
@@ -558,7 +558,7 @@ async def group_call_handler(message: types.Message, state: FSMContext):
 
     await state.set_state(GroupInformStatesGroup.receiver_id)
     await state.update_data(receiver_id=journal.external_id)
-    await message.answer(f"Взвод {journal_name} сповістити:")
+    await message.answer(journal_name)
     await inform_all_journal_users(journal, group_inform_message)
 
 

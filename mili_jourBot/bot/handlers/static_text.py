@@ -3,13 +3,15 @@ from typing import Type
 
 from ..infrastructure.enums import PresencePollOptions
 
-#greeting
+#message
+#command
+#start
 greeting_text = "Mili_jour (Military Journal)." \
                " Бота створено для підтримки роботи командирського складу учбових взводів." \
                " Надано можливість ведення журналу відвідувань через команди. Проект на стадії розробки." \
                " Дійовість деяких аспектів буде перевірена та перероблена за необхідності."
 
-#HELP
+#help
 HELPFUL_REPLY = f"Для роботи необхідно виконати реєстрацію журналу взводу та ЗАРЕЕСТРУВАТИСЬ." \
                     "\nПодальше, право на взаємодію із ботом покладається на командирський склад." \
                     "\nСписок команд наведено нижче:" \
@@ -25,20 +27,35 @@ HELPFUL_REPLY = f"Для роботи необхідно виконати реє
                     "\n/on_date_report– викликати звіт за датою"
 
 #registration
+#profile
 profile_registration_text = "ініціюю реєстрацію"
 
+#group
 group_registration_text = "Ініціюю реєстрацію взводу"
 
-#absence
+#superuser
+key_is_unauthentic_text = "Ключ суперкористувача не є дійсним. Ввeсти ключ повторно"
+
+#presence
+lesson_skipped_text = "Заняття {} пропущено, час заняття вичерпано"
+
+#absence_reason
 absence_reason_share_suggestion_text = "Вказати причину відстутності? Т/Н"
 
-#comands
+#report
+report_text = "Таблиця присутності, Звіт за {}"
+
 #set_journal
+journal_set_text = "Журнал взводу {} відкрито"
 
 #call
 enter_profile_name_message = "Ввести Прізвище та Ім'я студента"
+user_inform_text = "Студенту {}, надіслати наступні повідомлення"
+
 #groupcall
 enter_journal_name_message = "Ввести номер взводу"
+group_inform_text = "Взвод {} сповістити:"
+
 #cancel
 registration_canceling_message = "Реєстрацію було перервано"
 
@@ -161,20 +178,34 @@ journal_created_info_message = "A journal created for group_id {}"
 report_requested_info_message = "report requested at {}, mode: {}, flag: {}"
 
 #error
+#command
+#args
 no_arguments_logging_error_message = "Command initiation failed\nError: no arguments expected"
 
+#presence
 lesson_skipped_logging_error_message = "lesson {} iteration skipped, lesson time is over"
 
+#registration
+#superuser
 superuser_creation_error_message = "Failed to create a superuser for user_id {}\nError:{}"
 
+#absence_reason
 absence_reason_set_impossible_error_message = "Absence reason set is impossible for user {}, is_present: True"
 
+#profile
 profile_creation_error_message = "Failed to create a profile for user_id {}\nError:{}"
 
+#journal
 journal_creation_error_message = "Failed to create a journal for group_id {}\nError:{}"
 
+#status
 status_set_error_message = "Failed to set a status for journal_entry for an entry of profile of user id of {}\nError:{}"
 
+#report
+get_report_failed_error_message = "get report failed, no reports on {} date"
+
+#set journal
 no_journal_set_error_message = "no journal set for superuser {}"
+
 
 
