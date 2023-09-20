@@ -148,7 +148,7 @@ def on_lesson_presence_check(user_id):
 
 
 @database_sync_to_async
-def set_status(data, user_id, lesson=None, mode=default): #TODO: if today status: status = today status. return
+def set_status(data, user_id, lesson=None): #TODO: if today status: status = today status. return
     profile = Profile.objects.get(external_id=user_id)
     journal = profile.journal
     now = datetime.datetime.now()
@@ -156,9 +156,14 @@ def set_status(data, user_id, lesson=None, mode=default): #TODO: if today status
     now_time = now.time()
     status = data['status']
     current_lesson = Schedule.lesson_match(now_time)
-    if JournalEntry.objects.filter(journal=journal, profile=profile, date=today, lesson=current_lesson).exists(): #TODO: use mode instead!
+    report_parameters = ReportParameters.objects.get(journal=journal, date=today)
+    mode = report_parameters.mode
+    if mode == Presence.LIGHT_MODE:
+        entry = JournalEntry.objects.get(journal=journal, profile=profile, date=today)
+
+    else:
         lesson = current_lesson
-    entry = JournalEntry.objects.get(journal=journal, profile=profile, date=today, lesson=lesson)
+        entry = JournalEntry.objects.get(journal=journal, profile=profile, date=today, lesson=lesson)
     entry.status = status
     entry.save()
 
