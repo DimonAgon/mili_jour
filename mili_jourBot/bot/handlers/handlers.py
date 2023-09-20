@@ -209,7 +209,7 @@ async def presence_handler (poll_answer: types.poll_answer, state: FSMContext): 
     user_id = poll_answer.user.id
 
     logging.info(poll_answer_info_message.format(poll_answer.option_ids, is_present, user_id))
-    await presence_view(is_present, user_id)
+    await process_user_on_lesson_presence(is_present, user_id)
     logging.info(presence_set_for_user_info_message.format(user_id))
 
     if not is_present:

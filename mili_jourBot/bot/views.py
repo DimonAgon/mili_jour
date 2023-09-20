@@ -80,7 +80,7 @@ def initiate_today_entries(today, group_id, lesson=None, mode=default):
 
 
 @database_sync_to_async
-def presence_view(is_present, user_id):
+def process_user_on_lesson_presence(is_present, user_id):
     now = datetime.datetime.now() #TODO: use time for schedule control, use date for entry's date
     now_time = now.time()
     now_date = now.date()
