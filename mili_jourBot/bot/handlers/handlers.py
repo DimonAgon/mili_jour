@@ -217,7 +217,7 @@ async def presence_handler (poll_answer: types.poll_answer, state: FSMContext): 
         await state.set_state(AbsenceReasonStates.AbsenceReason)
 
 
-@commands_router.message(Command(commands='absence_reason'), F.chat.type.in_({'private'}))
+@commands_router.message(Command(commands=['absence_reason', 'ar']), F.chat.type.in_({'private'}))
 async def absence_reason_command(message: types.Message, forms: FormsManager):
     user_id = message.from_user.id
     #TODO: pass the lesson if lesson is none, then answer and return
@@ -294,7 +294,7 @@ async def register_journal_command(message: types.Message, forms: FormsManager):
     await forms.show('journalform')
 
 
-@reports_router.message(Command(commands='today_report'), IsAdminFilter(),
+@reports_router.message(Command(commands=['today_report', 'tr']), IsAdminFilter(),
                          AftercommandFullCheck(allow_no_argument=True, modes=ReportMode, flag_checking=True))
 async def today_report_command(message: types.Message, command: CommandObject, set_journal_group_id=None):
     aftercommand = command.args
@@ -343,7 +343,7 @@ async def today_report_command(message: types.Message, command: CommandObject, s
 
 
 
-@reports_router.message(Command(commands='last_report'), IsAdminFilter(),
+@reports_router.message(Command(commands=['last_report', 'lr']), IsAdminFilter(),
                          AftercommandFullCheck(allow_no_argument=True, modes=ReportMode, flag_checking=True))
 async def last_report_command(message: types.Message, command: CommandObject, set_journal_group_id=None):
     aftercommand = command.args
@@ -390,7 +390,7 @@ async def last_report_command(message: types.Message, command: CommandObject, se
             await message.answer_document(input_file, disable_notification=True)
 
 
-@reports_router.message(Command(commands='on_date_report'),
+@reports_router.message(Command(commands=['on_date_report', 'odr']),
                          IsAdminFilter(),
                          AftercommandFullCheck(allow_no_argument=False,
                                       modes=ReportMode,
