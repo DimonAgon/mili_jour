@@ -65,23 +65,44 @@ def get_all_journal_profiles(journal):
 @database_sync_to_async
 def initiate_today_entries(today, group_id, lesson=None, mode=default):
     journal = Journal.objects.get(external_id=group_id)
-
-    report_parameters = ReportParameters.objects.get(journal=journal, date=today)
-
-    if mode == Presence.LIGHT_MODE:
-        if old_mode:= report_parameters.mode != mode:
-            JournalEntry.objects.filter(journal=journal, date=today).delete()
-
-        if JournalEntry.objects.filter(journal=journal, date=today).exists(): return
-
-    else:
-        if JournalEntry.objects.filter(journal=journal, date=today, lesson=lesson).exists(): return
-
-
+    try: report_parameters = ReportParameters.objects.get(journal=journal, date=today)
+    except Exception: pass
     profiles = Profile.objects.filter(journal=journal)
-    ordered_profiles = profiles.order_by('ordinal')
 
-    for p in ordered_profiles: add_journal_entry({'journal': journal, 'profile': p, 'date': today, 'lesson': lesson})
+    try:
+        report_parameters
+
+        if mode == Presence.LIGHT_MODE:
+            if (old_mode:= report_parameters.mode) != mode:
+                if JournalEntry.objects.filter(journal=journal, date=today).exists():
+                    earliest_lesson_entries = \
+                        set(JournalEntry.objects.filter(journal=journal, date=today, profile=profile, is_present=True).order_by('lesson').first()
+                         for profile in profiles)
+
+                    to_delete_entries =\
+                        set(JournalEntry.objects.filter(journal=journal, date=today)) - set(earliest_lesson_entries)
+                    for entry in to_delete_entries: entry.delete()
+
+                    no_entry_profiles = set(profiles) - set(e.profile for e in earliest_lesson_entries)
+
+            if JournalEntry.objects.filter(journal=journal, date=today).exists(): return
+
+        else:
+            existing_lesson_entries_profiles = None
+            if JournalEntry.objects.filter(journal=journal, date=today, lesson=lesson).exists():
+                existing_lesson_entries = JournalEntry.objects.filter(journal=journal, date=today, lesson=lesson)
+                if existing_lesson_entries.count() == int(journal.strength): return
+
+                else:
+                    existing_lesson_entries_profiles = {e.profile for e in existing_lesson_entries}
+
+            no_entry_profiles = profiles if not existing_lesson_entries_profiles else set(profiles) - existing_lesson_entries_profiles
+
+        for p in no_entry_profiles: add_journal_entry({'journal': journal, 'profile': p, 'date': today, 'lesson': lesson})
+    except Exception:
+        for p in profiles: add_journal_entry({'journal': journal, 'profile': p, 'date': today, 'lesson': lesson})
+
+
 
 
 
