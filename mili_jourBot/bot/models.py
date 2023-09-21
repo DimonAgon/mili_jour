@@ -29,7 +29,7 @@ class Profile(models.Model):
 
 class Journal(models.Model):
     name = models.CharField(verbose_name="Номер взводу", max_length=3, db_index=True)
-    strength = models.CharField(verbose_name="Чисельність взводу", max_length=2)
+    strength = models.SmallIntegerField(verbose_name="Чисельність взводу")
     external_id = models.IntegerField(verbose_name="Chat id")
 
     def __str__(self):
