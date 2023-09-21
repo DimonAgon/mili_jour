@@ -169,12 +169,10 @@ class JournalStatesGroup(StatesGroup):
     setting_journal = State()
     set_journal_name = State()
 
-class InformStatesGroup(StatesGroup):
+class UserInformStatesGroup(StatesGroup):
     call = State()
     receiver_id = State()
 
-class UserInformStatesGroup(InformStatesGroup):
-    pass
-
-class GroupInformStatesGroup(InformStatesGroup):
-    pass
+class GroupInformStatesGroup(StatesGroup):
+    call = State()
+    receiver_id = State()

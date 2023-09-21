@@ -480,15 +480,15 @@ async def set_journal_command(message: types.Message, state: FSMContext):
     await message.answer(enter_journal_name_message)
 
 
-@commands_router.message(InformStatesGroup.receiver_id, F.chat.type.in_({'private'}))
-async def inform_handler(message: types.Message, state: FSMContext):
+@commands_router.message(UserInformStatesGroup.receiver_id, F.chat.type.in_({'private'}))
+async def user_inform_handler(message: types.Message, state: FSMContext):
     user_id = message.from_user.id
     interlocutor_id = await state.get_data()
     await bot.send_message(interlocutor_id['Interlocutor_id'], message.text)
     await state.update_data(receiver_id=user_id)
 
-@commands_router.message(InformStatesGroup.call, F.chat.type.in_({'private'}))
-async def call_handler(message: types.Message, state: FSMContext):
+@commands_router.message(UserInformStatesGroup.call, F.chat.type.in_({'private'}))
+async def user_call_handler(message: types.Message, state: FSMContext):
     response = message.text
     user_id = message.from_user.id
 
@@ -511,21 +511,19 @@ async def call_handler(message: types.Message, state: FSMContext):
         return
 
     profile_id = profile.external_id
-    await state.set_state(InformStatesGroup.receiver_id)
+    await state.set_state(UserInformStatesGroup.receiver_id)
     await state.update_data(Interlocutor_id=profile_id)
     await message.answer(user_inform_text.format(name))
     await bot.send_message(profile_id, inform_message)
 
 @commands_router.message(Command(commands=['call']), F.chat.type.in_({'private'}), IsSuperUserFilter())
 async def call_command(message: types.Message, state: FSMContext):
-    await state.set_state(InformStatesGroup.call)
+    await state.set_state(UserInformStatesGroup.call)
     await message.answer(enter_profile_name_message)
 
 async def inform_all_journal_users(journal, message_text):
     all_journal_profiles = await get_all_journal_profiles(journal)
-    for profile in all_journal_profiles:
-        await bot.send_message(profile.external_id, message_text)
-
+    (await bot.send_message(profile.external_id, message_text) for profile in all_journal_profiles)
     await bot.send_message(journal.external_id, message_text)
 
 
@@ -558,7 +556,7 @@ async def group_call_handler(message: types.Message, state: FSMContext):
 
     await state.set_state(GroupInformStatesGroup.receiver_id)
     await state.update_data(receiver_id=journal.external_id)
-    await message.answer(journal_name)
+    await message.answer(group_inform_text.format(journal_name))
     await inform_all_journal_users(journal, group_inform_message)
 
 
