@@ -103,9 +103,6 @@ def initiate_today_entries(today, group_id, lesson=None, mode=default):
         for p in profiles: add_journal_entry({'journal': journal, 'profile': p, 'date': today, 'lesson': lesson})
 
 
-
-
-
 @database_sync_to_async
 def process_user_on_lesson_presence(is_present, user_id):
     now = datetime.datetime.now() #TODO: use time for schedule control, use date for entry's date
