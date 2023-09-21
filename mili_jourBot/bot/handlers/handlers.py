@@ -170,7 +170,7 @@ async def cancel_command(message: types.Message, state: FSMContext):
     current_state = await state.get_state()
     states_canceling_messages = {AbsenceReasonStates.AbsenceReason: absence_reason_share_canceling_message,
                                  JournalStatesGroup.set_journal_name: journal_unset_message,
-                                 InformStatesGroup.receiver_id: call_canceling_message,
+                                 UserInformStatesGroup.receiver_id: call_canceling_message,
                                  GroupInformStatesGroup.receiver_id: group_inform_canceling_message}
 
     for state_key, canceling_message in states_canceling_messages.items():
@@ -523,7 +523,7 @@ async def call_command(message: types.Message, state: FSMContext):
 
 async def inform_all_journal_users(journal, message_text):
     all_journal_profiles = await get_all_journal_profiles(journal)
-    (await bot.send_message(profile.external_id, message_text) for profile in all_journal_profiles)
+    for profile in all_journal_profiles: await bot.send_message(profile.external_id, message_text)
     await bot.send_message(journal.external_id, message_text)
 
 
