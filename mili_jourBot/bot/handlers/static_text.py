@@ -155,6 +155,8 @@ lesson_poll_sent_to_group_info_message = "lesson {} poll sent to {} mode: {}"
 
 data_entering_canceled = "data entering canceled at {}"
 
+poll_sent_info_message = "poll sent to {} mode: {}"
+
 poll_answer_info_message = "poll answer {}:{} from {}"
 
 presence_set_for_user_info_message = "presence set for user {}"
