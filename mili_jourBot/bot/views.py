@@ -85,7 +85,7 @@ def initiate_today_entries(today, group_id, lesson=None, mode=default):
 
                     no_entry_profiles = set(profiles) - set(e.profile for e in earliest_lesson_entries)
 
-            if JournalEntry.objects.filter(journal=journal, date=today).exists(): return
+            elif JournalEntry.objects.filter(journal=journal, date=today).exists(): return
 
         else:
             existing_lesson_entries_profiles = None
