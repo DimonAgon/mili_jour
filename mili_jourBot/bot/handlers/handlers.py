@@ -489,7 +489,7 @@ async def set_journal_command(message: types.Message, state: FSMContext):
     await message.answer(enter_journal_name_message)
 
 
-@commands_router.message(UserInformStatesGroup.receiver_id, F.chat.type.in_({'private'}))
+@commands_router.message(UserInformStatesGroup.receiver_id, NoCommandFilter(), F.chat.type.in_({'private'}))
 async def user_inform_handler(message: types.Message, state: FSMContext):
     user_id = message.from_user.id
     interlocutor_id = await state.get_data()
@@ -536,7 +536,7 @@ async def inform_all_journal_users(journal, message_text):
     await bot.send_message(journal.external_id, message_text)
 
 
-@commands_router.message(NoCommandFilter(), GroupInformStatesGroup.receiver_id)
+@commands_router.message(GroupInformStatesGroup.receiver_id, NoCommandFilter(), F.chat.type.in_({'private'}))
 async def group_inform_handler(message: types.Message, state: FSMContext):
     journal_external_id = await state.get_data()
     journal = await get_journal_by_external_id_async(journal_external_id['receiver_id'])
