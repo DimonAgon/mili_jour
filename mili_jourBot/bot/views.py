@@ -23,7 +23,6 @@ def add_superuser(user_id):
 @database_sync_to_async
 def add_profile(data, user_id):
     initial = data
-    initial['ordinal'] = int(initial['ordinal'])
     initial['external_id'], initial['journal'] = user_id, Journal.objects.get(name=data['journal'])
 
     new_profile = Profile.objects.create(**initial)
