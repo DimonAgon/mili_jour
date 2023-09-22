@@ -101,7 +101,7 @@ out_of_lesson_absence_reason_sharing_error_message = "Помилка, причи
 
 on_present_absence_reason_sharing_error_message = "Помилка, вас відмічено як присутнього"
 
-on_invalid_date_report_error_message = "Помилка, задана дата не відповідає жодному звіту взводу"
+invalid_parameters_report_error_message = "Помилка, за даними параметрами не знайдено жодного звіту взводу"
 
 #forms validation
 name_format_validation_error_message = "Ввести Прізвище, ім'я коректно"
@@ -204,7 +204,7 @@ journal_creation_error_message = "Failed to create a journal for group_id {}\nEr
 status_set_error_message = "Failed to set a status for journal_entry for an entry of profile of user id of {}\nError:{}"
 
 #report
-get_report_failed_error_message = "get report failed, no reports on {} date"
+get_report_failed_error_message = "get report failed for {}, wrong parameters"
 
 #set journal
 no_journal_set_error_message = "no journal set for superuser {}"
