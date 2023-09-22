@@ -109,9 +109,11 @@ async def presence_command(message: types.Message, command: CommandObject):  # C
 
     if not mode == Presence.LIGHT_MODE:
         await initiate_today_report(today, group_id, unique_lessons, mode)
+        logging.info(today_report_initiated_info_message.format(group_id, mode))
         for lesson in unique_lessons:
 
             await initiate_today_entries(today, group_id, lesson, mode)
+            logging.info(lesson_entries_initiated_info_message.format(lesson, group_id))
 
             question = today_string + f" Заняття {str(lesson)}"
             poll_configuration.update({'question': question})
@@ -149,20 +151,24 @@ async def presence_command(message: types.Message, command: CommandObject):  # C
             await asyncio.sleep(till_poll.seconds)
             till_deadline = deadline - now #TODO: create an async scheduler
             poll_message = await message.answer_poll(**poll_configuration) #TODO: consider using poll configuration dict
-            logging.info(lesson_poll_sent_to_group_info_message.format(lesson, group_id, mode))
+            logging.info(lesson_poll_sent_to_group_info_message.format(lesson, group_id))
             await asyncio.sleep(till_deadline.seconds)  #TODO: schedule instead
             await bot.stop_poll(chat_id=poll_message.chat.id, message_id=poll_message.message_id)
+            logging.info(lesson_poll_stopped_info_message.format(lesson, group_id))
 
         await amend_statuses(today, group_id)
         logging.info(statuses_amended_for_group_info_message.format(group_id))
 
     else:
         await initiate_today_entries(today, group_id, mode=mode) #TODO: the better choice may be to call function on every study day
+        logging.info(today_entries_initiated_info_message.format(group_id))
         await initiate_today_report(today, group_id, unique_lessons, mode='L')
+        logging.info(today_report_initiated_info_message.format(group_id, mode))
         poll_message = await message.answer_poll(**poll_configuration)
-        logging.info(poll_sent_info_message.format(group_id, mode))
+        logging.info(poll_sent_info_message.format(group_id))
         await asyncio.sleep(till_deadline.seconds) #TODO: schedule instead
         await bot.stop_poll(chat_id=poll_message.chat.id, message_id=poll_message.message_id)
+        logging.info(poll_stopped_info_message.format(group_id))
 
 
 @commands_router.message(Command(commands='cancel'))
