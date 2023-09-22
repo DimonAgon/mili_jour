@@ -369,7 +369,7 @@ def report_summary(report, report_mode) -> Type[prettytable.PrettyTable]:
 
 
 @database_sync_to_async
-def get_report(group_id, mode, specified_date: datetime=None) -> Type[ReportParameters]:
+def get_on_mode_report(group_id, mode, specified_date: datetime=None) -> Type[ReportParameters]:
     journal = Journal.objects.get(external_id=group_id)
 
     match mode:
