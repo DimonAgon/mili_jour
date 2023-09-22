@@ -80,6 +80,14 @@ group_inform_message = "Об'ява:"
 #filters
 is_not_now_speaking_error_message = "*дочекатись відповіді співрозмовника"
 
+on_id_model_object_exists_error_message_to_user = "Помилка, вас вже було зареєстровано"
+
+on_id_model_object_exists_logging_error_to_user = "failed to create a profile for user {}, profile already exists"
+
+on_id_model_object_exists_error_message_to_group = "Помилка, ваш взвод вже було зареєстровано"
+
+on_id_model_object_exists_logging_error_message_to_group = "failed to create a journal for group {}, journal already exists"
+
 #presence options
 def presence_option_to_string(presence_option: Type[PresencePollOptions]):
     match presence_option:

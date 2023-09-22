@@ -24,18 +24,29 @@ class RegisteredExternalIdFilter(BaseFilter):
 
     def __init__(self, model: Type[models.Model], use_chat_id: bool = False):
         self.model = model
-        self.chat_mode = use_chat_id
+        self.use_chat_id = use_chat_id
 
     async def __call__(self, message: types.Message) -> bool:
         @database_sync_to_async
         def on_id_object_exists():
-            if self.chat_mode:
+            if self.use_chat_id:
                 id_ = message.chat.id
             else:
                 id_ = message.from_user.id
-            return not self.model.objects.filter(external_id=id_).exists()
+            return self.model.objects.filter(external_id=id_).exists()
 
-        return await on_id_object_exists()
+        if await on_id_object_exists():
+            if self.use_chat_id:
+                await message.answer(on_id_model_object_exists_error_message_to_group)
+                logging.error(on_id_model_object_exists_logging_error_message_to_group.format(message.chat.id))
+
+            else:
+                await message.answer(on_id_model_object_exists_error_message_to_user)
+                logging.error(on_id_model_object_exists_logging_error_to_user.format(message.from_user.id))
+
+            return False
+
+        return True
 
 class IsAdminFilter(BaseFilter): #TODO: add a middleware to check both is admin or is superuser rights when is admin checking
     key = 'is_admin'
