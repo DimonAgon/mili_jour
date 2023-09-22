@@ -78,6 +78,7 @@ inform_message = "Повідомлення від викладача:"
 group_inform_message = "Об'ява:"
 
 #filters
+#RegisteredExternalIdFilter
 is_not_now_speaking_error_message = "*дочекатись відповіді співрозмовника"
 
 on_id_model_object_exists_error_message_to_user = "Помилка, вас вже було зареєстровано"
@@ -87,6 +88,12 @@ on_id_model_object_exists_logging_error_to_user = "failed to create a profile fo
 on_id_model_object_exists_error_message_to_group = "Помилка, ваш взвод вже було зареєстровано"
 
 on_id_model_object_exists_logging_error_message_to_group = "failed to create a journal for group {}, journal already exists"
+
+#IsSuperUser
+
+user_unauthorised_as_superuser_logging_info_message = "user {} unauthorised as a superuser"
+
+user_unauthorised_as_superuser_message = "Вас не було авторизовано, як суперкористувача"
 
 #presence options
 def presence_option_to_string(presence_option: Type[PresencePollOptions]):
