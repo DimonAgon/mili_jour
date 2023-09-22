@@ -39,21 +39,22 @@ from typing import Any
 
 reports_router.message.middleware(SuperuserGetReportCommand())
 
+prefixes = {'🗡', '/'}
 
-@commands_router.message(Command(commands='start'))
+@commands_router.message(Command(commands='start')) #TODO add middleware to show help for superuser
 async def start_command(message: types.Message):  # Self-presentation of the bot
 
     await message.reply(greeting_text)
 
 
-@commands_router.message(Command(commands='help'))
+@commands_router.message(Command(commands='help', prefix=prefixes))
 async def help_command(message: types.Message):
     #TODO: on_update_info
 
     await message.reply(HELPFUL_REPLY)
 
 
-@commands_router.message(Command(commands=['presence', 'p']),
+@commands_router.message(Command(commands=['presence', 'p'], prefix=prefixes),
                          F.chat.type.in_({'group', 'supergroup'}),
                          IsAdminFilter(),
                          AftercommandFullCheck(allow_no_argument=False,
@@ -171,7 +172,7 @@ async def presence_command(message: types.Message, command: CommandObject):  # C
         logging.info(poll_stopped_info_message.format(group_id))
 
 
-@commands_router.message(Command(commands='cancel'))
+@commands_router.message(Command(commands='cancel', prefix=prefixes))
 async def cancel_command(message: types.Message, state: FSMContext):
     current_state = await state.get_state()
     states_canceling_messages = {AbsenceReasonStates.AbsenceReason: absence_reason_share_canceling_message,
@@ -223,7 +224,7 @@ async def presence_handler (poll_answer: types.poll_answer, state: FSMContext): 
         await state.set_state(AbsenceReasonStates.AbsenceReason)
 
 
-@commands_router.message(Command(commands=['absence_reason', 'ar']), F.chat.type.in_({'private'}))
+@commands_router.message(Command(commands=['absence_reason', 'ar'], prefix=prefixes), F.chat.type.in_({'private'}))
 async def absence_reason_command(message: types.Message, forms: FormsManager):
     user_id = message.from_user.id
     #TODO: pass the lesson if lesson is none, then answer and return
@@ -264,7 +265,9 @@ async def super_user_registrator(message: types.Message, state: FSMContext):
         logging.error(superuser_creation_error_message.format(user_id, e))
 
 
-@commands_router.message(Command(commands='register_superuser'), F.chat.type.in_({'private'}), RegisteredExternalIdFilter(Superuser))
+@commands_router.message(Command(commands='register_superuser', prefix=prefixes),
+                         F.chat.type.in_({'private'}),
+                         RegisteredExternalIdFilter(Superuser))
 async def register_superuser_command(message: types.Message, state: FSMContext):
     user_id = message.from_user.id
     logging.info(superuser_registration_form_initiated_info_message.format(user_id))
@@ -279,7 +282,9 @@ async def register_superuser_command(message: types.Message, state: FSMContext):
     logging.info(superuser_key_info_message.format(user_id, key))
 
 
-@commands_router.message(Command(commands='register'), F.chat.type.in_({'private'}), RegisteredExternalIdFilter(Profile))
+@commands_router.message(Command(commands='register', prefix=prefixes),
+                         F.chat.type.in_({'private'}),
+                         RegisteredExternalIdFilter(Profile))
 async def register_command(message: types.Message, forms: FormsManager):
     user_id = message.from_user.id
     logging.info(profile_registration_form_initiated_info_message.format(user_id))
@@ -289,7 +294,9 @@ async def register_command(message: types.Message, forms: FormsManager):
     await forms.show('profileform')
 
 
-@commands_router.message(Command(commands='register_journal'), F.chat.type.in_({'group', 'supergroup'}), IsAdminFilter(),
+@commands_router.message(Command(commands='register_journal', prefix=prefixes),
+                         F.chat.type.in_({'group', 'supergroup'}),
+                         IsAdminFilter(),
                          RegisteredExternalIdFilter(Journal, use_chat_id=True))
 async def register_journal_command(message: types.Message, forms: FormsManager):
     chat_id = message.chat.id
@@ -303,7 +310,7 @@ async def register_journal_command(message: types.Message, forms: FormsManager):
 report_commands_superuser_filters_config = (F.chat.type.in_({'private'}), IsSuperUserFilter())
 report_commands_group_admin_filters_config = (F.chat.type.in_({'group', 'supergroup'}), IsAdminFilter())
 
-today_report_command_filters_config = (Command(commands=['today_report', 'tr']),
+today_report_command_filters_config = (Command(commands=['today_report', 'tr'], prefix=prefixes),
                                        AftercommandFullCheck(allow_no_argument=True, modes=ReportMode, flag_checking=True))
 
 @reports_router.message(*report_commands_superuser_filters_config, *today_report_command_filters_config)
@@ -361,7 +368,7 @@ async def today_report_command(message: types.Message, command: CommandObject, s
                 await message.answer_document(input_file, disable_notification=True)
 
 
-last_report_command_filters_config = (Command(commands=['last_report', 'lr']),
+last_report_command_filters_config = (Command(commands=['last_report', 'lr'], prefix=prefixes),
                                       AftercommandFullCheck(allow_no_argument=True, modes=ReportMode, flag_checking=True))
 
 @reports_router.message(*report_commands_superuser_filters_config, *last_report_command_filters_config)
@@ -419,7 +426,7 @@ async def last_report_command(message: types.Message, command: CommandObject, se
             await message.answer_document(input_file, disable_notification=True)
 
 
-on_date_report_command_filters_config = (Command(commands=['on_date_report', 'odr']),
+on_date_report_command_filters_config = (Command(commands=['on_date_report', 'odr'], prefix=prefixes),
                                          AftercommandFullCheck(allow_no_argument=False,
                                                         modes=ReportMode,
                                                         additional_arguments_checker=date_validator,
@@ -504,7 +511,9 @@ async def set_journal_handler(message: types.Message, state: FSMContext):
     await state.update_data(set_journal_name=set_journal_name)
     await message.answer(journal_set_text.format(set_journal_name))
 
-@commands_router.message(Command(commands=['set_journal', 'sj']), F.chat.type.in_({'private'}), IsSuperUserFilter())
+@commands_router.message(Command(commands=['set_journal', 'sj'], prefix=prefixes),
+                         F.chat.type.in_({'private'}),
+                         IsSuperUserFilter())
 async def set_journal_command(message: types.Message, state: FSMContext):
     await state.set_state(JournalStatesGroup.setting_journal)
     await message.answer(enter_journal_name_message)
@@ -546,7 +555,9 @@ async def user_call_handler(message: types.Message, state: FSMContext):
     await message.answer(user_inform_text.format(name))
     await bot.send_message(profile_id, inform_message)
 
-@commands_router.message(Command(commands=['call']), F.chat.type.in_({'private'}), IsSuperUserFilter())
+@commands_router.message(Command(commands=['call'], prefix=prefixes),
+                         F.chat.type.in_({'private'}),
+                         IsSuperUserFilter())
 async def call_command(message: types.Message, state: FSMContext):
     await state.set_state(UserInformStatesGroup.call)
     await message.answer(enter_profile_name_message)
@@ -590,7 +601,9 @@ async def group_call_handler(message: types.Message, state: FSMContext):
     await inform_all_journal_users(journal, group_inform_message)
 
 
-@commands_router.message(Command(commands=['groupcall', 'gc']), F.chat.type.in_({'private'}), IsSuperUserFilter())
+@commands_router.message(Command(commands=['groupcall', 'gc'], prefix=prefixes),
+                         F.chat.type.in_({'private'}),
+                         IsSuperUserFilter())
 async def group_call_command(message: types.Message, state: FSMContext):
     await state.set_state(GroupInformStatesGroup.call)
     await message.answer(enter_journal_name_message)
