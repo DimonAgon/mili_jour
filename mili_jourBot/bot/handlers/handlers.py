@@ -294,8 +294,14 @@ async def register_journal_command(message: types.Message, forms: FormsManager):
     await forms.show('journalform')
 
 
-@reports_router.message(Command(commands=['today_report', 'tr']), IsAdminFilter(),
-                         AftercommandFullCheck(allow_no_argument=True, modes=ReportMode, flag_checking=True))
+report_commands_superuser_filters_config = (F.chat.type.in_({'private'}), IsSuperUserFilter())
+report_commands_group_admin_filters_config = (F.chat.type.in_({'group', 'supergroup'}), IsAdminFilter())
+
+today_report_command_filters_config = (Command(commands=['today_report', 'tr']),
+                                       AftercommandFullCheck(allow_no_argument=True, modes=ReportMode, flag_checking=True))
+
+@reports_router.message(*report_commands_superuser_filters_config, *today_report_command_filters_config)
+@reports_router.message(*report_commands_group_admin_filters_config, *today_report_command_filters_config)
 async def today_report_command(message: types.Message, command: CommandObject, set_journal_group_id=None):
     aftercommand = command.args
 
@@ -342,9 +348,11 @@ async def today_report_command(message: types.Message, command: CommandObject, s
                 await message.answer_document(input_file, disable_notification=True)
 
 
+last_report_command_filters_config = (Command(commands=['last_report', 'lr']),
+                                      AftercommandFullCheck(allow_no_argument=True, modes=ReportMode, flag_checking=True))
 
-@reports_router.message(Command(commands=['last_report', 'lr']), IsAdminFilter(),
-                         AftercommandFullCheck(allow_no_argument=True, modes=ReportMode, flag_checking=True))
+@reports_router.message(*report_commands_superuser_filters_config, *last_report_command_filters_config)
+@reports_router.message(*report_commands_group_admin_filters_config, *last_report_command_filters_config)
 async def last_report_command(message: types.Message, command: CommandObject, set_journal_group_id=None):
     aftercommand = command.args
 
@@ -390,12 +398,13 @@ async def last_report_command(message: types.Message, command: CommandObject, se
             await message.answer_document(input_file, disable_notification=True)
 
 
-@reports_router.message(Command(commands=['on_date_report', 'odr']),
-                         IsAdminFilter(),
-                         AftercommandFullCheck(allow_no_argument=False,
-                                      modes=ReportMode,
-                                      additional_arguments_checker=date_validator,
-                                      flag_checking=True))
+on_date_report_command_filters_config = (Command(commands=['on_date_report', 'odr']),
+                                         AftercommandFullCheck(allow_no_argument=False,
+                                                        modes=ReportMode,
+                                                        additional_arguments_checker=date_validator,
+                                                        flag_checking=True))
+@reports_router.message(*report_commands_superuser_filters_config, *on_date_report_command_filters_config)
+@reports_router.message(*report_commands_group_admin_filters_config, *on_date_report_command_filters_config)
 async def on_date_report_command(message: types.Message, command: CommandObject, set_journal_group_id=None):
     arguments = command.args.split()
 
