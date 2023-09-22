@@ -72,7 +72,7 @@ class IsSuperUserFilter(BaseFilter):
 
         else:
             logging.error(f"{user_id} unauthorised as superuser")
-            message.answer("Вас не було авторизовано, як суперкористувача") #TODO: fix, add await
+            await message.answer("Вас не було авторизовано, як суперкористувача")
             return False
 
 #TODO: in case of dialoging via call
