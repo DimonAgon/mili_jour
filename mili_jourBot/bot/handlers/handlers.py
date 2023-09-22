@@ -311,7 +311,14 @@ async def today_report_command(message: types.Message, command: CommandObject, s
     else: flag = ReportMode.Flag.TEXT
 
     group_id = message.chat.id if not set_journal_group_id else set_journal_group_id
-    today_report = await get_on_mode_report(group_id, ReportMode.TODAY)
+    try:
+        today_report = await get_on_mode_report(group_id, ReportMode.TODAY)
+
+    except Exception:
+        await message.answer(invalid_parameters_report_error_message)
+        logging.error(get_report_failed_error_message.format(group_id))
+        return
+
     table = await report_table(today_report)
     summary = await report_summary(today_report, ReportMode.TODAY)
 
@@ -362,7 +369,15 @@ async def last_report_command(message: types.Message, command: CommandObject, se
     else: flag = ReportMode.Flag.TEXT
 
     group_id = message.chat.id if not set_journal_group_id else set_journal_group_id
-    last_report = await get_on_mode_report(group_id, ReportMode.LAST)
+
+    try:
+        last_report = await get_on_mode_report(group_id, ReportMode.LAST)
+
+    except Exception:
+        await message.answer(invalid_parameters_report_error_message)
+        logging.error(get_report_failed_error_message.format(group_id))
+        return
+
     table = await report_table(last_report)
     summary = await report_summary(last_report, ReportMode.LAST)
 
@@ -422,8 +437,8 @@ async def on_date_report_command(message: types.Message, command: CommandObject,
         on_date_report = await get_on_mode_report(group_id, ReportMode.ON_DATE, date)
 
     except: #TODO: write a decorator-validator instead
-        await message.answer(on_invalid_date_report_error_message)
-        logging.error(get_report_failed_error_message.format(date))
+        await message.answer(invalid_parameters_report_error_message)
+        logging.error(get_report_failed_error_message.format(group_id))
         return
 
     table = await report_table(on_date_report)
