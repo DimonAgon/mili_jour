@@ -151,11 +151,15 @@ absence_reason_fail_text = "Помилка, причину не записано
 #info
 statuses_amended_for_group_info_message = "statuses amended for group {}"
 
-lesson_poll_sent_to_group_info_message = "lesson {} poll sent to {} mode: {}"
+lesson_poll_sent_to_group_info_message = "lesson {} poll sent to {}"
+
+lesson_poll_stopped_info_message = "lesson {} poll has been stopped at {}"
 
 data_entering_canceled = "data entering canceled at {}"
 
 poll_sent_info_message = "poll sent to {} mode: {}"
+
+poll_stopped_info_message = "poll has been stopped at {}"
 
 poll_answer_info_message = "poll answer {}:{} from {}"
 
@@ -178,6 +182,12 @@ journal_registration_form_initiated_info_message = "journal registration form in
 journal_created_info_message = "A journal created for group_id {}"
 
 report_requested_info_message = "report requested at {}, mode: {}, flag: {}"
+
+today_report_initiated_info_message = "today report initiated for group {}, mode: {}"
+
+today_entries_initiated_info_message = "today entries initiated for group {}"
+
+lesson_entries_initiated_info_message = "lesson {} entries initiated for group {}"
 
 #error
 #command
