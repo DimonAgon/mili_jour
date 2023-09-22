@@ -109,9 +109,11 @@ async def presence_command(message: types.Message, command: CommandObject):  # C
 
     if not mode == Presence.LIGHT_MODE:
         await initiate_today_report(today, group_id, unique_lessons, mode)
+        logging.info(today_report_initiated_info_message.format(group_id, mode))
         for lesson in unique_lessons:
 
             await initiate_today_entries(today, group_id, lesson, mode)
+            logging.info(lesson_entries_initiated_info_message.format(lesson, group_id))
 
             question = today_string + f" Заняття {str(lesson)}"
             poll_configuration.update({'question': question})
@@ -149,20 +151,24 @@ async def presence_command(message: types.Message, command: CommandObject):  # C
             await asyncio.sleep(till_poll.seconds)
             till_deadline = deadline - now #TODO: create an async scheduler
             poll_message = await message.answer_poll(**poll_configuration) #TODO: consider using poll configuration dict
-            logging.info(lesson_poll_sent_to_group_info_message.format(lesson, group_id, mode))
+            logging.info(lesson_poll_sent_to_group_info_message.format(lesson, group_id))
             await asyncio.sleep(till_deadline.seconds)  #TODO: schedule instead
             await bot.stop_poll(chat_id=poll_message.chat.id, message_id=poll_message.message_id)
+            logging.info(lesson_poll_stopped_info_message.format(lesson, group_id))
 
         await amend_statuses(today, group_id)
         logging.info(statuses_amended_for_group_info_message.format(group_id))
 
     else:
         await initiate_today_entries(today, group_id, mode=mode) #TODO: the better choice may be to call function on every study day
+        logging.info(today_entries_initiated_info_message.format(group_id))
         await initiate_today_report(today, group_id, unique_lessons, mode='L')
+        logging.info(today_report_initiated_info_message.format(group_id, mode))
         poll_message = await message.answer_poll(**poll_configuration)
-        logging.info(f"poll sent to {group_id} mode: {mode}")
+        logging.info(poll_sent_info_message.format(group_id))
         await asyncio.sleep(till_deadline.seconds) #TODO: schedule instead
         await bot.stop_poll(chat_id=poll_message.chat.id, message_id=poll_message.message_id)
+        logging.info(poll_stopped_info_message.format(group_id))
 
 
 @commands_router.message(Command(commands='cancel'))
@@ -311,7 +317,14 @@ async def today_report_command(message: types.Message, command: CommandObject, s
     else: flag = ReportMode.Flag.TEXT
 
     group_id = message.chat.id if not set_journal_group_id else set_journal_group_id
-    today_report = await get_report(group_id, ReportMode.TODAY)
+    try:
+        today_report = await get_on_mode_report(group_id, ReportMode.TODAY)
+
+    except Exception:
+        await message.answer(invalid_parameters_report_error_message)
+        logging.error(get_report_failed_error_message.format(group_id))
+        return
+
     table = await report_table(today_report)
     summary = await report_summary(today_report, ReportMode.TODAY)
 
@@ -362,7 +375,15 @@ async def last_report_command(message: types.Message, command: CommandObject, se
     else: flag = ReportMode.Flag.TEXT
 
     group_id = message.chat.id if not set_journal_group_id else set_journal_group_id
-    last_report = await get_report(group_id, ReportMode.LAST)
+
+    try:
+        last_report = await get_on_mode_report(group_id, ReportMode.LAST)
+
+    except Exception:
+        await message.answer(invalid_parameters_report_error_message)
+        logging.error(get_report_failed_error_message.format(group_id))
+        return
+
     table = await report_table(last_report)
     summary = await report_summary(last_report, ReportMode.LAST)
 
@@ -419,11 +440,11 @@ async def on_date_report_command(message: types.Message, command: CommandObject,
     group_id = message.chat.id if not set_journal_group_id else set_journal_group_id
 
     try:
-        on_date_report = await get_report(group_id, ReportMode.ON_DATE, date)
+        on_date_report = await get_on_mode_report(group_id, ReportMode.ON_DATE, date)
 
     except: #TODO: write a decorator-validator instead
-        await message.answer(on_invalid_date_report_error_message)
-        logging.error(get_report_failed_error_message.format(date))
+        await message.answer(invalid_parameters_report_error_message)
+        logging.error(get_report_failed_error_message.format(group_id))
         return
 
     table = await report_table(on_date_report)
@@ -489,7 +510,7 @@ async def set_journal_command(message: types.Message, state: FSMContext):
     await message.answer(enter_journal_name_message)
 
 
-@commands_router.message(UserInformStatesGroup.receiver_id, F.chat.type.in_({'private'}))
+@commands_router.message(UserInformStatesGroup.receiver_id, NoCommandFilter(), F.chat.type.in_({'private'}))
 async def user_inform_handler(message: types.Message, state: FSMContext):
     user_id = message.from_user.id
     interlocutor_id = await state.get_data()
@@ -536,7 +557,7 @@ async def inform_all_journal_users(journal, message_text):
     await bot.send_message(journal.external_id, message_text)
 
 
-@commands_router.message(NoCommandFilter(), GroupInformStatesGroup.receiver_id)
+@commands_router.message(GroupInformStatesGroup.receiver_id, NoCommandFilter(), F.chat.type.in_({'private'}))
 async def group_inform_handler(message: types.Message, state: FSMContext):
     journal_external_id = await state.get_data()
     journal = await get_journal_by_external_id_async(journal_external_id['receiver_id'])
