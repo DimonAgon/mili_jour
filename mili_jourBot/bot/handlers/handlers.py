@@ -189,7 +189,7 @@ async def presence_command(message: types.Message, command: CommandObject):  # C
             poll_message = await message.answer_poll(**poll_configuration) #TODO: consider using poll configuration dict
             logging.info(lesson_poll_sent_to_group_info_message.format(lesson, group_id))
             await asyncio.sleep(till_deadline.seconds)  #TODO: schedule instead
-            await bot.stop_poll(chat_id=poll_message.chat.id, message_id=poll_message.message_id)
+            await bot.stop_poll(chat_id=poll_message.chat.id, message_id=poll_message.poll.id)
             logging.info(lesson_poll_stopped_info_message.format(lesson, group_id))
 
         await amend_statuses(today, group_id)
@@ -204,7 +204,7 @@ async def presence_command(message: types.Message, command: CommandObject):  # C
         logging.info(poll_sent_info_message.format(group_id, mode))
         till_deadline = deadline - now
         await asyncio.sleep(till_deadline.seconds) #TODO: schedule instead
-        await bot.stop_poll(chat_id=poll_message.chat.id, message_id=poll_message.message_id)
+        await bot.stop_poll(chat_id=poll_message.chat.id, message_id=poll_message.poll.id)
         logging.info(poll_stopped_info_message.format(group_id))
 
     return
