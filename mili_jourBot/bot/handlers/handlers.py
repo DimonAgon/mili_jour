@@ -120,7 +120,7 @@ async def presence_command(message: types.Message, command: CommandObject):  # C
             poll_configuration.update({'question': question})
 
             lesson_time_interval = Schedule.lessons_intervals[lesson]
-            if lesson_time_interval.contains(now_time): start_time = start_time = (now + datetime.timedelta(seconds=1)).time()
+            if lesson_time_interval.contains(now_time): start_time = (now + datetime.timedelta(seconds=1)).time()
             elif now_time < lesson_time_interval.lower:  start_time = lesson_time_interval.lower
             else:
                 await message.answer(lesson_skipped_text.format(lesson))
