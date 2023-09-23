@@ -110,7 +110,7 @@ def process_user_on_lesson_presence(is_present, user_id):
 
     lesson = Schedule.lesson_match(now_time)
     if not lesson:
-        after_recess_time = now_time + Schedule.recess
+        after_recess_time = (now + Schedule.recess).time()
         lesson = Schedule.lesson_match(after_recess_time) #If user voted during recess
 
     if lesson:
