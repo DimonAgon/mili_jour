@@ -3,6 +3,7 @@ from typing import Type
 
 from ..infrastructure.enums import PresencePollOptions
 
+#handlers
 #message
 #command
 #start
@@ -72,6 +73,10 @@ call_canceling_message = "Прийняття повідомлень заверш
 group_inform_canceling_message = "Оповіщення скасовано"
 
 no_state_message = "Стан не встановлено, або було скасовано"
+
+#poll
+
+absence_reason_input_suggested_logging_info_message = "absence reason input suggested for user {}"
 
 #states
 inform_message = "Повідомлення від викладача:"

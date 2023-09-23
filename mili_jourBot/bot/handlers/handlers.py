@@ -222,6 +222,7 @@ async def presence_handler (poll_answer: types.poll_answer, state: FSMContext): 
     if not is_present:
         await bot.send_message(user_id, absence_reason_share_suggestion_text)
         await state.set_state(AbsenceReasonStates.AbsenceReason)
+        logging.info(absence_reason_input_suggested_logging_info_message.format(user_id))
 
 
 @commands_router.message(Command(commands=['absence_reason', 'ar'], prefix=prefixes), F.chat.type.in_({'private'}))
