@@ -148,9 +148,9 @@ async def presence_command(message: types.Message, command: CommandObject):  # C
 
             else: poll_time = now.replace(hour=start_time.hour, minute=start_time.minute, second=start_time.second)
 
-            till_poll = poll_time - now
+            till_poll = poll_time - datetime.datetime.now()
             await asyncio.sleep(till_poll.seconds)
-            till_deadline = deadline - now #TODO: create an async scheduler
+            till_deadline = deadline - datetime.datetime.now() #TODO: create an async scheduler
             poll_message = await message.answer_poll(**poll_configuration) #TODO: consider using poll configuration dict
             logging.info(lesson_poll_sent_to_group_info_message.format(lesson, group_id))
             await asyncio.sleep(till_deadline.seconds)  #TODO: schedule instead
