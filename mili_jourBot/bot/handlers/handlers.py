@@ -194,7 +194,7 @@ async def cancel_command(message: types.Message, state: FSMContext):
 
     chat_id = message.chat.id
     await state.clear()
-    logging.info(data_entering_canceled.format(chat_id))
+    logging.info(data_entering_canceled_message.format(chat_id))
     await message.reply(text=callback_message)
 
 
