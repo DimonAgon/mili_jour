@@ -75,11 +75,13 @@ no_state_message = "Стан не встановлено, або було ска
 
 #states
 inform_message = "Повідомлення від викладача:"
+
 group_inform_message = "Об'ява:"
+
+is_not_now_speaking_error_message = "*дочекатись відповіді співрозмовника"
 
 #filters
 #RegisteredExternalIdFilter
-is_not_now_speaking_error_message = "*дочекатись відповіді співрозмовника"
 
 on_id_model_object_exists_error_message_to_user = "Помилка, вас вже було зареєстровано"
 
@@ -174,7 +176,7 @@ lesson_poll_sent_to_group_info_message = "lesson {} poll sent to {}"
 
 lesson_poll_stopped_info_message = "lesson {} poll has been stopped at {}"
 
-data_entering_canceled = "data entering canceled at {}"
+data_entering_canceled_message = "data entering canceled at {}"
 
 poll_sent_info_message = "poll sent to {} mode: {}"
 
