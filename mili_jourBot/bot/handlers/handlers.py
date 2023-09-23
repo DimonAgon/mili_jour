@@ -54,6 +54,55 @@ async def help_command(message: types.Message):
     await message.reply(HELPFUL_REPLY)
 
 
+class LessonSkippedException(Exception):
+    pass
+
+def poll_time_interval(mode, lesson=None, last_lesson=None):
+    now = datetime.datetime.now()
+    if mode == Presence.LIGHT_MODE:
+        last_lesson_time = Schedule.lessons_intervals[last_lesson]
+        if last_lesson_time.lower < now.time():
+            raise LessonSkippedException
+
+        deadline_time = last_lesson_time.upper
+        deadline = now.replace(hour=deadline_time.hour, minute=deadline_time.minute, second=deadline_time.second)
+
+    if not mode == Presence.LIGHT_MODE:
+        now_time = datetime.datetime.now().time()
+
+        lesson_time_interval = Schedule.lessons_intervals[lesson]
+        if lesson_time_interval.contains(now_time): start_time = (now + datetime.timedelta(seconds=1)).time()
+        elif now_time < lesson_time_interval.lower:  start_time = lesson_time_interval.lower
+        else:
+            raise LessonSkippedException
+
+        end_time = lesson_time_interval.upper
+        deadline = now.replace(hour=end_time.hour, minute=end_time.minute, second=end_time.second)
+
+
+        if mode == Presence.HARDCORE_MODE:
+            lower = start_time
+            upper = end_time
+            lower_today = now.replace(hour=lower.hour, minute=lower.minute, second=lower.second)
+            upper_today = now.replace(hour=upper.hour, minute=upper.minute, second=lower.second)
+            lower_today_timestamp = lower_today.timestamp()
+            upper_today_timestamp = upper_today.timestamp()
+            lower_today_timestamp_integer = int(lower_today_timestamp)
+            upper_today_timestamp_integer = int(upper_today_timestamp)
+            random_datetime_timestamp_integer = random.randint(lower_today_timestamp_integer,
+                                                               upper_today_timestamp_integer)
+            random_lesson_datetime = datetime.datetime.fromtimestamp(random_datetime_timestamp_integer)
+
+            poll_time = now.replace(hour=random_lesson_datetime.hour, minute=random_lesson_datetime.minute, second=random_lesson_datetime.second)
+
+        else: poll_time = now.replace(hour=start_time.hour, minute=start_time.minute, second=start_time.second)
+
+        return P.openclosed(poll_time, deadline)
+
+    return P.openclosed(now, deadline)
+
+
+
 @commands_router.message(Command(commands=['presence', 'p'], prefix=prefixes),
                          F.chat.type.in_({'group', 'supergroup'}),
                          IsAdminFilter(),
@@ -65,7 +114,7 @@ async def help_command(message: types.Message):
 async def presence_command(message: types.Message, command: CommandObject):  # Checks who is present
     arguments = command.args.split()
 
-    try:
+    try:# TODO: create and use a middleware instead
         mode, *lessons_string_list = arguments
         validate_is_mode(mode, Presence)
 
@@ -100,53 +149,39 @@ async def presence_command(message: types.Message, command: CommandObject):  # C
 
     if mode == Presence.LIGHT_MODE:
         last_lesson = unique_lessons[-1]
-        last_lesson_time = Schedule.lessons_intervals[last_lesson]
-        deadline_time = last_lesson_time.upper
-        deadline = now.replace(hour=deadline_time.hour, minute=deadline_time.minute, second=deadline_time.second)
-        till_deadline = deadline - now
+        try:
+            poll__time_interval = poll_time_interval(mode, last_lesson=last_lesson)
+
+        except LessonSkippedException:
+            await message.answer(lesson_skipped_text.format(last_lesson))
+            logging.info(lesson_skipped_logging_error_message.format(last_lesson))
+            return
+
+        deadline = poll__time_interval.upper
         question = today_string + " Присутність"
         poll_configuration.update({'question': question})
 
     if not mode == Presence.LIGHT_MODE:
         await initiate_today_report(today, group_id, unique_lessons, mode)
         logging.info(today_report_initiated_info_message.format(group_id, mode))
-        for lesson in unique_lessons:
-            now_time = datetime.datetime.now().time()
 
+        for lesson in unique_lessons:
             await initiate_today_entries(today, group_id, lesson, mode)
             logging.info(lesson_entries_initiated_info_message.format(lesson, group_id))
 
-            question = today_string + f" Заняття {str(lesson)}"
-            poll_configuration.update({'question': question})
+            try:
+                poll__time_interval = poll_time_interval(mode, lesson)
 
-            lesson_time_interval = Schedule.lessons_intervals[lesson]
-            if lesson_time_interval.contains(now_time): start_time = (now + datetime.timedelta(seconds=1)).time()
-            elif now_time < lesson_time_interval.lower:  start_time = lesson_time_interval.lower
-            else:
+            except LessonSkippedException:
                 await message.answer(lesson_skipped_text.format(lesson))
                 logging.info(lesson_skipped_logging_error_message.format(lesson))
                 continue
 
-            end_time = lesson_time_interval.upper
-            deadline = now.replace(hour=end_time.hour, minute=end_time.minute, second=end_time.second)
+            poll_time = poll__time_interval.lower
+            deadline = poll__time_interval.upper
 
-
-            if mode == Presence.HARDCORE_MODE:
-                lower = start_time
-                upper = end_time
-                lower_today = now.replace(hour=lower.hour, minute=lower.minute, second=lower.second)
-                upper_today = now.replace(hour=upper.hour, minute=upper.minute, second=lower.second)
-                lower_today_timestamp = lower_today.timestamp()
-                upper_today_timestamp = upper_today.timestamp()
-                lower_today_timestamp_integer = int(lower_today_timestamp)
-                upper_today_timestamp_integer = int(upper_today_timestamp)
-                random_datetime_timestamp_integer = random.randint(lower_today_timestamp_integer,
-                                                                   upper_today_timestamp_integer)
-                random_lesson_datetime = datetime.datetime.fromtimestamp(random_datetime_timestamp_integer)
-
-                poll_time = now.replace(hour=random_lesson_datetime.hour, minute=random_lesson_datetime.minute, second=random_lesson_datetime.second)
-
-            else: poll_time = now.replace(hour=start_time.hour, minute=start_time.minute, second=start_time.second)
+            question = today_string + f" Заняття {str(lesson)}"
+            poll_configuration.update({'question': question})
 
             till_poll = poll_time - datetime.datetime.now()
             await asyncio.sleep(till_poll.seconds)
@@ -166,10 +201,13 @@ async def presence_command(message: types.Message, command: CommandObject):  # C
         await initiate_today_report(today, group_id, unique_lessons, mode='L')
         logging.info(today_report_initiated_info_message.format(group_id, mode))
         poll_message = await message.answer_poll(**poll_configuration)
-        logging.info(poll_sent_info_message.format(group_id))
+        logging.info(poll_sent_info_message.format(group_id, mode))
+        till_deadline = deadline - now
         await asyncio.sleep(till_deadline.seconds) #TODO: schedule instead
         await bot.stop_poll(chat_id=poll_message.chat.id, message_id=poll_message.message_id)
         logging.info(poll_stopped_info_message.format(group_id))
+
+    return
 
 
 @commands_router.message(Command(commands='cancel', prefix=prefixes))
