@@ -87,7 +87,6 @@ async def presence_command(message: types.Message, command: CommandObject):  # C
 
     now = datetime.datetime.now()
     today = now.date()
-    now_time = now.time()
     date_format = NativeDateFormat.date_format
     today_string = today.strftime(date_format)
 
@@ -112,6 +111,7 @@ async def presence_command(message: types.Message, command: CommandObject):  # C
         await initiate_today_report(today, group_id, unique_lessons, mode)
         logging.info(today_report_initiated_info_message.format(group_id, mode))
         for lesson in unique_lessons:
+            now_time = datetime.datetime.now().time()
 
             await initiate_today_entries(today, group_id, lesson, mode)
             logging.info(lesson_entries_initiated_info_message.format(lesson, group_id))
