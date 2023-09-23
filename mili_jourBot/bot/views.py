@@ -269,7 +269,7 @@ def all_entries_empty(entries):
 def filled_absence_cell_row(entry, absence_cell):
     status = entry.status
     last_name = regex.match(r'\p{Lu}\p{Ll}+', str(entry.profile)).group(0)
-    absence_cell.append(last_name if not status else last_name + "— " + status)
+    absence_cell.append(last_name if not status else f"{last_name}— {status}")
     return absence_cell
 
 def filled_absence_cell(entries, wp_mode, lesson):
