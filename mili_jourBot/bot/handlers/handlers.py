@@ -344,6 +344,7 @@ async def register_superuser_command(message: types.Message, state: FSMContext):
 
 @commands_router.message(Command(commands='register', prefix=prefixes),
                          F.chat.type.in_({'private'}),
+                         AftercommandFullCheck(allow_no_argument=True, modes=RegistrationMode, mode_checking=True),
                          RegisteredExternalIdFilter(Profile))
 async def register_command(message: types.Message, forms: FormsManager):
     user_id = message.from_user.id
@@ -357,6 +358,7 @@ async def register_command(message: types.Message, forms: FormsManager):
 @commands_router.message(Command(commands='register_journal', prefix=prefixes),
                          F.chat.type.in_({'group', 'supergroup'}),
                          IsAdminFilter(),
+                         AftercommandFullCheck(allow_no_argument=True, modes=RegistrationMode, mode_checking=True),
                          RegisteredExternalIdFilter(Journal, use_chat_id=True))
 async def register_journal_command(message: types.Message, forms: FormsManager):
     chat_id = message.chat.id

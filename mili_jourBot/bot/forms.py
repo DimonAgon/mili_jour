@@ -90,8 +90,8 @@ def validate_super_user_key(value: str, authentic_key, user_id):
 
 @dispatcher.register('profileform')
 class ProfileForm(Form):
-    journal = fields.TextField(journal_field_message, validators=[validate_journal_format, validate_journal_name_available])
-    name = fields.TextField(name_field_message, validators=[validate_name_format, validate_name_available]) # TODO: accent on order
+    journal = fields.TextField(journal_field_message, validators=[validate_journal_format, check_journal_exists])
+    name = fields.TextField(name_field_message, validators=[validate_name_format]) # TODO: accent on order
     ordinal = fields.TextField(ordinal_field_message, validators=[validate_ordinal_format])
 
     @classmethod
@@ -118,7 +118,7 @@ class ProfileForm(Form):
 
 @dispatcher.register('journalform')
 class JournalForm(Form):
-    name = fields.TextField(journal_field_message, validators=[validate_journal_format, validate_journal_name_available])
+    name = fields.TextField(journal_field_message, validators=[validate_journal_format])
     strength = fields.TextField(strength_field_message, validators=[validate_strength_format])
 
     @classmethod

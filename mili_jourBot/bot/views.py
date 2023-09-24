@@ -25,6 +25,9 @@ def add_profile(data, user_id):
     initial = data
     initial['external_id'], initial['journal'] = user_id, Journal.objects.get(name=data['journal'])
 
+    if Profile.objects.filter(external_id=user_id).exists():
+        Profile.objects.get(external_id=user_id).delete()
+
     new_profile = Profile.objects.create(**initial)
     new_profile.save()
     Profile.objects.get(external_id=user_id)
@@ -34,6 +37,9 @@ def add_profile(data, user_id):
 def add_journal(data, group_id):
     initial = data
     initial['external_id'] = group_id
+
+    if Journal.objects.filter(external_id=group_id).exists():
+        Journal.objects.get(external_id=group_id).delete()
 
     new_journal = Journal.objects.create(**initial)
     new_journal.save()

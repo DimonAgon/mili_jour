@@ -30,6 +30,10 @@ class ReportMode(Enum):
         TEXT = 'text'
 
 
+class RegistrationMode(Enum):
+    REREGISTER = 're'
+
+
 class Schedule: #Do not try to deceive the poll
     first_lesson_interval = P.openclosed(datetime.time(8, 10, 0), datetime.time(10, 0, 0))
     second_lesson_interval = P.openclosed(datetime.time(10, 20, 0), datetime.time(11, 55, 0))

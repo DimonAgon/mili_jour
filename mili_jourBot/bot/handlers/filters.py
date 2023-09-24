@@ -26,7 +26,7 @@ class RegisteredExternalIdFilter(BaseFilter):
         self.model = model
         self.use_chat_id = use_chat_id
 
-    async def __call__(self, message: types.Message) -> bool:
+    async def __call__(self, message: types.Message, command: CommandObject) -> bool:
         @database_sync_to_async
         def on_id_object_exists():
             if self.use_chat_id:
@@ -35,7 +35,7 @@ class RegisteredExternalIdFilter(BaseFilter):
                 id_ = message.from_user.id
             return self.model.objects.filter(external_id=id_).exists()
 
-        if await on_id_object_exists():
+        if await on_id_object_exists() and (mode:=command.args) != RegistrationMode.REREGISTER.value:
             if self.use_chat_id:
                 await message.answer(on_id_model_object_exists_error_message_to_group)
                 logging.error(on_id_model_object_exists_logging_error_message_to_group.format(message.chat.id))
