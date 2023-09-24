@@ -29,7 +29,8 @@ HELPFUL_REPLY = f"Для роботи необхідно виконати реє
                     "\n/call- викликати студента за ім'ям," \
                     "\nщоб переслати йому повідомлення" \
                     "\n/groupcall– викликати взвод за номером," \
-                    "\nщоб зробити об'яву"
+                    "\nщоб зробити об'яву " \
+                    "\n/leave_chat_delete_journal– видалити журнал, покинути групу"
 
 #registration
 #profile
@@ -73,6 +74,15 @@ call_canceling_message = "Прийняття повідомлень заверш
 group_inform_canceling_message = "Оповіщення скасовано"
 
 no_state_message = "Стан не встановлено, або було скасовано"
+
+#leave_chat_delete_journal
+user_requested_bot_leave_chat_delete_journal_logging_info_message = "user {} requested bot to leave chat and delete journal at {}"
+
+journal_deleted_logging_info_message = "journal of group {} deleted"
+
+journal_deleted_text = "Ваш журнал видалено"
+
+group_leaved_logging_info_message = "bot has leaved chat group {}"
 
 #poll
 

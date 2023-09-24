@@ -670,9 +670,26 @@ async def group_call_command(message: types.Message, state: FSMContext):
     await state.set_state(GroupInformStatesGroup.call)
     await message.answer(enter_journal_name_message)
 
+
+@commands_router.message(Command(commands=['leave_chat_delete_journal']),
+                        F.chat.type.in_({'group', 'supergroup'}),
+                        IsAdminFilter())
+async def leave_chat_delete_journal_command(message: types.Message):
+    group_id = message.chat.id
+
+    logging.info(user_requested_bot_leave_chat_delete_journal_logging_info_message.format(message.from_user.id, group_id))
+
+    @database_sync_to_async
+    def delete_journal_got_by_external_id():
+        Journal.objects.get(external_id=group_id).delete()
+
+    await delete_journal_got_by_external_id()
+    logging.info(journal_deleted_logging_info_message.format(group_id))
+    await message.answer(journal_deleted_text)
+    await bot.leave_chat(group_id)
+    logging.info(group_leaved_logging_info_message.format(group_id))
+
 #TODO: reports should be able in both group and private chat
 
-
-#TODO: create a chat leave command, should delete any info of-group info
 #TODO: create a new_schedule_command
 
