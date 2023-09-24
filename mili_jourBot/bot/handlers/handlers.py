@@ -12,7 +12,7 @@ from aiogram.filters.state import State, StatesGroup
 from aiogram_forms import FormsManager
 from aiogram_forms.errors import ValidationError
 
-from .dispatcher import dp, commands_router, reports_router, bot
+from .dispatcher import dp, commands_router, reports_router, presence_poll_router, bot
 from ..models import *
 from ..forms import *
 from ..views import *
@@ -264,7 +264,7 @@ async def absence_reason_handler_H(message: types.Message, state: FSMContext):
 async def absence_reason_handler_invalid(message: types.Message, state: FSMContext):
     await message.answer(absence_reason_share_suggestion_text)
 
-@commands_router.poll_answer(PresencePollFilter()) #TODO: add a flag for vote-answer mode, add an every-lesson mode
+@commands_router.poll_answer(PresencePollFilter(), NoCommandFilter(), F.chat.type.in_({'private'})) #TODO: add a flag for vote-answer mode, add an every-lesson mode
 async def presence_poll_answer_handler (poll_answer: types.poll_answer, state: FSMContext):  #TODO: add an ability to re-answer
     is_present = poll_answer.option_ids == [PresencePollOptions.Present.value]
     user_id = poll_answer.user.id

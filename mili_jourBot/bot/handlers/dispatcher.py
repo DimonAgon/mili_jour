@@ -25,7 +25,8 @@ bot = Bot(token=TOKEN)
 dp = Dispatcher()#storage=storage)
 commands_router = Router()
 reports_router = Router()
-dp.include_routers(commands_router, reports_router)
+presence_poll_router = Router()
+dp.include_routers(commands_router, reports_router, presence_poll_router)
 forms_distpatcher.attach(dp)
 
 
