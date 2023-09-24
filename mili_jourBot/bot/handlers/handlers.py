@@ -194,7 +194,7 @@ async def presence_command(message: types.Message, command: CommandObject):  # C
             poll_id = poll_message.poll.id
             await add_presence_poll(poll_id)
             logging.info(presence_poll_added_info_message.format(poll_id))
-            logging.info(on_lesson_presence_poll_expected_to_stop_info_message.format(group_id, lesson, till_poll_seconds))
+            logging.info(on_lesson_presence_poll_expected_to_stop_info_message.format(group_id, lesson, till_deadline_seconds))
             await asyncio.sleep(till_deadline_seconds)  #TODO: schedule instead
             await bot.stop_poll(chat_id=poll_message.chat.id, message_id=poll_message.message_id)
             logging.info(lesson_poll_stopped_info_message.format(lesson, group_id))
