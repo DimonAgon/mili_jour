@@ -251,19 +251,25 @@ async def cancel_command(message: types.Message, state: FSMContext):
     await message.reply(text=callback_message)
 
 
-@commands_router.message(AbsenceReasonStates.AbsenceReason, F.text.regexp(r'Т'), F.chat.type.in_({'private'}))
+@commands_router.message(AbsenceReasonStates.AbsenceReason, F.text.regexp(r'Т'),
+                         NoCommandFilter(),
+                         F.chat.type.in_({'private'}))
 async def absence_reason_handler_T(message: types.Message, forms: FormsManager):
     await forms.show('absenceform')
 
-@commands_router.message(AbsenceReasonStates.AbsenceReason, F.text.regexp(r'Н'), F.chat.type.in_({'private'}))
+@commands_router.message(AbsenceReasonStates.AbsenceReason,
+                         NoCommandFilter(),
+                         F.text.regexp(r'Н'), F.chat.type.in_({'private'}))
 async def absence_reason_handler_H(message: types.Message, state: FSMContext):
     await state.clear()
 
-@commands_router.message(AbsenceReasonStates.AbsenceReason, F.text.regexp(r'[^ТН]'), F.chat.type.in_({'private'}))
+@commands_router.message(AbsenceReasonStates.AbsenceReason, F.text.regexp(r'[^ТН]'),
+                         NoCommandFilter(),
+                         F.chat.type.in_({'private'}))
 async def absence_reason_handler_invalid(message: types.Message, state: FSMContext):
     await message.answer(absence_reason_share_suggestion_text)
 
-@commands_router.poll_answer(PresencePollFilter()) #TODO: add a flag for vote-answer mode, add an every-lesson mode
+@commands_router.poll_answer(PresencePollFilter(), NoCommandFilter(), F.chat.type.in_({'private'})) #TODO: add a flag for vote-answer mode, add an every-lesson mode
 async def presence_handler (poll_answer: types.poll_answer, state: FSMContext):  #TODO: add an ability to re-answer
     is_present = poll_answer.option_ids == [PresencePollOptions.Present.value]
     user_id = poll_answer.user.id
@@ -540,7 +546,7 @@ async def on_date_report_command(message: types.Message, command: CommandObject,
             await message.answer_document(input_file, disable_notification=True)
 
 
-@commands_router.message(JournalStatesGroup.setting_journal)
+@commands_router.message(JournalStatesGroup.setting_journal, NoCommandFilter(), F.chat.type.in_({'private'}))
 async def set_journal_handler(message: types.Message, state: FSMContext):
     response = message.text
     try:
@@ -580,7 +586,7 @@ async def user_inform_handler(message: types.Message, state: FSMContext):
     await bot.send_message(interlocutor_id['Interlocutor_id'], message.text)
     await state.update_data(receiver_id=user_id)
 
-@commands_router.message(UserInformStatesGroup.call, F.chat.type.in_({'private'}))
+@commands_router.message(UserInformStatesGroup.call, NoCommandFilter(), F.chat.type.in_({'private'}))
 async def user_call_handler(message: types.Message, state: FSMContext):
     response = message.text
     user_id = message.from_user.id
@@ -629,7 +635,7 @@ async def group_inform_handler(message: types.Message, state: FSMContext):
     await inform_all_journal_users(journal, message.text)
     await state.clear()
 
-@commands_router.message(GroupInformStatesGroup.call, F.chat.type.in_({'private'}))
+@commands_router.message(GroupInformStatesGroup.call, NoCommandFilter(), F.chat.type.in_({'private'}))
 async def group_call_handler(message: types.Message, state: FSMContext):
     response = message.text
 
