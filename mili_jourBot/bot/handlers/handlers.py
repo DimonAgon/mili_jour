@@ -238,7 +238,7 @@ async def cancel_command(message: types.Message, state: FSMContext):
             callback_message = no_state_message
 
         else:
-            callback_message = registration_canceling_message
+            callback_message = data_input_canceling_message
 
     chat_id = message.chat.id
     await state.clear()

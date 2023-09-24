@@ -19,7 +19,7 @@ HELPFUL_REPLY = f"Для роботи необхідно виконати реє
                     "\n/help– інструкція до взаємодії із ботом" \
                     "\n/register– реєструвати профіль" \
                     "\n/register_journal– створити журнал відвідувань" \
-                    "\n/cancel– перервати ввід даних" \
+                    "\n/cancel– скасувати ввід даних" \
                     "\n/presence– створити опитування щодо присутності" \
                     "\n/absence_reason– вказати причину відсутності" \
                     "\n/today_report– викликати звіт за сьогоднішній день" \
@@ -63,7 +63,7 @@ enter_journal_name_message = "Ввести номер взводу"
 group_inform_text = "Взвод {} сповістити:"
 
 #cancel
-registration_canceling_message = "Реєстрацію було перервано"
+data_input_canceling_message = "Ввід даних скасовано"
 
 absence_reason_share_canceling_message = "Вказання причини відсутності перервано"
 
