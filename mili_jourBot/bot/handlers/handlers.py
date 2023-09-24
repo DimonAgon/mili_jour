@@ -59,7 +59,7 @@ class LessonSkippedException(Exception):
 
 def poll_time_interval(mode, lesson=None, last_lesson=None):
     now = datetime.datetime.now()
-    if mode == Presence.LIGHT_MODE:
+    if mode == PresenceMode.LIGHT_MODE:
         last_lesson_time = Schedule.lessons_intervals[last_lesson]
         if last_lesson_time.lower < now.time():
             raise LessonSkippedException
@@ -67,7 +67,7 @@ def poll_time_interval(mode, lesson=None, last_lesson=None):
         deadline_time = last_lesson_time.upper
         deadline = now.replace(hour=deadline_time.hour, minute=deadline_time.minute, second=deadline_time.second)
 
-    if not mode == Presence.LIGHT_MODE:
+    if not mode == PresenceMode.LIGHT_MODE:
         now_time = datetime.datetime.now().time()
 
         lesson_time_interval = Schedule.lessons_intervals[lesson]
@@ -80,7 +80,7 @@ def poll_time_interval(mode, lesson=None, last_lesson=None):
         deadline = now.replace(hour=end_time.hour, minute=end_time.minute, second=end_time.second)
 
 
-        if mode == Presence.HARDCORE_MODE:
+        if mode == PresenceMode.HARDCORE_MODE:
             lower = start_time
             upper = end_time
             lower_today = now.replace(hour=lower.hour, minute=lower.minute, second=lower.second)
@@ -107,7 +107,7 @@ def poll_time_interval(mode, lesson=None, last_lesson=None):
                          F.chat.type.in_({'group', 'supergroup'}),
                          IsAdminFilter(),
                          AftercommandFullCheck(allow_no_argument=False,
-                                      modes=Presence,
+                                      modes=PresenceMode,
                                       mode_checking=True,
                                       allow_no_mode= True,
                                       additional_arguments_checker=lessons_validator))
@@ -116,13 +116,13 @@ async def presence_command(message: types.Message, command: CommandObject):  # C
 
     try:# TODO: create and use a middleware instead
         mode, *lessons_string_list = arguments
-        validate_is_mode(mode, Presence)
+        validate_is_mode(mode, PresenceMode)
 
     except:
         lessons_string_list = arguments
         mode = default
 
-    if mode in (Presence.LIGHT_MODE, Presence.NORMAL_MODE, Presence.HARDCORE_MODE):
+    if mode in (PresenceMode.LIGHT_MODE, PresenceMode.NORMAL_MODE, PresenceMode.HARDCORE_MODE):
         lessons = [int(e) for e in lessons_string_list]
 
     else:
@@ -147,7 +147,7 @@ async def presence_command(message: types.Message, command: CommandObject):  # C
                            'allows_multiple_answers': False,
                            'protect_content': True}
 
-    if mode == Presence.LIGHT_MODE:
+    if mode == PresenceMode.LIGHT_MODE:
         last_lesson = unique_lessons[-1]
         try:
             poll__time_interval = poll_time_interval(mode, last_lesson=last_lesson)
@@ -161,7 +161,7 @@ async def presence_command(message: types.Message, command: CommandObject):  # C
         question = today_string + " Присутність"
         poll_configuration.update({'question': question})
 
-    if not mode == Presence.LIGHT_MODE:
+    if not mode == PresenceMode.LIGHT_MODE:
         await initiate_today_report(today, group_id, unique_lessons, mode)
         logging.info(today_report_initiated_info_message.format(group_id, mode))
 
