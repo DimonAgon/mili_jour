@@ -10,7 +10,7 @@ import portion as P
 
 
 
-class Presence(TextChoices):
+class PresenceMode(TextChoices):
     LIGHT_MODE = 'L', _('light')
     NORMAL_MODE = 'N', _('normal')
     HARDCORE_MODE = 'H', _('hardcore')
@@ -18,7 +18,7 @@ class Presence(TextChoices):
     ZOOM_MODE = 'zoom'
     #TODO: add an event mode
 
-default = Presence.NORMAL_MODE #TODO: use def default instead
+default = PresenceMode.NORMAL_MODE #TODO: use def default instead
 
 
 class ReportMode(Enum):
