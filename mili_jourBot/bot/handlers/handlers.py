@@ -270,7 +270,7 @@ async def absence_reason_handler_invalid(message: types.Message, state: FSMConte
     await message.answer(absence_reason_share_suggestion_text)
 
 @commands_router.poll_answer(PresencePollFilter(), NoCommandFilter(), F.chat.type.in_({'private'})) #TODO: add a flag for vote-answer mode, add an every-lesson mode
-async def presence_handler (poll_answer: types.poll_answer, state: FSMContext):  #TODO: add an ability to re-answer
+async def presence_poll_answer_handler (poll_answer: types.poll_answer, state: FSMContext):  #TODO: add an ability to re-answer
     is_present = poll_answer.option_ids == [PresencePollOptions.Present.value]
     user_id = poll_answer.user.id
 
