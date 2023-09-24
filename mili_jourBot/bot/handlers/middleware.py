@@ -59,7 +59,7 @@ class ApplyArguments(BaseMiddleware):
             try:
                 validate_is_mode(pseudo_mode, modes)
                 mode = pseudo_mode
-                data['mode': mode]
+                data['mode'] = mode
                 break
 
             except Exception: continue
