@@ -21,7 +21,7 @@ class Command(BaseCommand):
 
         debug_session_subprocess = await asyncio.create_subprocess_exec('python', 'bot/debug/debugger.py')
 
-    def handle(self, *args, **options):
+    def handle(self, *args, **options): #TODO: add a catch for keyboard interruption
 
         loop = asyncio.get_event_loop()
 

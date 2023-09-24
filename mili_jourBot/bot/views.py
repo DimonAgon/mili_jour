@@ -15,9 +15,14 @@ import regex #TODO: swap regex to re, where possible
 
 
 @database_sync_to_async
+def add_superuser(user_id):
+    new_superuser = Superuser.objects.create(external_id=user_id)
+    new_superuser.save()
+
+
+@database_sync_to_async
 def add_profile(data, user_id):
     initial = data
-    initial['ordinal'] = int(initial['ordinal'])
     initial['external_id'], initial['journal'] = user_id, Journal.objects.get(name=data['journal'])
 
     new_profile = Profile.objects.create(**initial)
@@ -42,35 +47,82 @@ def add_journal_entry(initial):
 
 
 @database_sync_to_async
-def initiate_today_entries(today, group_id, lesson=None, mode=default):
-    journal = Journal.objects.get(external_id=group_id)
+def get_journal_by_name_async(journal_name):
+    journal = Journal.objects.get(name=journal_name)
+    return journal
 
-    if mode == WhoSPresentMode.LIGHT_MODE:
-        if JournalEntry.objects.filter(journal=journal, date=today).exists(): return
+@database_sync_to_async
+def get_journal_by_external_id_async(journal_external_id):
+    journal = Journal.objects.get(external_id=journal_external_id)
+    return journal
 
-    else:
-        if JournalEntry.objects.filter(journal=journal, date=today, lesson=lesson).exists(): return
-
-    profiles = Profile.objects.filter(journal=journal)
-    ordered_profiles = profiles.order_by('ordinal')
-
-    for p in ordered_profiles: add_journal_entry({'journal': journal, 'profile': p, 'date': today, 'lesson': lesson})
-
+@database_sync_to_async
+def get_all_journal_profiles(journal):
+    return Profile.objects.filter(journal=journal)
 
 
 @database_sync_to_async
-def presence_view(is_present, user_id):
+def initiate_today_entries(today, group_id, lesson=None, mode=default):
+    journal = Journal.objects.get(external_id=group_id)
+    try: report_parameters = ReportParameters.objects.get(journal=journal, date=today)
+    except Exception: pass
+    profiles = Profile.objects.filter(journal=journal)
+
+    try:
+        report_parameters
+
+        if mode == Presence.LIGHT_MODE:
+            if (old_mode:= report_parameters.mode) != mode:
+                if JournalEntry.objects.filter(journal=journal, date=today).exists():
+                    earliest_lesson_entries = \
+                        set(JournalEntry.objects.filter(journal=journal, date=today, profile=profile, is_present=True).order_by('lesson').first()
+                         for profile in profiles)
+
+                    to_delete_entries =\
+                        set(JournalEntry.objects.filter(journal=journal, date=today)) - set(earliest_lesson_entries)
+                    for entry in to_delete_entries: entry.delete()
+
+                    no_entry_profiles = set(profiles) - set(e.profile for e in earliest_lesson_entries)
+
+            elif JournalEntry.objects.filter(journal=journal, date=today).exists(): return
+
+        else:
+            existing_lesson_entries_profiles = None
+            if JournalEntry.objects.filter(journal=journal, date=today, lesson=lesson).exists():
+                existing_lesson_entries = JournalEntry.objects.filter(journal=journal, date=today, lesson=lesson)
+                if existing_lesson_entries.count() == int(journal.strength): return
+
+                else:
+                    existing_lesson_entries_profiles = {e.profile for e in existing_lesson_entries}
+
+            no_entry_profiles = profiles if not existing_lesson_entries_profiles else set(profiles) - existing_lesson_entries_profiles
+
+        for p in no_entry_profiles: add_journal_entry({'journal': journal, 'profile': p, 'date': today, 'lesson': lesson})
+    except Exception:
+        for p in profiles: add_journal_entry({'journal': journal, 'profile': p, 'date': today, 'lesson': lesson})
+
+
+@database_sync_to_async
+def process_user_on_lesson_presence(is_present, user_id):
     now = datetime.datetime.now() #TODO: use time for schedule control, use date for entry's date
     now_time = now.time()
     now_date = now.date()
 
     lesson = Schedule.lesson_match(now_time)
+    if not lesson:
+        after_recess_time = (now + Schedule.recess).time()
+        lesson = Schedule.lesson_match(after_recess_time) #If user voted during recess
 
     if lesson:
         profile = Profile.objects.get(external_id=user_id)
         journal = profile.journal
+        report = ReportParameters.objects.get(date=now_date, journal=journal)
+        mode = report.mode
+        if not mode == Presence.LIGHT_MODE:
+            corresponding_entry = JournalEntry.objects.get(journal=journal, profile=profile, date=now_date, lesson=lesson)
+        else:
+            corresponding_entry = JournalEntry.objects.get(journal=journal, profile=profile, date=now_date)
 
-        corresponding_entry = JournalEntry.objects.get(journal=journal, profile=profile, date=now_date, lesson=lesson)
         corresponding_entry.lesson = lesson
 
     if is_present:
@@ -81,16 +133,6 @@ def presence_view(is_present, user_id):
         corresponding_entry.is_present = False
         corresponding_entry.save()
 
-@database_sync_to_async
-def get_today_status(user_id):
-    profile = Profile.objects.get(external_id=user_id)
-    today = datetime.datetime.today()
-    profile_entries = JournalEntry.objects.filter(profile=profile, date=today)
-    for entry in profile_entries:
-        status = entry.status
-        if status:
-            return status
-
 
 @database_sync_to_async
 def amend_statuses(date, group_id):
@@ -99,10 +141,11 @@ def amend_statuses(date, group_id):
 
     for profile in journal_profiles:
         on_date_profile_entries = JournalEntry.objects.filter(date=date, profile=profile)
+        ordered_on_date_profile_entries = on_date_profile_entries.order_by('-lesson')
 
         most_relevant_status = None
 
-        for entry in on_date_profile_entries:
+        for entry in ordered_on_date_profile_entries:
             entry_status = entry.status
             if entry_status: most_relevant_status = entry_status
             else:
@@ -122,7 +165,7 @@ def on_lesson_presence_check(user_id):
 
 
 @database_sync_to_async
-def set_status(data, user_id, lesson=None, mode=default): #TODO: if today status: status = today status. return
+def set_status(data, user_id, lesson=None): #TODO: if today status: status = today status. return
     profile = Profile.objects.get(external_id=user_id)
     journal = profile.journal
     now = datetime.datetime.now()
@@ -130,9 +173,14 @@ def set_status(data, user_id, lesson=None, mode=default): #TODO: if today status
     now_time = now.time()
     status = data['status']
     current_lesson = Schedule.lesson_match(now_time)
-    if JournalEntry.objects.filter(journal=journal, profile=profile, date=today, lesson=current_lesson).exists(): #TODO: use mode instead!
+    report_parameters = ReportParameters.objects.get(journal=journal, date=today)
+    mode = report_parameters.mode
+    if mode == Presence.LIGHT_MODE:
+        entry = JournalEntry.objects.get(journal=journal, profile=profile, date=today)
+
+    else:
         lesson = current_lesson
-    entry = JournalEntry.objects.get(journal=journal, profile=profile, date=today, lesson=lesson)
+        entry = JournalEntry.objects.get(journal=journal, profile=profile, date=today, lesson=lesson)
     entry.status = status
     entry.save()
 
@@ -141,11 +189,25 @@ def set_status(data, user_id, lesson=None, mode=default): #TODO: if today status
 def initiate_today_report(today, group_id, lessons, mode=default):
     journal = Journal.objects.get(external_id=group_id)
 
-    if not ReportParameters.objects.filter(date=today, journal=journal, lessons=lessons).exists():
+    if not ReportParameters.objects.filter(date=today, journal=journal, lessons=lessons, mode=mode).exists():
+
         if ReportParameters.objects.filter(date=today, journal=journal).exists():
-            corresponding_report = ReportParameters.objects.get(date=today, journal=journal)
-            corresponding_report.lessons = lessons
-            corresponding_report.save()
+            if ReportParameters.objects.filter(date=today, journal=journal, mode=mode).exists():
+                corresponding_report = ReportParameters.objects.get(date=today, journal=journal)
+                corresponding_report.lessons = lessons
+                corresponding_report.save()
+
+            if ReportParameters.objects.filter(date=today, journal=journal, lessons=lessons).exists():
+                corresponding_report = ReportParameters.objects.get(date=today, journal=journal)
+                corresponding_report.mode = mode
+                corresponding_report.save()
+
+            else:
+                corresponding_report = ReportParameters.objects.get(date=today, journal=journal)
+                corresponding_report.lessons = lessons
+                corresponding_report = ReportParameters.objects.get(date=today, journal=journal)
+                corresponding_report.mode = mode
+                corresponding_report.save()
 
         else:
             journal = Journal.objects.get(external_id=group_id)
@@ -164,7 +226,7 @@ def report_table(report) -> Type[prettytable.PrettyTable]:
     table = prettytable.PrettyTable(headers)
     table.border = False
 
-    if wp_mode == WhoSPresentMode.LIGHT_MODE:
+    if wp_mode == Presence.LIGHT_MODE:
         for entry in entries:
             profile = entry.profile
 
@@ -213,7 +275,7 @@ def filled_absence_cell_row(entry, absence_cell):
 def filled_absence_cell(entries, wp_mode, lesson):
     absence_cell = []
 
-    if wp_mode == WhoSPresentMode.LIGHT_MODE:
+    if wp_mode == Presence.LIGHT_MODE:
         for entry in entries:
             entry_lesson = entry.lesson
             if not entry_lesson or entry_lesson > lesson:
@@ -228,7 +290,7 @@ def filled_absence_cell(entries, wp_mode, lesson):
 
 def summary_row(wp_mode, report_mode, lesson, entries, journal_strength, report_date=None, today=None, now_time=None):
 
-    if wp_mode == WhoSPresentMode.LIGHT_MODE:
+    if wp_mode == Presence.LIGHT_MODE:
 
         absence_cell = filled_absence_cell(entries, wp_mode, lesson)
 
@@ -287,7 +349,7 @@ def report_summary(report, report_mode) -> Type[prettytable.PrettyTable]:
     headers = ["Зан.", "Сп.", "Пр.", "Відсутні"]
     summary = prettytable.PrettyTable(headers)
 
-    if wp_mode == WhoSPresentMode.LIGHT_MODE:
+    if wp_mode == Presence.LIGHT_MODE:
         for lesson in lessons:
             lesson_row = summary_row(wp_mode, report_mode, lesson, entries, journal_strength)
             summary.add_row(lesson_row)
@@ -306,7 +368,7 @@ def report_summary(report, report_mode) -> Type[prettytable.PrettyTable]:
 
 
 @database_sync_to_async
-def get_report(group_id, mode, specified_date: datetime=None) -> Type[ReportParameters]:
+def get_on_mode_report(group_id, mode, specified_date: datetime=None) -> Type[ReportParameters]:
     journal = Journal.objects.get(external_id=group_id)
 
     match mode:
@@ -322,3 +384,13 @@ def get_report(group_id, mode, specified_date: datetime=None) -> Type[ReportPara
             corresponding_report = ReportParameters.objects.get(date=specified_date, journal=journal)
 
     return corresponding_report
+
+
+@database_sync_to_async
+def add_presence_poll(poll_id):
+    PresencePoll.objects.create(external_id=poll_id)
+
+@database_sync_to_async
+def delete_presence_poll(poll_id):
+    poll = PresencePoll.objects.get(external_id=poll_id)
+    poll.delete()

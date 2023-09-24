@@ -3,6 +3,7 @@ from aiogram import types
 
 from aiogram_forms import Form, fields, dispatcher, FormsManager
 from aiogram_forms.errors import ValidationError
+from aiogram.filters.state import State, StatesGroup
 
 from channels.db import database_sync_to_async
 
@@ -10,8 +11,12 @@ import regex, re #TODO: adapt validators to re, where possible
 
 from .views import *
 from .models import *
+from .handlers.static_text import *
 
 import logging
+from django.core.exceptions import ValidationError as DjangoCoreValidationError
+
+from key_generator.key_generator import generate
 
 
 #TODO: add an ordinal filter
@@ -22,7 +27,7 @@ def validate_name_format(value: str):
 
     if not regex.fullmatch(pattern=name_rePattern, string=value):
 
-        raise ValidationError("Ввести ім'я коректно", code='regex_match')
+        raise ValidationError(name_format_validation_error_message, code='regex_match')
 
 
 @database_sync_to_async
@@ -30,7 +35,7 @@ def validate_name_available(value: str):
 
     if Profile.objects.filter(name=value).exists():
 
-        raise ValidationError("Профіль вже зареєстровано", code='name_in_db')
+        raise ValidationError(name_availability_validation_error_message, code='name_in_db')
 
 
 def validate_journal_format(value: str):
@@ -39,7 +44,7 @@ def validate_journal_format(value: str):
 
     if not regex.fullmatch(pattern=journal_rePattern, string=value):
 
-        raise ValidationError("Ввести номер взводу коректно", code='regex_match')
+        raise ValidationError(journal_format_validation_error_message, code='regex_match')
 
 
 @database_sync_to_async
@@ -47,14 +52,14 @@ def validate_journal_name_available(value: str):
 
     if Journal.objects.filter(name=value).exists():
 
-        raise ValidationError("Взвод вже зареєстровано", code='name_in_db')
+        raise ValidationError(journal_name_availability_validation_error_message, code='name_in_db')
 
 
 @database_sync_to_async
-def validate_journal_name_in_base(value: str):
+def check_journal_exists(value: str):
 
     if not Journal.objects.filter(name=value).exists():
-
+        #raise ValidationError(f"no such journal: {journal_name}")
         raise ValidationError("Взвод не зареєстровано", code='name_in_db')
 
 
@@ -64,7 +69,7 @@ def validate_ordinal_format(value: str):
 
     if not regex.fullmatch(pattern=ordinal_rePattern, string=value):
 
-        raise ValidationError("Ввести номер коректно", code='regex_match')
+        raise ValidationError(ordinal_format_validation_error_message, code='regex_match')
 
 
 def validate_strength_format(value: str):
@@ -73,18 +78,21 @@ def validate_strength_format(value: str):
 
     if not regex.fullmatch(pattern=sterngth_rePattern, string=value):
 
-        raise ValidationError("Ввести чисельність коректно", code='regex_match')
+        raise ValidationError(strength_format_validation_error_message, code='regex_match')
+
+
+def validate_super_user_key(value: str, authentic_key, user_id):
+
+    if not value == authentic_key:
+
+        raise DjangoCoreValidationError(f"Failed to create superuser for user {user_id}, superuser key is unauthentic", code='superuser_key')
 
 
 @dispatcher.register('profileform')
 class ProfileForm(Form):
-    journal = fields.TextField("Ввести номер взводу", validators=[validate_journal_format, validate_journal_name_in_base])
-    name = fields.TextField("Ввести Прізвище та Ім'я", validators=[validate_name_format, validate_name_available]) # TODO: accent on order
-    ordinal = fields.TextField("Ввести номер у списку", validators=[validate_ordinal_format])
-
-
-    сallback_text = "Профіль зареєстровано"
-    on_registration_fail_text = "Помилка, реєстрацію скасовано"
+    journal = fields.TextField(journal_field_message, validators=[validate_journal_format, validate_journal_name_available])
+    name = fields.TextField(name_field_message, validators=[validate_name_format, validate_name_available]) # TODO: accent on order
+    ordinal = fields.TextField(ordinal_field_message, validators=[validate_ordinal_format])
 
     @classmethod
     async def callback(cls, message: types.Message, forms: FormsManager, **data) -> None:
@@ -95,13 +103,13 @@ class ProfileForm(Form):
 
         try:
             await add_profile(data, user_id)
-            await message.answer(text=cls.сallback_text)
-            logging.info(f"A profile created for user_id {user_id}")
+            await message.answer(text=profile_form_callback_message)
+            logging.info(profile_created_info_message.format(user_id))
 
 
         except Exception as e:
-            await message.answer(text=cls.on_registration_fail_text)
-            logging.error(f"Failed to create a profile for user_id {user_id}\nError:{e}")
+            await message.answer(text=on_registration_fail_text)
+            logging.error(profile_creation_error_message.format(user_id, e))
 
         # else:
         #     await message.answer(text="Помилка, профіль за цим telegram-ID існує")
@@ -110,11 +118,8 @@ class ProfileForm(Form):
 
 @dispatcher.register('journalform')
 class JournalForm(Form):
-    name = fields.TextField("Ввести номер взводу", validators=[validate_journal_format, validate_journal_name_available])
-    strength = fields.TextField("Ввести чисельність взводу", validators=[validate_strength_format])
-
-    сallback_text = "Журнал відвідувань до взводу створено"
-    on_registration_fail_text = "Помилка, реєстрацію скасовано"
+    name = fields.TextField(journal_field_message, validators=[validate_journal_format, validate_journal_name_available])
+    strength = fields.TextField(strength_field_message, validators=[validate_strength_format])
 
     @classmethod
     async def callback(cls, message: types.Message, forms: FormsManager, **data) -> None:
@@ -125,12 +130,12 @@ class JournalForm(Form):
 
         try:
             await add_journal(data, group_id)
-            await message.answer(text=cls.сallback_text)
-            logging.info(f"A journal created for group_id {group_id}")
+            await message.answer(text=journal_form_callback_message)
+            logging.info(journal_created_info_message.format(group_id))
 
         except Exception as e:
-            await message.answer(text=cls.on_registration_fail_text) #Does not work, no message
-            logging.error(f"Failed to create a journal for group_id {group_id}\nError:{e}")
+            await message.answer(text=on_registration_fail_text) #Does not work, no message
+            logging.error(journal_creation_error_message)
 
         # else:
         #     await message.answer(text="Помилка, журнал за цим telegram-ID існує")
@@ -138,10 +143,7 @@ class JournalForm(Form):
 
 @dispatcher.register('absenceform')
 class AbsenceReason(Form):
-    status = fields.TextField("Ввести причину відсутності (мінімальна кількість слів)")
-
-    сallback_text = "Причину записано"
-    on_registration_fail_text = "Помилка, причину не записано"
+    status = fields.TextField(status_field_message)
 
     @classmethod
     async def callback(cls, message: types.Message, forms: FormsManager, **data) -> None:
@@ -152,8 +154,25 @@ class AbsenceReason(Form):
 
         try:
             await set_status(data, user_id)
-            await message.answer(text=cls.сallback_text)
+            await message.answer(text=absence_reason_form_сallback_text)
 
         except Exception as e:
-            await message.answer(text=cls.on_registration_fail_text)
-            logging.error(f"Failed to set a status for journal_entry for an entry of profile of user id of {user_id}\nError:{e}")
+            await message.answer(text=absence_reason_fail_text)
+            logging.error(status_set_error_message.format(user_id, e))
+
+
+class SuperuserKeyStates(StatesGroup): key = State()
+
+class AbsenceReasonStates(StatesGroup): AbsenceReason = State()
+
+class JournalStatesGroup(StatesGroup):
+    setting_journal = State()
+    set_journal_name = State()
+
+class UserInformStatesGroup(StatesGroup):
+    call = State()
+    receiver_id = State()
+
+class GroupInformStatesGroup(StatesGroup):
+    call = State()
+    receiver_id = State()

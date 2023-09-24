@@ -23,8 +23,9 @@ storage = MemoryStorage
 
 bot = Bot(token=TOKEN)
 dp = Dispatcher()#storage=storage)
-router = Router()
-dp.include_router(router)
+commands_router = Router()
+reports_router = Router()
+dp.include_routers(commands_router, reports_router)
 forms_distpatcher.attach(dp)
 
 

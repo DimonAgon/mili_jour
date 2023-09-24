@@ -1,8 +1,7 @@
 from django.contrib import admin
 
-from .models import Profile
+from .models import Superuser
 
-@admin.register(Profile)
+@admin.register(Superuser)
 class AdminProfile(admin.ModelAdmin):
-    list_display = ('journal_id', 'name')
-
+    pass
