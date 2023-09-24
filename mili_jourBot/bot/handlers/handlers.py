@@ -38,6 +38,8 @@ from typing import Any
 
 
 reports_router.message.middleware(SuperuserGetReportCommand())
+commands_router.message.middleware(ApplyArguments())
+reports_router.message.middleware(ApplyArguments())
 
 prefixes = {'🗡', '/'}
 
@@ -111,21 +113,14 @@ def poll_time_interval(mode, lesson=None, last_lesson=None):
                                       mode_checking=True,
                                       allow_no_mode= True,
                                       additional_arguments_checker=lessons_validator))
-async def presence_command(message: types.Message, command: CommandObject):  # Checks who is present
-    arguments = command.args.split()
-
-    try:# TODO: create and use a middleware instead
-        mode, *lessons_string_list = arguments
-        validate_is_mode(mode, PresenceMode)
-
-    except:
-        lessons_string_list = arguments
-        mode = default
+async def presence_command(message: types.Message, mode=None, additional_arguments=None, flag=None):
+    mode = default if not mode else mode
+    lessons_string_list = additional_arguments
 
     if mode in (PresenceMode.LIGHT_MODE, PresenceMode.NORMAL_MODE, PresenceMode.HARDCORE_MODE):
         lessons = [int(e) for e in lessons_string_list]
 
-    else:
+    else:# TODO: for further schedule mode
         if lessons_string_list:
             await message.answer(no_additional_arguments_required)
             logging.error(no_arguments_logging_error_message)
@@ -377,13 +372,8 @@ today_report_command_filters_config = (Command(commands=['today_report', 'tr'], 
 
 @reports_router.message(*report_commands_superuser_filters_config, *today_report_command_filters_config)
 @reports_router.message(*report_commands_group_admin_filters_config, *today_report_command_filters_config)
-async def today_report_command(message: types.Message, command: CommandObject, set_journal_group_id=None):
-    aftercommand = command.args
-
-    if aftercommand:
-        arguments = aftercommand
-        flag = arguments
-    else: flag = ReportMode.Flag.TEXT
+async def today_report_command(message: types.Message, flag=None, set_journal_group_id=None):
+    flag = ReportMode.Flag.TEXT if not flag else flag
 
     group_id = message.chat.id if not set_journal_group_id else set_journal_group_id
     try:
@@ -435,13 +425,8 @@ last_report_command_filters_config = (Command(commands=['last_report', 'lr'], pr
 
 @reports_router.message(*report_commands_superuser_filters_config, *last_report_command_filters_config)
 @reports_router.message(*report_commands_group_admin_filters_config, *last_report_command_filters_config)
-async def last_report_command(message: types.Message, command: CommandObject, set_journal_group_id=None):
-    aftercommand = command.args
-
-    if aftercommand:
-        arguments = aftercommand
-        flag = arguments
-    else: flag = ReportMode.Flag.TEXT
+async def last_report_command(message: types.Message, flag=None, set_journal_group_id=None):
+    flag = ReportMode.Flag.TEXT if not flag else flag
 
     group_id = message.chat.id if not set_journal_group_id else set_journal_group_id
 
@@ -495,13 +480,9 @@ on_date_report_command_filters_config = (Command(commands=['on_date_report', 'od
                                                         flag_checking=True))
 @reports_router.message(*report_commands_superuser_filters_config, *on_date_report_command_filters_config)
 @reports_router.message(*report_commands_group_admin_filters_config, *on_date_report_command_filters_config)
-async def on_date_report_command(message: types.Message, command: CommandObject, set_journal_group_id=None):
-    arguments = command.args.split()
-
-    try: date_string, flag = arguments
-    except:
-        date_string = arguments[0]
-        flag = ReportMode.Flag.TEXT
+async def on_date_report_command(message: types.Message, additional_arguments=False, flag=False, set_journal_group_id=None):
+    date_string = additional_arguments[0]
+    flag = ReportMode.Flag.TEXT if not flag else flag
 
     date_format = NativeDateFormat.date_format
     date = datetime.datetime.strptime(date_string, date_format).date()

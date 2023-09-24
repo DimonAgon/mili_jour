@@ -33,6 +33,8 @@ class ReportMode(Enum):
 class RegistrationMode(Enum):
     REREGISTER = 're'
 
+all_modes = {PresenceMode, ReportMode, RegistrationMode}
+
 
 class Schedule: #Do not try to deceive the poll
     first_lesson_interval = P.openclosed(datetime.time(8, 10, 0), datetime.time(10, 0, 0))
