@@ -183,7 +183,11 @@ lesson_poll_stopped_info_message = "lesson {} poll has been stopped at {}"
 
 data_entering_canceled_message = "data entering canceled at {}"
 
+poll_expected_info_message = "poll for group {} expected in {} seconds"
+
 poll_sent_info_message = "poll sent to {} mode: {}"
+
+poll_expected_to_stop_info_message = "poll for group {} expected to stop in {} seconds"
 
 poll_stopped_info_message = "poll has been stopped at {}"
 
@@ -216,7 +220,11 @@ today_entries_initiated_info_message = "today entries initiated for group {}"
 lesson_entries_initiated_info_message = "lesson {} entries initiated for group {}"
 
 #presence poll
+on_lesson_poll_expected_info_message = "poll for group {} for lesson {} expected in {} seconds"
+
 poll_added_info_message = "poll {} added"
+
+on_lesson_poll_expected_to_stop_info_message = "poll for group {} for lesson {} expected to stop in {} seconds"
 
 poll_deleted_info_message = "poll {} deleted"
 
