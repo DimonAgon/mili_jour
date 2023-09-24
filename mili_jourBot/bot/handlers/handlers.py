@@ -63,7 +63,7 @@ def poll_time_interval(mode, lesson=None, last_lesson=None):
     now = datetime.datetime.now()
     if mode == PresenceMode.LIGHT_MODE:
         last_lesson_time = Schedule.lessons_intervals[last_lesson]
-        if last_lesson_time.lower < now.time():
+        if last_lesson_time.upper < now.time():
             raise LessonSkippedException
 
         deadline_time = last_lesson_time.upper
