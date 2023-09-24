@@ -385,3 +385,12 @@ def get_on_mode_report(group_id, mode, specified_date: datetime=None) -> Type[Re
 
     return corresponding_report
 
+
+@database_sync_to_async
+def add_presence_poll(poll_id):
+    PresencePoll.objects.create(external_id=poll_id)
+
+@database_sync_to_async
+def delete_presence_poll(poll_id):
+    poll = PresencePoll.objects.get(external_id=poll_id)
+    poll.delete()

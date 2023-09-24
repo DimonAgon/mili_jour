@@ -194,3 +194,9 @@ class NoCommandFilter(BaseFilter):
         command_pattern_compiled = re.compile('\/.*')
 
         return not command_pattern_compiled.fullmatch(message.text)
+
+
+class PresencePollFilter(BaseFilter):
+    async def __call__(self, poll_answer: types.PollAnswer) -> bool:
+
+        return await is_presence_poll(poll_answer.poll_id)

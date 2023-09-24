@@ -188,9 +188,14 @@ async def presence_command(message: types.Message, command: CommandObject):  # C
             till_deadline = deadline - datetime.datetime.now() #TODO: create an async scheduler
             poll_message = await message.answer_poll(**poll_configuration) #TODO: consider using poll configuration dict
             logging.info(lesson_poll_sent_to_group_info_message.format(lesson, group_id))
+            poll_id = poll_message.poll.id
+            await add_presence_poll(poll_id)
+            logging.info(poll_added_info_message.format(poll_id))
             await asyncio.sleep(till_deadline.seconds)  #TODO: schedule instead
-            await bot.stop_poll(chat_id=poll_message.chat.id, message_id=poll_message.poll.id)
+            await bot.stop_poll(chat_id=poll_message.chat.id, message_id=poll_id)
             logging.info(lesson_poll_stopped_info_message.format(lesson, group_id))
+            await delete_presence_poll(poll_id)
+            logging.info(poll_deleted_info_message.format(poll_id))
 
         await amend_statuses(today, group_id)
         logging.info(statuses_amended_for_group_info_message.format(group_id))
@@ -202,9 +207,12 @@ async def presence_command(message: types.Message, command: CommandObject):  # C
         logging.info(today_report_initiated_info_message.format(group_id, mode))
         poll_message = await message.answer_poll(**poll_configuration)
         logging.info(poll_sent_info_message.format(group_id, mode))
+        poll_id = poll_message.poll.id
+        logging.info(poll_added_info_message.format(poll_id))
         till_deadline = deadline - now
         await asyncio.sleep(till_deadline.seconds) #TODO: schedule instead
-        await bot.stop_poll(chat_id=poll_message.chat.id, message_id=poll_message.poll.id)
+        await bot.stop_poll(chat_id=poll_message.chat.id, message_id=poll_id)
+        logging.info(poll_deleted_info_message.format(poll_id))
         logging.info(poll_stopped_info_message.format(group_id))
 
     return
@@ -248,7 +256,7 @@ async def absence_reason_handler_H(message: types.Message, state: FSMContext):
 async def absence_reason_handler_invalid(message: types.Message, state: FSMContext):
     await message.answer(absence_reason_share_suggestion_text)
 
-@commands_router.poll_answer() #TODO: add a flag for vote-answer mode, add an every-lesson mode
+@commands_router.poll_answer(PresencePollFilter()) #TODO: add a flag for vote-answer mode, add an every-lesson mode
 async def presence_handler (poll_answer: types.poll_answer, state: FSMContext):  #TODO: add an ability to re-answer
     is_present = poll_answer.option_ids == [PresencePollOptions.Present.value]
     user_id = poll_answer.user.id

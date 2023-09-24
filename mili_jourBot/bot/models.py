@@ -64,6 +64,9 @@ class ReportParameters(models.Model):
 
     mode = models.CharField(max_length=12, choices=Presence.choices, default=default)
 
+class PresencePoll(models.Model):
+    external_id = models.PositiveIntegerField(verbose_name='Telegram id')
+
 #TODO: add a model for schedule using hash-key
 #TODO: add a model for lessons
 

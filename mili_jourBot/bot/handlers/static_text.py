@@ -215,6 +215,11 @@ today_entries_initiated_info_message = "today entries initiated for group {}"
 
 lesson_entries_initiated_info_message = "lesson {} entries initiated for group {}"
 
+#presence poll
+poll_added_info_message = "poll {} added"
+
+poll_deleted_info_message = "poll {} deleted"
+
 #error
 #command
 #args

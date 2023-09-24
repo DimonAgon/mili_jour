@@ -36,7 +36,7 @@ class Schedule: #Do not try to deceive the poll
     third_lesson_interval = P.openclosed(datetime.time(12, 15, 0), datetime.time(13, 50, 0))
     fourth_lesson_interval = P.openclosed(datetime.time(14, 10, 0), datetime.time(15, 45, 0))
     fifth_lesson_interval = P.openclosed(datetime.time(16, 5, 0), datetime.time(17, 30, 0))
-    ninth_lesson_interval = P.openclosed(datetime.time(19, 0, 0), datetime.time(23, 59, 59))
+    ninth_lesson_interval = P.openclosed(datetime.time(2, 0, 0), datetime.time(23, 59, 59))
 
     recess = datetime.timedelta(minutes=20)
 
