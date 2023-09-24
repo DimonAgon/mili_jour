@@ -220,13 +220,13 @@ today_entries_initiated_info_message = "today entries initiated for group {}"
 lesson_entries_initiated_info_message = "lesson {} entries initiated for group {}"
 
 #presence poll
-on_lesson_poll_expected_info_message = "poll for group {} for lesson {} expected in {} seconds"
+on_lesson_presence_poll_expected_info_message = "poll for group {} for lesson {} expected in {} seconds"
 
-poll_added_info_message = "poll {} added"
+presence_poll_added_info_message = "poll {} added"
 
-on_lesson_poll_expected_to_stop_info_message = "poll for group {} for lesson {} expected to stop in {} seconds"
+on_lesson_presence_poll_expected_to_stop_info_message = "poll for group {} for lesson {} expected to stop in {} seconds"
 
-poll_deleted_info_message = "poll {} deleted"
+presence_poll_deleted_info_message = "poll {} deleted"
 
 #error
 #command

@@ -184,20 +184,20 @@ async def presence_command(message: types.Message, command: CommandObject):  # C
             poll_configuration.update({'question': question})
 
             till_poll = poll_time - datetime.datetime.now()
-            logging.info(on_lesson_poll_expected_info_message.format(group_id, lesson, till_poll))
+            logging.info(on_lesson_presence_poll_expected_info_message.format(group_id, lesson, till_poll))
             await asyncio.sleep(till_poll.seconds)
             till_deadline = deadline - datetime.datetime.now() #TODO: create an async scheduler
             poll_message = await message.answer_poll(**poll_configuration) #TODO: consider using poll configuration dict
             logging.info(lesson_poll_sent_to_group_info_message.format(lesson, group_id))
             poll_id = poll_message.poll.id
             await add_presence_poll(poll_id)
-            logging.info(poll_added_info_message.format(poll_id))
-            logging.info(on_lesson_poll_expected_to_stop_info_message.format(group_id, lesson, till_deadline))
+            logging.info(presence_poll_added_info_message.format(poll_id))
+            logging.info(on_lesson_presence_poll_expected_to_stop_info_message.format(group_id, lesson, till_deadline))
             await asyncio.sleep(till_deadline.seconds)  #TODO: schedule instead
             await bot.stop_poll(chat_id=poll_message.chat.id, message_id=poll_message.message_id)
             logging.info(lesson_poll_stopped_info_message.format(lesson, group_id))
             await delete_presence_poll(poll_id)
-            logging.info(poll_deleted_info_message.format(poll_id))
+            logging.info(presence_poll_deleted_info_message.format(poll_id))
 
         await amend_statuses(today, group_id)
         logging.info(statuses_amended_for_group_info_message.format(group_id))
@@ -211,12 +211,12 @@ async def presence_command(message: types.Message, command: CommandObject):  # C
         poll_message = await message.answer_poll(**poll_configuration)
         logging.info(poll_sent_info_message.format(group_id, mode))
         poll_id = poll_message.poll.id
-        logging.info(poll_added_info_message.format(poll_id))
+        logging.info(presence_poll_added_info_message.format(poll_id))
         till_deadline = deadline - now
         logging.info(poll_expected_to_stop_info_message.format(group_id, till_deadline))
         await asyncio.sleep(till_deadline.seconds) #TODO: schedule instead
         await bot.stop_poll(chat_id=poll_message.chat.id, message_id=poll_message.message_id)
-        logging.info(poll_deleted_info_message.format(poll_id))
+        logging.info(presence_poll_deleted_info_message.format(poll_id))
         logging.info(poll_stopped_info_message.format(group_id))
 
     return
