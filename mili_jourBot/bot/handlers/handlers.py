@@ -119,8 +119,7 @@ def poll_time_interval(mode, lesson=None, last_lesson=None):
                                       mode_checking=True,
                                       allow_no_mode= True,
                                       additional_arguments_checker=lessons_validator))
-async def presence_command(message: types.Message, mode=None, additional_arguments=None, flag=None):
-    mode = default if not mode else mode
+async def presence_command(message: types.Message, mode=default, additional_arguments=None, flag=None):
     lessons_string_list = additional_arguments
 
     if mode in (PresenceMode.LIGHT_MODE, PresenceMode.NORMAL_MODE, PresenceMode.HARDCORE_MODE):
@@ -415,9 +414,7 @@ today_report_command_filters_config = (Command(commands=['today_report', 'tr'], 
 
 @reports_router.message(*report_commands_superuser_filters_config, *today_report_command_filters_config)
 @reports_router.message(*report_commands_group_admin_filters_config, *today_report_command_filters_config)
-async def today_report_command(message: types.Message, flag=None, set_journal_group_id=None):
-    flag = ReportMode.Flag.TEXT if not flag else flag
-
+async def today_report_command(message: types.Message, flag=ReportMode.Flag.TEXT, set_journal_group_id=None):
     group_id = message.chat.id if not set_journal_group_id else set_journal_group_id
     try:
         today_report = await get_on_mode_report(group_id, ReportMode.TODAY)
@@ -468,9 +465,7 @@ last_report_command_filters_config = (Command(commands=['last_report', 'lr'], pr
 
 @reports_router.message(*report_commands_superuser_filters_config, *last_report_command_filters_config)
 @reports_router.message(*report_commands_group_admin_filters_config, *last_report_command_filters_config)
-async def last_report_command(message: types.Message, flag=None, set_journal_group_id=None):
-    flag = ReportMode.Flag.TEXT if not flag else flag
-
+async def last_report_command(message: types.Message, flag=ReportMode.Flag.TEXT, set_journal_group_id=None):
     group_id = message.chat.id if not set_journal_group_id else set_journal_group_id
 
     try:
@@ -523,10 +518,8 @@ on_date_report_command_filters_config = (Command(commands=['on_date_report', 'od
                                                         flag_checking=True))
 @reports_router.message(*report_commands_superuser_filters_config, *on_date_report_command_filters_config)
 @reports_router.message(*report_commands_group_admin_filters_config, *on_date_report_command_filters_config)
-async def on_date_report_command(message: types.Message, additional_arguments=False, flag=False, set_journal_group_id=None):
+async def on_date_report_command(message: types.Message, additional_arguments=False, flag=ReportMode.Flag.TEXT, set_journal_group_id=None):
     date_string = additional_arguments[0]
-    flag = ReportMode.Flag.TEXT if not flag else flag
-
     date_format = NativeDateFormat.date_format
     date = datetime.datetime.strptime(date_string, date_format).date()
 
