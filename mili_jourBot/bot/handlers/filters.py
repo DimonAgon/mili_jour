@@ -14,6 +14,8 @@ from .validators import *
 
 from ..infrastructure.enums import *
 
+from ..forms import UserInformStatesGroup
+
 import logging
 
 import re
@@ -76,6 +78,25 @@ class IsSuperUserFilter(BaseFilter):
             logging.error(user_unauthorised_as_superuser_logging_info_message.format(user_id))
             message.answer(user_unauthorised_as_superuser_message) #TODO: fix, add await
             return False
+
+
+class SuperUserCalledUserToDELETEFilter(BaseFilter):
+    async def __call__(self, message: types.Message, command: CommandObject, state: FSMContext):
+
+        user_id = message.from_user.id
+
+        if await is_superuser(user_id):
+
+            if (mode:=command.args) == RegistrationMode.DELETE.value:
+                if await state.get_state() == UserInformStatesGroup.receiver_id.state and await state.get_data():
+                    return True
+
+                else:
+                    await message.answer(user_not_called_text)
+                    logging.error(no_user_called_logging_error_message.format(user_id))
+
+        else:
+            return True
 
 #TODO: in case of dialoging via call
 # class IsNowSpeaking(BaseFilter):

@@ -63,6 +63,7 @@ journal_set_text = "Журнал взводу {} відкрито"
 #call
 enter_profile_name_message = "Ввести Прізвище та Ім'я студента"
 user_inform_text = "Студенту {}, надіслати наступні повідомлення"
+user_not_called_text = "Не було звернено до студента"
 
 #groupcall
 enter_journal_name_message = "Ввести номер взводу"
@@ -285,6 +286,9 @@ get_report_failed_error_message = "get report failed for {}, wrong parameters"
 
 #set journal
 no_journal_set_error_message = "no journal set for superuser {}"
+
+#call
+no_user_called_logging_error_message = "no user has been called with user {}"
 
 
 

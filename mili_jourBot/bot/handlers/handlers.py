@@ -342,14 +342,19 @@ async def register_superuser_command(message: types.Message, state: FSMContext):
 @registration_router.message(Command(commands='register', prefix=prefixes),
                          F.chat.type.in_({'private'}),
                          AftercommandFullCheck(allow_no_argument=True, modes=RegistrationMode, mode_checking=True),
-                         RegisteredExternalIdFilter(Profile))
-async def register_command(message: types.Message, forms: FormsManager, mode=None):
+                         RegisteredExternalIdFilter(Profile), SuperUserCalledUserToDELETEFilter())
+async def register_command(message: types.Message, forms: FormsManager, state: FSMContext, mode=None):
     user_id = message.from_user.id
     if mode == RegistrationMode.DELETE.value:
         try:
-            await delete_profile(user_id)
-            await message.answer(text=profile_deleted_callback_message)
+            if await is_superuser(user_id):
+                called_user_id = await state.get_state()
+                await delete_profile(called_user_id['Interlocutor_id'])
+                await message.answer(text=profile_deleted_callback_message)
 
+            else:
+                await delete_profile(user_id)
+                await message.answer(text=profile_deleted_callback_message)
 
         except Exception as e:
             logging.error(profile_deletion_error_message.format(user_id, e))
