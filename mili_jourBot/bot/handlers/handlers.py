@@ -12,7 +12,7 @@ from aiogram.filters.state import State, StatesGroup
 from aiogram_forms import FormsManager
 from aiogram_forms.errors import ValidationError
 
-from .dispatcher import dp, commands_router, reports_router, presence_poll_router, bot
+from .dispatcher import dp, commands_router, reports_router, presence_poll_router, registration_router, bot
 from ..models import *
 from ..forms import *
 from ..views import *
@@ -299,7 +299,7 @@ async def absence_reason_command(message: types.Message, forms: FormsManager):
         logging.error(absence_reason_set_impossible_error_message.format(user_id))
 
 
-@commands_router.message(SuperuserKeyStates.key, F.chat.type.in_({'private'}))
+@registration_router.message(SuperuserKeyStates.key, F.chat.type.in_({'private'}))
 async def super_user_registrator(message: types.Message, state: FSMContext):
     user_id = message.from_user.id
     authentic_key = await state.get_data()
@@ -320,7 +320,7 @@ async def super_user_registrator(message: types.Message, state: FSMContext):
         logging.error(superuser_creation_error_message.format(user_id, e))
 
 
-@commands_router.message(Command(commands='register_superuser', prefix=prefixes),
+@registration_router.message(Command(commands='register_superuser', prefix=prefixes),
                          F.chat.type.in_({'private'}),
                          RegisteredExternalIdFilter(Superuser))
 async def register_superuser_command(message: types.Message, state: FSMContext):
@@ -337,7 +337,7 @@ async def register_superuser_command(message: types.Message, state: FSMContext):
     logging.info(superuser_key_info_message.format(user_id, key))
 
 
-@commands_router.message(Command(commands='register', prefix=prefixes),
+@registration_router.message(Command(commands='register', prefix=prefixes),
                          F.chat.type.in_({'private'}),
                          AftercommandFullCheck(allow_no_argument=True, modes=RegistrationMode, mode_checking=True),
                          RegisteredExternalIdFilter(Profile))

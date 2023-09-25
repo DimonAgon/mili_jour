@@ -26,7 +26,8 @@ dp = Dispatcher()#storage=storage)
 commands_router = Router()
 reports_router = Router()
 presence_poll_router = Router()
-dp.include_routers(commands_router, reports_router, presence_poll_router)
+registration_router = Router()
+dp.include_routers(commands_router, reports_router, presence_poll_router, registration_router)
 forms_distpatcher.attach(dp)
 
 
