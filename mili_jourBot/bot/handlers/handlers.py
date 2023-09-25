@@ -354,7 +354,7 @@ async def register_command(message: types.Message, forms: FormsManager, state: F
     if mode == RegistrationMode.DELETE.value:
         try:
             if await is_superuser(user_id):
-                called_user_id = await state.get_state()
+                called_user_id = await state.get_data()
                 await delete_profile(called_user_id['Interlocutor_id'])
                 await message.answer(text=profile_deleted_callback_message)
 
