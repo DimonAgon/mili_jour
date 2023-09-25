@@ -401,6 +401,15 @@ def get_on_mode_report(group_id, mode, specified_date: datetime=None) -> Type[Re
 
     return corresponding_report
 
+async def get_journal_dossier(group_id):
+    journal = Journal.objects.get(external_id=group_id)
+    headers = ["№", "Ім'я"]
+    table = prettytable.PrettyTable(headers)
+    for profile in await get_all_journal_profiles(journal):
+        table.add_row([profile.ordinal, profile.name])
+
+    return table
+
 
 @database_sync_to_async
 def add_presence_poll(poll_id):

@@ -25,6 +25,7 @@ class ReportMode(Enum):
     TODAY = auto()
     LAST = auto()
     ON_DATE = auto()
+    DOSSIER = auto()
     class Flag(Enum):
         DOCUMENT = 'doc'
         TEXT = 'text'
