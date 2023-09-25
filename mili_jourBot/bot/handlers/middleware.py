@@ -16,7 +16,7 @@ from ..views import *
 
 
 
-class SuperuserGetReportCommand(BaseMiddleware):
+class SuperuserSetJournal(BaseMiddleware):
 
     async def __call__(self,
                        handler: Callable[[Message, Dict[str, Any]], Awaitable[Any]],

@@ -37,8 +37,10 @@ from key_generator import key_generator
 from typing import Any
 
 
-reports_router.message.middleware(SuperuserGetReportCommand())
+registration_router.message.middleware(SuperuserSetJournal())
+reports_router.message.middleware(SuperuserSetJournal())
 commands_router.message.middleware(ApplyArguments())
+registration_router.message.middleware(ApplyArguments())
 reports_router.message.middleware(ApplyArguments())
 
 prefixes = {'🗡', '/'}
@@ -361,18 +363,27 @@ async def register_command(message: types.Message, forms: FormsManager, mode=Non
         await forms.show('profileform')
 
 
-@commands_router.message(Command(commands='register_journal', prefix=prefixes),
+register_journal_command_filters_config = (Command(commands='register_journal',prefix=prefixes),
+                                           AftercommandFullCheck(allow_no_argument=True, modes=RegistrationMode, mode_checking=True),
+                                           RegisteredExternalIdFilter(Journal, use_chat_id=True))
+@registration_router.message(*register_journal_command_filters_config,
+                         F.chat.type.in_({'private'}),
+                         IsSuperUserFilter())
+@registration_router.message(*register_journal_command_filters_config,
                          F.chat.type.in_({'group', 'supergroup'}),
-                         IsAdminFilter(),
-                         AftercommandFullCheck(allow_no_argument=True, modes=RegistrationMode, mode_checking=True),
-                         RegisteredExternalIdFilter(Journal, use_chat_id=True))
-async def register_journal_command(message: types.Message, forms: FormsManager, mode=None):
+                         IsAdminFilter())
+async def register_journal_command(message: types.Message, forms: FormsManager, mode=None, set_journal_group_id=None):
     chat_id = message.chat.id
 
     if mode == RegistrationMode.DELETE.value:
         try:
-            await delete_journal(chat_id)
-            await message.answer(text=journal_deleted_callback_message)
+            if message.chat.type == 'private':
+                await delete_journal(set_journal_group_id)
+                await message.answer(text=journal_deleted_callback_message)
+
+            else:
+                await delete_journal(chat_id)
+                await message.answer(text=journal_deleted_callback_message)
 
 
         except Exception as e:
