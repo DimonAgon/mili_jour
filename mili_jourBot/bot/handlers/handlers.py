@@ -12,7 +12,12 @@ from aiogram.filters.state import State, StatesGroup
 from aiogram_forms import FormsManager
 from aiogram_forms.errors import ValidationError
 
-from .dispatcher import dp, commands_router, reports_router, presence_poll_router, registration_router, bot
+from .dispatcher import dp,\
+    commands_router, reports_router,\
+    presence_poll_router,\
+    registration_router,\
+    journal_registration_subrouter,\
+    bot
 from ..models import *
 from ..forms import *
 from ..views import *
@@ -37,11 +42,12 @@ from key_generator import key_generator
 from typing import Any
 
 
-registration_router.message.middleware(SuperuserSetJournal())
 reports_router.message.middleware(SuperuserSetJournal())
 commands_router.message.middleware(ApplyArguments())
 registration_router.message.middleware(ApplyArguments())
 reports_router.message.middleware(ApplyArguments())
+journal_registration_subrouter.message.middleware(SuperuserSetJournal())
+
 
 prefixes = {'🗡', '/'}
 
@@ -371,10 +377,10 @@ async def register_command(message: types.Message, forms: FormsManager, state: F
 register_journal_command_filters_config = (Command(commands='register_journal',prefix=prefixes),
                                            AftercommandFullCheck(allow_no_argument=True, modes=RegistrationMode, mode_checking=True),
                                            RegisteredExternalIdFilter(Journal, use_chat_id=True))
-@registration_router.message(*register_journal_command_filters_config,
+@journal_registration_subrouter.message(*register_journal_command_filters_config,
                          F.chat.type.in_({'private'}),
                          IsSuperUserFilter())
-@registration_router.message(*register_journal_command_filters_config,
+@journal_registration_subrouter.message(*register_journal_command_filters_config,
                          F.chat.type.in_({'group', 'supergroup'}),
                          IsAdminFilter())
 async def register_journal_command(message: types.Message, forms: FormsManager, mode=None, set_journal_group_id=None):

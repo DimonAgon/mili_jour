@@ -27,6 +27,8 @@ commands_router = Router()
 reports_router = Router()
 presence_poll_router = Router()
 registration_router = Router()
+journal_registration_subrouter = Router()
+registration_router.include_routers(journal_registration_subrouter)
 dp.include_routers(commands_router, reports_router, presence_poll_router, registration_router)
 forms_distpatcher.attach(dp)
 
