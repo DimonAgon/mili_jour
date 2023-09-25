@@ -42,10 +42,8 @@ from key_generator import key_generator
 from typing import Any
 
 
-reports_router.message.middleware(SuperuserSetJournal())
 commands_router.message.middleware(ApplyArguments())
-registration_router.message.middleware(ApplyArguments())
-reports_router.message.middleware(ApplyArguments())
+reports_router.message.middleware(SuperuserSetJournal())
 journal_registration_subrouter.message.middleware(SuperuserSetJournal())
 
 
