@@ -95,6 +95,9 @@ class SuperUserCalledUserToDELETEFilter(BaseFilter):
                     await message.answer(user_not_called_text)
                     logging.error(no_user_called_logging_error_message.format(user_id))
 
+            else:
+                return True
+
         else:
             return True
 
