@@ -5,6 +5,11 @@ from ..infrastructure.enums import PresencePollOptions
 
 #handlers
 #message
+
+profile_does_not_exist_text = "Помилка, профіль не існує"
+
+journal_does_not_exist_text = "Помилка, журнал не існує"
+
 #command
 #start
 greeting_text = "Mili_jour (Military Journal)." \
@@ -178,6 +183,10 @@ profile_form_callback_message = "Профіль зареєстровано"
 
 journal_form_callback_message = "Журнал відвідувань до взводу створено"
 
+profile_deleted_callback_message = "профіль видалено"
+
+journal_deleted_callback_message = "журнал видалено"
+
 absence_reason_form_сallback_text = "Причину записано"
 
 on_registration_fail_text = "Помилка, реєстрацію скасовано"
@@ -218,6 +227,10 @@ profile_registration_form_initiated_info_message = "profile registration form in
 
 profile_created_info_message = "A profile created for user_id {}"
 
+profile_reregistered_infor_message = "Profile of user {} has been reregistered"
+
+profile_deleted_info_message = "Profile of user {} deleted"
+
 journal_registration_form_initiated_info_message = "journal registration form initiated at {}"
 
 journal_created_info_message = "A journal created for group_id {}"
@@ -257,8 +270,12 @@ absence_reason_set_impossible_error_message = "Absence reason set is impossible 
 #profile
 profile_creation_error_message = "Failed to create a profile for user_id {}\nError:{}"
 
+profile_deletion_error_message = "Failed to delete profile of user {}\nError:{}"
+
 #journal
 journal_creation_error_message = "Failed to create a journal for group_id {}\nError:{}"
+
+journal_deletion_error_message = "Failed to delete journal of group_id {}\nError:{}"
 
 #status
 status_set_error_message = "Failed to set a status for journal_entry for an entry of profile of user id of {}\nError:{}"

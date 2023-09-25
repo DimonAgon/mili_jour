@@ -34,6 +34,11 @@ def add_profile(data, user_id):
 
 
 @database_sync_to_async
+def delete_profile(user_id):
+    Profile.objects.get(external_id=user_id).delete()
+
+
+@database_sync_to_async
 def add_journal(data, group_id):
     initial = data
     initial['external_id'] = group_id
@@ -44,6 +49,11 @@ def add_journal(data, group_id):
     new_journal = Journal.objects.create(**initial)
     new_journal.save()
     Journal.objects.get(external_id=group_id)
+
+
+@database_sync_to_async
+def delete_journal(group_id):
+    Journal.objects.get(external_id=group_id).delete()
 
 
 def add_journal_entry(initial):

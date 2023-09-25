@@ -341,13 +341,24 @@ async def register_superuser_command(message: types.Message, state: FSMContext):
                          F.chat.type.in_({'private'}),
                          AftercommandFullCheck(allow_no_argument=True, modes=RegistrationMode, mode_checking=True),
                          RegisteredExternalIdFilter(Profile))
-async def register_command(message: types.Message, forms: FormsManager):
+async def register_command(message: types.Message, forms: FormsManager, mode=None):
     user_id = message.from_user.id
-    logging.info(profile_registration_form_initiated_info_message.format(user_id))
-    await message.reply(text=profile_registration_text)
-    await asyncio.sleep(3)
+    if mode == RegistrationMode.DELETE.value:
+        try:
+            await delete_profile(user_id)
+            await message.answer(text=profile_deleted_callback_message)
 
-    await forms.show('profileform')
+
+        except Exception as e:
+            logging.error(profile_deletion_error_message.format(user_id, e))
+            await message.answer(text=profile_does_not_exist_text)
+
+    else:
+        logging.info(profile_registration_form_initiated_info_message.format(user_id))
+        await message.reply(text=profile_registration_text)
+        await asyncio.sleep(3)
+
+        await forms.show('profileform')
 
 
 @commands_router.message(Command(commands='register_journal', prefix=prefixes),
@@ -355,13 +366,25 @@ async def register_command(message: types.Message, forms: FormsManager):
                          IsAdminFilter(),
                          AftercommandFullCheck(allow_no_argument=True, modes=RegistrationMode, mode_checking=True),
                          RegisteredExternalIdFilter(Journal, use_chat_id=True))
-async def register_journal_command(message: types.Message, forms: FormsManager):
+async def register_journal_command(message: types.Message, forms: FormsManager, mode=None):
     chat_id = message.chat.id
-    logging.info(journal_registration_form_initiated_info_message.format(chat_id))
-    await message.reply(text=group_registration_text)
-    await asyncio.sleep(3)
 
-    await forms.show('journalform')
+    if mode == RegistrationMode.DELETE.value:
+        try:
+            await delete_journal(chat_id)
+            await message.answer(text=journal_deleted_callback_message)
+
+
+        except Exception as e:
+            logging.error(journal_deletion_error_message.format(chat_id, e))
+            await message.answer(text=journal_does_not_exist_text)
+
+    else:
+        logging.info(journal_registration_form_initiated_info_message.format(chat_id))
+        await message.reply(text=group_registration_text)
+        await asyncio.sleep(3)
+
+        await forms.show('journalform')
 
 
 report_commands_superuser_filters_config = (F.chat.type.in_({'private'}), IsSuperUserFilter())

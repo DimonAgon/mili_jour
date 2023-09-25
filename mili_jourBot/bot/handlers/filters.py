@@ -35,7 +35,9 @@ class RegisteredExternalIdFilter(BaseFilter):
                 id_ = message.from_user.id
             return self.model.objects.filter(external_id=id_).exists()
 
-        if await on_id_object_exists() and (mode:=command.args) != RegistrationMode.REREGISTER.value:
+        if await on_id_object_exists()\
+                and (mode:=command.args) != RegistrationMode.REREGISTER.value\
+                and mode != RegistrationMode.DELETE.value:
             if self.use_chat_id:
                 await message.answer(on_id_model_object_exists_error_message_to_group)
                 logging.error(on_id_model_object_exists_logging_error_message_to_group.format(message.chat.id))

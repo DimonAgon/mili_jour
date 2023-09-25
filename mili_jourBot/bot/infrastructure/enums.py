@@ -31,7 +31,9 @@ class ReportMode(Enum):
 
 
 class RegistrationMode(Enum):
+
     REREGISTER = 're'
+    DELETE = 'delete'
 
 all_modes = {PresenceMode, ReportMode, RegistrationMode}
 
