@@ -565,6 +565,37 @@ async def on_date_report_command(message: types.Message, additional_arguments=Fa
             await message.answer_document(input_file, disable_notification=True)
 
 
+dossier_command_filters_config = (Command(commands='dossier', prefix=prefixes),
+                                  AftercommandFullCheck(allow_no_argument=True,
+                                                         modes=ReportMode,
+                                                         allow_no_mode=True,
+                                                         flag_checking=True))
+
+@reports_router.message(*report_commands_superuser_filters_config, *dossier_command_filters_config)
+@reports_router.message(*report_commands_group_admin_filters_config, *dossier_command_filters_config)
+async def dossier_command(message: Message, flag=ReportMode.Flag.TEXT):
+    group_id = message.chat.id
+    logging.info(report_requested_info_message.format(group_id, 'DOSSIER', flag))
+
+    table = await get_journal_dossier(group_id)
+
+    match ReportMode.Flag(flag):
+        case ReportMode.Flag.TEXT:
+            await message.answer(f"```{table}```", 'Markdown')
+
+        case ReportMode.Flag.DOCUMENT:
+            temp_path = os.path.join(tempfile.gettempdir(), os.urandom(24).hex()) + '.docx'
+            document = docx.Document()
+            parser = htmldocx.HtmlToDocx()
+
+            table_html = table.get_html_string()
+            parser.add_html_to_document(table_html, document)
+            document.save(temp_path)
+            input_file = types.FSInputFile(temp_path)
+            await message.answer_document(input_file)
+
+
+
 @commands_router.message(JournalStatesGroup.setting_journal, NoCommandFilter(), F.chat.type.in_({'private'}))
 async def set_journal_handler(message: types.Message, state: FSMContext):
     response = message.text
