@@ -2,6 +2,7 @@ import logging
 
 from aiogram import BaseMiddleware
 from aiogram.types import Message, TelegramObject
+from aiogram.filters import CommandObject
 from aiogram.fsm.context import FSMContext
 
 from typing import Any, Awaitable, Callable, Dict
@@ -15,7 +16,7 @@ from ..views import *
 
 
 
-class SuperuserGetReportCommand(BaseMiddleware):
+class SuperuserSetJournal(BaseMiddleware):
 
     async def __call__(self,
                        handler: Callable[[Message, Dict[str, Any]], Awaitable[Any]],
@@ -38,6 +39,58 @@ class SuperuserGetReportCommand(BaseMiddleware):
 
 
         return await handler(event, data)
+
+
+class ApplyArguments(BaseMiddleware):
+    async def __call__(self,
+                       handler: Callable[[Message, Dict[str, Any]], Awaitable[Any]],
+                       event: Message,
+                       data: Dict[str, Any]) -> Any:
+        try:
+            arguments = data['command'].args.split()
+
+        except Exception:
+            return await handler(event, data)
+
+        pseudo_mode = arguments[0]
+        additional_arguments = arguments[1: -1]
+
+        for modes in all_modes:
+            try:
+                validate_is_mode(pseudo_mode, modes)
+                mode = pseudo_mode
+                data['mode'] = mode
+                break
+
+            except Exception: continue
+
+        else: additional_arguments.insert(0, pseudo_mode)
+
+        pseudo_flag = arguments[-1]
+
+        try:
+            mode
+            validate_is_mode(pseudo_flag, modes.Flag)
+            flag = pseudo_flag
+            data['flag'] = flag
+
+        except Exception:
+            for modes in all_modes:
+                try:
+                    validate_is_mode(pseudo_flag, modes.Flag)
+                    flag = pseudo_flag
+                    data['flag'] = flag
+
+                except Exception:
+                    continue
+
+            else: additional_arguments.append(pseudo_flag)
+
+        if additional_arguments:
+            data['additional_arguments'] = additional_arguments
+
+        return await handler(event, data)
+
 
 
 #TODO: add superuser HELP

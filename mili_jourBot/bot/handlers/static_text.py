@@ -5,6 +5,11 @@ from ..infrastructure.enums import PresencePollOptions
 
 #handlers
 #message
+
+profile_does_not_exist_text = "Помилка, профіль не існує"
+
+journal_does_not_exist_text = "Помилка, журнал не існує"
+
 #command
 #start
 greeting_text = "Mili_jour (Military Journal)." \
@@ -19,7 +24,7 @@ HELPFUL_REPLY = f"Для роботи необхідно виконати реє
                     "\n/help– інструкція до взаємодії із ботом" \
                     "\n/register– реєструвати профіль" \
                     "\n/register_journal– створити журнал відвідувань" \
-                    "\n/cancel– перервати ввід даних" \
+                    "\n/cancel– скасувати ввід даних" \
                     "\n/presence– створити опитування щодо присутності" \
                     "\n/absence_reason– вказати причину відсутності" \
                     "\n/today_report– викликати звіт за сьогоднішній день" \
@@ -27,9 +32,11 @@ HELPFUL_REPLY = f"Для роботи необхідно виконати реє
                     "\n/on_date_report– викликати звіт за датою" \
                     "\n/set_journal– відкрити журнал певного взводу" \
                     "\n/call- викликати студента за ім'ям," \
-                    "\nщоб переслати йому повідомлення" \
+                    "\n   щоб надіслати йому повідомлення" \
                     "\n/groupcall– викликати взвод за номером," \
-                    "\nщоб зробити об'яву"
+                    "\n   щоб зробити об'яву " \
+                    "\n/leave_chat_delete_journal– видалити журнал," \
+                    "\n   покинути групу"
 
 #registration
 #profile
@@ -56,13 +63,14 @@ journal_set_text = "Журнал взводу {} відкрито"
 #call
 enter_profile_name_message = "Ввести Прізвище та Ім'я студента"
 user_inform_text = "Студенту {}, надіслати наступні повідомлення"
+user_not_called_text = "Не було звернено до студента"
 
 #groupcall
 enter_journal_name_message = "Ввести номер взводу"
 group_inform_text = "Взвод {} сповістити:"
 
 #cancel
-registration_canceling_message = "Реєстрацію було перервано"
+data_input_canceling_message = "Ввід даних скасовано"
 
 absence_reason_share_canceling_message = "Вказання причини відсутності перервано"
 
@@ -73,6 +81,15 @@ call_canceling_message = "Прийняття повідомлень заверш
 group_inform_canceling_message = "Оповіщення скасовано"
 
 no_state_message = "Стан не встановлено, або було скасовано"
+
+#leave_chat_delete_journal
+user_requested_bot_leave_chat_delete_journal_logging_info_message = "user {} requested bot to leave chat and delete journal at {}"
+
+journal_deleted_logging_info_message = "journal of group {} deleted"
+
+journal_deleted_text = "Ваш журнал видалено"
+
+group_leaved_logging_info_message = "bot has leaved chat group {}"
 
 #poll
 
@@ -167,6 +184,10 @@ profile_form_callback_message = "Профіль зареєстровано"
 
 journal_form_callback_message = "Журнал відвідувань до взводу створено"
 
+profile_deleted_callback_message = "профіль видалено"
+
+journal_deleted_callback_message = "журнал видалено"
+
 absence_reason_form_сallback_text = "Причину записано"
 
 on_registration_fail_text = "Помилка, реєстрацію скасовано"
@@ -183,7 +204,11 @@ lesson_poll_stopped_info_message = "lesson {} poll has been stopped at {}"
 
 data_entering_canceled_message = "data entering canceled at {}"
 
+poll_expected_info_message = "poll for group {} expected in {} seconds"
+
 poll_sent_info_message = "poll sent to {} mode: {}"
+
+poll_expected_to_stop_info_message = "poll for group {} expected to stop in {} seconds"
 
 poll_stopped_info_message = "poll has been stopped at {}"
 
@@ -203,6 +228,10 @@ profile_registration_form_initiated_info_message = "profile registration form in
 
 profile_created_info_message = "A profile created for user_id {}"
 
+profile_reregistered_infor_message = "Profile of user {} has been reregistered"
+
+profile_deleted_info_message = "Profile of user {} deleted"
+
 journal_registration_form_initiated_info_message = "journal registration form initiated at {}"
 
 journal_created_info_message = "A journal created for group_id {}"
@@ -214,6 +243,15 @@ today_report_initiated_info_message = "today report initiated for group {}, mode
 today_entries_initiated_info_message = "today entries initiated for group {}"
 
 lesson_entries_initiated_info_message = "lesson {} entries initiated for group {}"
+
+#presence poll
+on_lesson_presence_poll_expected_info_message = "poll for group {} for lesson {} expected in {} seconds"
+
+presence_poll_added_info_message = "poll {} added"
+
+on_lesson_presence_poll_expected_to_stop_info_message = "poll for group {} for lesson {} expected to stop in {} seconds"
+
+presence_poll_deleted_info_message = "poll {} deleted"
 
 #error
 #command
@@ -233,8 +271,12 @@ absence_reason_set_impossible_error_message = "Absence reason set is impossible 
 #profile
 profile_creation_error_message = "Failed to create a profile for user_id {}\nError:{}"
 
+profile_deletion_error_message = "Failed to delete profile of user {}\nError:{}"
+
 #journal
 journal_creation_error_message = "Failed to create a journal for group_id {}\nError:{}"
+
+journal_deletion_error_message = "Failed to delete journal of group_id {}\nError:{}"
 
 #status
 status_set_error_message = "Failed to set a status for journal_entry for an entry of profile of user id of {}\nError:{}"
@@ -244,6 +286,9 @@ get_report_failed_error_message = "get report failed for {}, wrong parameters"
 
 #set journal
 no_journal_set_error_message = "no journal set for superuser {}"
+
+#call
+no_user_called_logging_error_message = "no user has been called with user {}"
 
 
 
