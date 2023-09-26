@@ -376,7 +376,7 @@ register_journal_command_filters_config = (Command(commands='register_journal',p
                                            RegisteredExternalIdFilter(Journal, use_chat_id=True))
 
 
-@journal_registration_subrouter.message(JournalRegistrationStates.key, NoCommandFilter())
+@registration_router.message(JournalRegistrationStates.key, NoCommandFilter())
 async def journal_registrator(message: types.Message, forms: FormsManager, state: FSMContext):
     chat_id = message.chat.id
     data = await state.get_data()
