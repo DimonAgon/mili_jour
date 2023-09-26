@@ -412,8 +412,8 @@ report_commands_group_admin_filters_config = (F.chat.type.in_({'group', 'supergr
 today_report_command_filters_config = (Command(commands=['today_report', 'tr'], prefix=prefixes),
                                        AftercommandFullCheck(allow_no_argument=True, modes=ReportMode, flag_checking=True))
 
-@reports_router.message(*report_commands_superuser_filters_config, *today_report_command_filters_config)
-@reports_router.message(*report_commands_group_admin_filters_config, *today_report_command_filters_config)
+@reports_router.message(*today_report_command_filters_config, *report_commands_superuser_filters_config)
+@reports_router.message(*today_report_command_filters_config, *report_commands_group_admin_filters_config,)
 async def today_report_command(message: types.Message, flag=ReportMode.Flag.TEXT, set_journal_group_id=None):
     group_id = message.chat.id if not set_journal_group_id else set_journal_group_id
     try:
@@ -463,8 +463,8 @@ async def today_report_command(message: types.Message, flag=ReportMode.Flag.TEXT
 last_report_command_filters_config = (Command(commands=['last_report', 'lr'], prefix=prefixes),
                                       AftercommandFullCheck(allow_no_argument=True, modes=ReportMode, flag_checking=True))
 
-@reports_router.message(*report_commands_superuser_filters_config, *last_report_command_filters_config)
-@reports_router.message(*report_commands_group_admin_filters_config, *last_report_command_filters_config)
+@reports_router.message(*last_report_command_filters_config, *report_commands_superuser_filters_config)
+@reports_router.message(*last_report_command_filters_config, *report_commands_group_admin_filters_config)
 async def last_report_command(message: types.Message, flag=ReportMode.Flag.TEXT, set_journal_group_id=None):
     group_id = message.chat.id if not set_journal_group_id else set_journal_group_id
 
@@ -516,8 +516,8 @@ on_date_report_command_filters_config = (Command(commands=['on_date_report', 'od
                                                         modes=ReportMode,
                                                         additional_arguments_checker=date_validator,
                                                         flag_checking=True))
-@reports_router.message(*report_commands_superuser_filters_config, *on_date_report_command_filters_config)
-@reports_router.message(*report_commands_group_admin_filters_config, *on_date_report_command_filters_config)
+@reports_router.message(*on_date_report_command_filters_config, *report_commands_superuser_filters_config)
+@reports_router.message(*on_date_report_command_filters_config, *report_commands_group_admin_filters_config)
 async def on_date_report_command(message: types.Message, additional_arguments=False, flag=ReportMode.Flag.TEXT, set_journal_group_id=None):
     date_string = additional_arguments[0]
     date_format = NativeDateFormat.date_format
@@ -571,8 +571,8 @@ dossier_command_filters_config = (Command(commands='dossier', prefix=prefixes),
                                                          allow_no_mode=True,
                                                          flag_checking=True))
 
-@reports_router.message(*report_commands_superuser_filters_config, *dossier_command_filters_config)
-@reports_router.message(*report_commands_group_admin_filters_config, *dossier_command_filters_config)
+@reports_router.message(*dossier_command_filters_config, *report_commands_superuser_filters_config)
+@reports_router.message(*dossier_command_filters_config, *report_commands_group_admin_filters_config)
 async def dossier_command(message: Message, flag=ReportMode.Flag.TEXT):
     group_id = message.chat.id
     logging.info(report_requested_info_message.format(group_id, 'DOSSIER', flag))
