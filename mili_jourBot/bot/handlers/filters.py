@@ -82,7 +82,7 @@ class IsSuperUserFilter(BaseFilter):
 
         else:
             logging.error(user_unauthorised_as_superuser_logging_info_message.format(user_id))
-            message.answer(user_unauthorised_as_superuser_message) #TODO: fix, add await
+            await message.answer(user_unauthorised_as_superuser_message)
             return False
 
 
