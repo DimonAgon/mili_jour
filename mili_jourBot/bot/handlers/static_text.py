@@ -153,11 +153,18 @@ on_id_model_object_exists_error_message_to_group = "Помилка, ваш вз�
 
 on_id_model_object_exists_logging_error_message_to_group = "failed to create a journal for group {}, journal already exists"
 
+#IsAdmin
+
+user_unauthorised_as_admin_logging_info_message = "user {} unauthorised as a admin"
+
+user_unauthorised_as_admin_message = "Вас не розпізнано, як адміна групи"
+
 #IsSuperUser
 
 user_unauthorised_as_superuser_logging_info_message = "user {} unauthorised as a superuser"
 
 user_unauthorised_as_superuser_message = "Вас не було авторизовано, як суперкористувача"
+
 
 #presence options
 def presence_option_to_string(presence_option: Type[PresencePollOptions]):

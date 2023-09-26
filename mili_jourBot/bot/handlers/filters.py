@@ -64,7 +64,13 @@ class IsAdminFilter(BaseFilter): #TODO: add a middleware to check both is admin 
         member = await bot.get_chat_member(chat_id, user_id)
         is_admin = member.status == self.required_auth_level or member.status == self.creator
 
-        return is_admin
+        if is_admin:
+            return True
+
+        else:
+            logging.error(user_unauthorised_as_admin_logging_info_message.format(user_id))
+            await message.answer(user_unauthorised_as_admin_message)
+            return False
 
 class IsSuperUserFilter(BaseFilter):
     async def __call__(self, message: types.Message) -> bool:
