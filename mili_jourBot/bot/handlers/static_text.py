@@ -165,6 +165,9 @@ user_unauthorised_as_superuser_logging_info_message = "user {} unauthorised as a
 
 user_unauthorised_as_superuser_message = "Вас не було авторизовано, як суперкористувача"
 
+#middleware
+
+no_journal_set_message = "Журнал не було відкрито, необхідно відкрити журнал"
 
 #presence options
 def presence_option_to_string(presence_option: Type[PresencePollOptions]):

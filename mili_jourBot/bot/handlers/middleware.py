@@ -34,7 +34,7 @@ class SuperuserSetJournal(BaseMiddleware):
 
             else:
                 logging.error(no_journal_set_error_message.format(user_id))
-                await event.answer("Журнал не було відкрито, необхідно відкрити журнал")
+                await event.answer(no_journal_set_message)
                 return
 
 
