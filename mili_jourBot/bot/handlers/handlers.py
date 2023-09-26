@@ -348,6 +348,10 @@ async def register_superuser_command(message: types.Message, state: FSMContext):
                          RegisteredExternalIdFilter(Profile), SuperUserCalledUserToDELETEFilter())
 async def register_command(message: types.Message, forms: FormsManager, state: FSMContext, mode=None):
     user_id = message.from_user.id
+    logging.info(profile_registration_form_initiated_info_message.format(user_id, ('regular' if not mode else mode)))
+    await message.reply(text=profile_registration_text)
+    await asyncio.sleep(3)
+
     if mode == RegistrationMode.DELETE.value:
         try:
             if await is_superuser(user_id):
@@ -364,10 +368,6 @@ async def register_command(message: types.Message, forms: FormsManager, state: F
             await message.answer(text=profile_does_not_exist_text)
 
     else:
-        logging.info(profile_registration_form_initiated_info_message.format(user_id))
-        await message.reply(text=profile_registration_text)
-        await asyncio.sleep(3)
-
         await forms.show('profileform')
 
 
@@ -406,10 +406,6 @@ async def journal_registrator(message: types.Message, forms: FormsManager, state
             await message.answer(text=journal_does_not_exist_text)
 
     else:
-        logging.info(journal_registration_form_initiated_info_message.format(chat_id))
-        await message.reply(text=group_registration_text)
-        await asyncio.sleep(3)
-
         await forms.show('journalform')
 
 @journal_registration_subrouter.message(*register_journal_command_filters_config,
@@ -421,9 +417,9 @@ async def journal_registrator(message: types.Message, forms: FormsManager, state
 async def register_journal_command(message: types.Message, state: FSMContext, mode=None, set_journal_group_id=None):
     chat_id = message.chat.id
 
-    if not mode == RegistrationMode.DELETE.value:
-        logging.info(journal_registration_form_initiated_info_message.format(chat_id))
-        await message.reply(text=group_registration_text)
+    logging.info(journal_registration_form_initiated_info_message.format(chat_id, ('regular' if not mode else mode)))
+    await message.reply(text=group_registration_text)
+    await asyncio.sleep(3)
 
     await state.set_state(JournalRegistrationStates.mode)
     await state.update_data(mode=mode)

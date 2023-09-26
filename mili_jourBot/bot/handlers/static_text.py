@@ -274,7 +274,7 @@ superuser_registration_form_initiated_info_message = "superuser registration for
 
 superuser_key_info_message = 'user {} superuser key: {}'
 
-profile_registration_form_initiated_info_message = "profile registration form initiated for user {}"
+profile_registration_form_initiated_info_message = "profile registration form initiated for user {}, mode: {}"
 
 profile_created_info_message = "A profile created for user_id {}"
 
@@ -282,7 +282,7 @@ profile_reregistered_infor_message = "Profile of user {} has been reregistered"
 
 profile_deleted_info_message = "Profile of user {} deleted"
 
-journal_registration_form_initiated_info_message = "journal registration form initiated at {}"
+journal_registration_form_initiated_info_message = "journal registration form initiated at {}, mode: {}"
 
 journal_created_info_message = "A journal created for group_id {}"
 
