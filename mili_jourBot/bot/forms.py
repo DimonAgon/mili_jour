@@ -9,6 +9,7 @@ from channels.db import database_sync_to_async
 
 import regex, re #TODO: adapt validators to re, where possible
 
+from bot.handlers.dispatcher import bot
 from .views import *
 from .models import *
 from .handlers.static_text import *
@@ -88,6 +89,9 @@ def validate_super_user_key(value: str, authentic_key, user_id):
         raise DjangoCoreValidationError(f"Failed to create superuser for user {user_id}, superuser key is unauthentic", code='superuser_key')
 
 
+class UserLeftGroupException(Exception):
+    pass
+
 @dispatcher.register('profileform')
 class ProfileForm(Form):
     journal = fields.TextField(journal_field_message, validators=[validate_journal_format, check_journal_exists])
@@ -99,21 +103,24 @@ class ProfileForm(Form):
 
         data = await forms.get_data(ProfileForm)
         user_id = message.from_user.id
-        # if not Profile.objects.filter(external_id=user_id).exists():
+        journal = await get_journal_by_name_async(data['journal'])
+        journal_group_id = journal.external_id
+
 
         try:
-            await add_profile(data, user_id)
-            await message.answer(text=profile_form_callback_message)
-            logging.info(profile_created_info_message.format(user_id))
+            status = await bot.get_chat_member(journal_group_id, user_id)
+            if status.status == 'left':
+                raise UserLeftGroupException
+
+            else:
+                await add_profile(data, user_id)
+                await message.answer(text=profile_form_callback_message)
+                logging.info(profile_created_info_message.format(user_id))
 
 
         except Exception as e:
             await message.answer(text=on_registration_fail_text)
             logging.error(profile_creation_error_message.format(user_id, e))
-
-        # else:
-        #     await message.answer(text="Помилка, профіль за цим telegram-ID існує")
-
 
 
 @dispatcher.register('journalform')
@@ -126,7 +133,6 @@ class JournalForm(Form):
 
         data = await forms.get_data(JournalForm)
         group_id = message.chat.id
-        # if not Profile.objects.filter(external_id=group_id).exists():
 
         try:
             await add_journal(data, group_id)
@@ -136,9 +142,6 @@ class JournalForm(Form):
         except Exception as e:
             await message.answer(text=on_registration_fail_text) #Does not work, no message
             logging.error(journal_creation_error_message)
-
-        # else:
-        #     await message.answer(text="Помилка, журнал за цим telegram-ID існує")
 
 
 @dispatcher.register('absenceform')
