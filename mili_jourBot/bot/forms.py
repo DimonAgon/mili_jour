@@ -86,7 +86,7 @@ def validate_super_user_key(value: str, authentic_key, user_id):
 
     if not value == authentic_key:
 
-        raise DjangoCoreValidationError(f"Failed to create superuser for user {user_id}, superuser key is unauthentic", code='superuser_key')
+        raise DjangoCoreValidationError(f"user {user_id} superuser key is unauthentic", code='superuser_key')
 
 
 class UserLeftGroupException(Exception):
@@ -166,9 +166,14 @@ class AbsenceReason(Form):
 
 class SuperuserKeyStates(StatesGroup): key = State()
 
+class JournalRegistrationStates(StatesGroup):
+    key = State()
+    set_journal_group_id = State()
+    mode = State()
+
 class AbsenceReasonStates(StatesGroup): AbsenceReason = State()
 
-class JournalStatesGroup(StatesGroup):
+class SetJournalStatesGroup(StatesGroup):
     setting_journal = State()
     set_journal_name = State()
 

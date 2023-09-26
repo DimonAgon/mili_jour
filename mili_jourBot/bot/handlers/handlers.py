@@ -229,7 +229,7 @@ async def presence_command(message: types.Message, mode=default, additional_argu
 async def cancel_command(message: types.Message, state: FSMContext):
     current_state = await state.get_state()
     states_canceling_messages = {AbsenceReasonStates.AbsenceReason: absence_reason_share_canceling_message,
-                                 JournalStatesGroup.set_journal_name: journal_unset_message,
+                                 SetJournalStatesGroup.set_journal_name: journal_unset_message,
                                  UserInformStatesGroup.receiver_id: call_canceling_message,
                                  GroupInformStatesGroup.receiver_id: group_inform_canceling_message}
 
@@ -374,15 +374,22 @@ async def register_command(message: types.Message, forms: FormsManager, state: F
 register_journal_command_filters_config = (Command(commands='register_journal',prefix=prefixes),
                                            AftercommandFullCheck(allow_no_argument=True, modes=RegistrationMode, mode_checking=True),
                                            RegisteredExternalIdFilter(Journal, use_chat_id=True))
-@journal_registration_subrouter.message(*register_journal_command_filters_config,
-                         F.chat.type.in_({'private'}),
-                         IsSuperUserFilter())
-@journal_registration_subrouter.message(*register_journal_command_filters_config,
-                         F.chat.type.in_({'group', 'supergroup'}),
-                         IsAdminFilter())
-async def register_journal_command(message: types.Message, forms: FormsManager, mode=None, set_journal_group_id=None):
-    chat_id = message.chat.id
 
+
+@journal_registration_subrouter.message(JournalRegistrationStates.key, NoCommandFilter())
+async def journal_registrator(message: types.Message, forms: FormsManager, state: FSMContext):
+    chat_id = message.chat.id
+    data = await state.get_data()
+    authentic_key = data['key']
+    try:
+        validate_super_user_key(message.text, authentic_key, message.from_user.id)
+
+    except:
+        await message.answer(key_is_unauthentic_text)
+        return
+
+    set_journal_group_id = data['set_journal_group_id']
+    mode = data['mode']
     if mode == RegistrationMode.DELETE.value:
         try:
             if message.chat.type == 'private':
@@ -404,6 +411,31 @@ async def register_journal_command(message: types.Message, forms: FormsManager, 
         await asyncio.sleep(3)
 
         await forms.show('journalform')
+
+@journal_registration_subrouter.message(*register_journal_command_filters_config,
+                         F.chat.type.in_({'private'}),
+                         IsSuperUserFilter())
+@journal_registration_subrouter.message(*register_journal_command_filters_config,
+                         F.chat.type.in_({'group', 'supergroup'}),
+                         IsAdminFilter())
+async def register_journal_command(message: types.Message, state: FSMContext, mode=None, set_journal_group_id=None):
+    chat_id = message.chat.id
+
+    if not mode == RegistrationMode.DELETE.value:
+        logging.info(journal_registration_form_initiated_info_message.format(chat_id))
+        await message.reply(text=group_registration_text)
+
+    await state.set_state(JournalRegistrationStates.mode)
+    await state.update_data(mode=mode)
+
+    await state.set_state(JournalRegistrationStates.set_journal_group_id)
+    await state.update_data(set_journal_group_id=set_journal_group_id)
+
+    await state.set_state(JournalRegistrationStates.key)
+    key = key_generator.generate().get_key()
+    await state.update_data(key=key)
+    await message.answer(superuser_key_field_message)
+    logging.info(superuser_key_info_message.format(f"{message.from_user.id} of chat {chat_id}", key))
 
 
 report_commands_superuser_filters_config = (F.chat.type.in_({'private'}), IsSuperUserFilter())
@@ -596,7 +628,7 @@ async def dossier_command(message: Message, flag=ReportMode.Flag.TEXT):
 
 
 
-@commands_router.message(JournalStatesGroup.setting_journal, NoCommandFilter(), F.chat.type.in_({'private'}))
+@commands_router.message(SetJournalStatesGroup.setting_journal, NoCommandFilter(), F.chat.type.in_({'private'}))
 async def set_journal_handler(message: types.Message, state: FSMContext):
     response = message.text
     try:
@@ -617,7 +649,7 @@ async def set_journal_handler(message: types.Message, state: FSMContext):
 
     set_journal_name = response
 
-    await state.set_state(JournalStatesGroup.set_journal_name)
+    await state.set_state(SetJournalStatesGroup.set_journal_name)
     await state.update_data(set_journal_name=set_journal_name)
     await message.answer(journal_set_text.format(set_journal_name))
 
@@ -625,7 +657,7 @@ async def set_journal_handler(message: types.Message, state: FSMContext):
                          F.chat.type.in_({'private'}),
                          IsSuperUserFilter())
 async def set_journal_command(message: types.Message, state: FSMContext):
-    await state.set_state(JournalStatesGroup.setting_journal)
+    await state.set_state(SetJournalStatesGroup.setting_journal)
     await message.answer(enter_journal_name_message)
 
 
