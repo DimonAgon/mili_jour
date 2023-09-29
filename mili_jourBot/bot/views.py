@@ -9,6 +9,8 @@ from typing import Type
 
 import datetime
 
+from django.utils import timezone
+
 import prettytable
 
 import regex #TODO: swap regex to re, where possible
@@ -120,7 +122,7 @@ def initiate_today_entries(today, group_id, lesson=None, mode=default):
 
 @database_sync_to_async
 def process_user_on_lesson_presence(is_present, user_id):
-    now = datetime.datetime.now() #TODO: use time for schedule control, use date for entry's date
+    now = timezone.localtime(timezone.now()) #TODO: use time for schedule control, use date for entry's date
     now_time = now.time()
     now_date = now.date()
 
@@ -172,8 +174,9 @@ def amend_statuses(date, group_id):
 @database_sync_to_async
 def on_lesson_presence_check(user_id):
     profile = Profile.objects.get(external_id=user_id)
-    today = datetime.datetime.now().date()
-    current_lesson = Schedule.lesson_match(datetime.datetime.now().time())
+    now = timezone.localtime(timezone.now())
+    today = now.date()
+    current_lesson = Schedule.lesson_match(now.time())
     on_lesson_entry = JournalEntry.objects.get(profile=profile, lesson=current_lesson, date=today)
     presence = on_lesson_entry.is_present
 
@@ -184,7 +187,7 @@ def on_lesson_presence_check(user_id):
 def set_status(data, user_id, lesson=None): #TODO: if today status: status = today status. return
     profile = Profile.objects.get(external_id=user_id)
     journal = profile.journal
-    now = datetime.datetime.now()
+    now = timezone.localtime(timezone.now())
     today = now.date()
     now_time = now.time()
     status = data['status']
@@ -372,7 +375,7 @@ def report_summary(report, report_mode) -> Type[prettytable.PrettyTable]:
     else:
         ordered_entries = entries.order_by('profile__ordinal')
 
-        now = datetime.datetime.now()
+        now = timezone.localtime(timezone.now())
         now_time = now.time()
         today = now.date()
 

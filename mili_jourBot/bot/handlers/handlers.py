@@ -31,6 +31,8 @@ import asyncio
 
 import datetime
 
+from django.utils import timezone
+
 import docx
 
 import tempfile, os
@@ -66,7 +68,7 @@ class LessonSkippedException(Exception):
     pass
 
 def poll_time_interval(mode, lesson=None, last_lesson=None):
-    now = datetime.datetime.now()
+    now = timezone.localtime(timezone.now())
     if mode == PresenceMode.LIGHT_MODE:
         last_lesson_time = Schedule.lessons_intervals[last_lesson]
         if last_lesson_time.upper < now.time():
@@ -76,7 +78,7 @@ def poll_time_interval(mode, lesson=None, last_lesson=None):
         deadline = now.replace(hour=deadline_time.hour, minute=deadline_time.minute, second=deadline_time.second)
 
     if not mode == PresenceMode.LIGHT_MODE:
-        now_time = datetime.datetime.now().time()
+        now_time = timezone.localtime(timezone.now()).time()
 
         lesson_time_interval = Schedule.lessons_intervals[lesson]
         if lesson_time_interval.contains(now_time): start_time = (now + datetime.timedelta(seconds=1)).time()
@@ -134,7 +136,7 @@ async def presence_command(message: types.Message, mode=default, additional_argu
     lessons.sort()
     unique_lessons = list(set(lessons))
 
-    now = datetime.datetime.now()
+    now = timezone.localtime(timezone.now())
     today = now.date()
     date_format = NativeDateFormat.date_format
     today_string = today.strftime(date_format)
@@ -183,11 +185,11 @@ async def presence_command(message: types.Message, mode=default, additional_argu
             question = today_string + f" Заняття {str(lesson)}"
             poll_configuration.update({'question': question})
 
-            till_poll = poll_time - datetime.datetime.now()
+            till_poll = poll_time - now
             till_poll_seconds = till_poll.seconds
             logging.info(on_lesson_presence_poll_expected_info_message.format(group_id, lesson, till_poll_seconds))
             await asyncio.sleep(till_poll_seconds)
-            till_deadline = deadline - datetime.datetime.now() #TODO: create an async scheduler
+            till_deadline = deadline - timezone.localtime(timezone.now()) #TODO: create an async scheduler
             till_deadline_seconds = till_deadline.seconds
             poll_message = await message.answer_poll(**poll_configuration) #TODO: consider using poll configuration dict
             logging.info(lesson_poll_sent_to_group_info_message.format(lesson, group_id))
