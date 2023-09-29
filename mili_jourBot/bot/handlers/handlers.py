@@ -603,8 +603,8 @@ dossier_command_filters_config = (Command(commands='dossier', prefix=prefixes),
 
 @reports_router.message(*dossier_command_filters_config, *report_commands_superuser_filters_config)
 @reports_router.message(*dossier_command_filters_config, *report_commands_group_admin_filters_config)
-async def dossier_command(message: Message, flag=ReportMode.Flag.TEXT):
-    group_id = message.chat.id
+async def dossier_command(message: Message, flag=ReportMode.Flag.TEXT, set_journal_group_id=None):
+    group_id = message.chat.id if not set_journal_group_id else set_journal_group_id
     logging.info(report_requested_info_message.format(group_id, 'DOSSIER', flag))
 
     table = await get_journal_dossier(group_id)
