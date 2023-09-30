@@ -45,6 +45,7 @@ from typing import Any
 
 
 commands_router.message.middleware(ApplyArguments())
+presence_poll_router.poll_answer.filter(PresencePollFilter())
 reports_router.message.middleware(SuperuserSetJournal())
 journal_registration_subrouter.message.middleware(SuperuserSetJournal())
 
