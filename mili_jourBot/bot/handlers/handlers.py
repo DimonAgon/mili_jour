@@ -186,7 +186,7 @@ async def presence_command(message: types.Message, mode=default, additional_argu
             question = today_string + f" Заняття {str(lesson)}"
             poll_configuration.update({'question': question})
 
-            till_poll = poll_time - now
+            till_poll = poll_time - timezone.localtime(timezone.now())
             till_poll_seconds = till_poll.seconds
             logging.info(on_lesson_presence_poll_expected_info_message.format(group_id, lesson, till_poll_seconds))
             await asyncio.sleep(till_poll_seconds)
