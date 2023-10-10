@@ -14,6 +14,8 @@ from .validators import *
 
 from ..infrastructure.enums import *
 
+from ..forms import UserInformStatesGroup
+
 import logging
 
 import re
@@ -26,7 +28,7 @@ class RegisteredExternalIdFilter(BaseFilter):
         self.model = model
         self.use_chat_id = use_chat_id
 
-    async def __call__(self, message: types.Message) -> bool:
+    async def __call__(self, message: types.Message, command: CommandObject) -> bool:
         @database_sync_to_async
         def on_id_object_exists():
             if self.use_chat_id:
@@ -35,7 +37,9 @@ class RegisteredExternalIdFilter(BaseFilter):
                 id_ = message.from_user.id
             return self.model.objects.filter(external_id=id_).exists()
 
-        if await on_id_object_exists():
+        if await on_id_object_exists()\
+                and (mode:=command.args) != RegistrationMode.REREGISTER.value\
+                and mode != RegistrationMode.DELETE.value:
             if self.use_chat_id:
                 await message.answer(on_id_model_object_exists_error_message_to_group)
                 logging.error(on_id_model_object_exists_logging_error_message_to_group.format(message.chat.id))
@@ -60,7 +64,13 @@ class IsAdminFilter(BaseFilter): #TODO: add a middleware to check both is admin 
         member = await bot.get_chat_member(chat_id, user_id)
         is_admin = member.status == self.required_auth_level or member.status == self.creator
 
-        return is_admin
+        if is_admin:
+            return True
+
+        else:
+            logging.error(user_unauthorised_as_admin_logging_info_message.format(user_id))
+            await message.answer(user_unauthorised_as_admin_message)
+            return False
 
 class IsSuperUserFilter(BaseFilter):
     async def __call__(self, message: types.Message) -> bool:
@@ -72,8 +82,30 @@ class IsSuperUserFilter(BaseFilter):
 
         else:
             logging.error(user_unauthorised_as_superuser_logging_info_message.format(user_id))
-            message.answer(user_unauthorised_as_superuser_message) #TODO: fix, add await
+            await message.answer(user_unauthorised_as_superuser_message)
             return False
+
+
+class SuperUserCalledUserToDELETEFilter(BaseFilter):
+    async def __call__(self, message: types.Message, command: CommandObject, state: FSMContext):
+
+        user_id = message.from_user.id
+
+        if await is_superuser(user_id):
+
+            if (mode:=command.args) == RegistrationMode.DELETE.value:
+                if await state.get_state() == UserInformStatesGroup.receiver_id.state and await state.get_data():
+                    return True
+
+                else:
+                    await message.answer(user_not_called_text)
+                    logging.error(no_user_called_logging_error_message.format(user_id))
+
+            else:
+                return True
+
+        else:
+            return True
 
 #TODO: in case of dialoging via call
 # class IsNowSpeaking(BaseFilter):

@@ -5,6 +5,11 @@ from ..infrastructure.enums import PresencePollOptions
 
 #handlers
 #message
+
+profile_does_not_exist_text = "Помилка, профіль не існує"
+
+journal_does_not_exist_text = "Помилка, журнал не існує"
+
 #command
 #start
 greeting_text = "Mili_jour (Military Journal)." \
@@ -14,22 +19,64 @@ greeting_text = "Mili_jour (Military Journal)." \
 #help
 HELPFUL_REPLY = f"Для роботи необхідно виконати реєстрацію журналу взводу та ЗАРЕЕСТРУВАТИСЬ." \
                     "\nПодальше, право на взаємодію із ботом покладається на командирський склад." \
+                    "\n" \
+                    "\nСтандартний вигляд команди:" \
+                    "\n     команда мод агрументи флаг" \
+                    "\n" \
+                    "\nПриклади команд:" \
+                    "\n     /odr 01.01.1001 doc" \
+                    "\n     /p 1 2 3 4 5" \
+                    "\n     /register re" \
+                    "\n"\
                     "\nСписок команд наведено нижче:" \
                     "\n/start– введення у бот" \
                     "\n/help– інструкція до взаємодії із ботом" \
+                    "\n" \
+                    "\n          Розділ Реєстрація" \
                     "\n/register– реєструвати профіль" \
                     "\n/register_journal– створити журнал відвідувань" \
-                    "\n/cancel– перервати ввід даних" \
-                    "\n/presence– створити опитування щодо присутності" \
-                    "\n/absence_reason– вказати причину відсутності" \
-                    "\n/today_report– викликати звіт за сьогоднішній день" \
-                    "\n/last_report– викликати останній звіт" \
-                    "\n/on_date_report– викликати звіт за датою" \
-                    "\n/set_journal– відкрити журнал певного взводу" \
+                    "\n            флаги розділу:" \
+                    "\n   {" \
+                    "\n    re– перереєструвати" \
+                    "\n    delete– видалити" \
+                    "\n    }" \
+                    "\n" \
+                    "\n/presence /p– створити опитування щодо присутності" \
+                    "\n                моди:" \
+                    "\n   {" \
+                    "\n    normal[N](за замовчуванням)–" \
+                    "\n         створити опитування на кожне заняття" \
+                    "\n    light[L]– створити опитування лише один раз," \
+                    "\n         (відмічатися лише, коли прибув(ла) на заняття)" \
+                    "\n    hardcore[H]– cтворити опитування на кожне заняття," \
+                    "\n         в випадковий момент заняття" \
+                    "\n    }" \
+                    "\n" \
+                    "\n/absence_reason /ar– вказати причину відсутності" \
+                    "\n" \
+                    "\n           Розділ Звіти" \
+                    "\n/today_report /tr– викликати звіт за сьогоднішній день" \
+                    "\n/last_report /lr– викликати останній звіт" \
+                    "\n/on_date_report /odr– викликати звіт за датою," \
+                    "\n     формат дати: день.місяць.рік" \
+                    "\n/dossier– викликати список студентів" \
+                    "\n            флаги розділу:" \
+                    "\n   {" \
+                    "\n    text(за замовчуванням)–" \
+                    "\n         викликати в текстовому форматі" \
+                    "\n    doc– викликати в форматі файлу" \
+                    "\n    }" \
+                    "\n" \
+                    "\n/set_journal /sj– відкрити журнал певного взводу" \
+                    "\n" \
                     "\n/call- викликати студента за ім'ям," \
-                    "\nщоб переслати йому повідомлення" \
-                    "\n/groupcall– викликати взвод за номером," \
-                    "\nщоб зробити об'яву"
+                    "\n     щоб надіслати йому повідомлення" \
+                    "\n/groupcall /gc– викликати взвод за номером," \
+                    "\n     щоб зробити об'яву" \
+                    "\n" \
+                    "\n/cancel– скасувати ввід даних" \
+                    "\n/leave_chat_delete_journal– видалити журнал," \
+                    "\n     покинути групу" \
 
 #registration
 #profile
@@ -56,13 +103,14 @@ journal_set_text = "Журнал взводу {} відкрито"
 #call
 enter_profile_name_message = "Ввести Прізвище та Ім'я студента"
 user_inform_text = "Студенту {}, надіслати наступні повідомлення"
+user_not_called_text = "Не було звернено до студента"
 
 #groupcall
 enter_journal_name_message = "Ввести номер взводу"
 group_inform_text = "Взвод {} сповістити:"
 
 #cancel
-registration_canceling_message = "Реєстрацію було перервано"
+data_input_canceling_message = "Ввід даних скасовано"
 
 absence_reason_share_canceling_message = "Вказання причини відсутності перервано"
 
@@ -73,6 +121,15 @@ call_canceling_message = "Прийняття повідомлень заверш
 group_inform_canceling_message = "Оповіщення скасовано"
 
 no_state_message = "Стан не встановлено, або було скасовано"
+
+#leave_chat_delete_journal
+user_requested_bot_leave_chat_delete_journal_logging_info_message = "user {} requested bot to leave chat and delete journal at {}"
+
+journal_deleted_logging_info_message = "journal of group {} deleted"
+
+journal_deleted_text = "Ваш журнал видалено"
+
+group_leaved_logging_info_message = "bot has leaved chat group {}"
 
 #poll
 
@@ -96,11 +153,21 @@ on_id_model_object_exists_error_message_to_group = "Помилка, ваш вз�
 
 on_id_model_object_exists_logging_error_message_to_group = "failed to create a journal for group {}, journal already exists"
 
+#IsAdmin
+
+user_unauthorised_as_admin_logging_info_message = "user {} unauthorised as a admin"
+
+user_unauthorised_as_admin_message = "Вас не розпізнано, як адміна групи"
+
 #IsSuperUser
 
 user_unauthorised_as_superuser_logging_info_message = "user {} unauthorised as a superuser"
 
 user_unauthorised_as_superuser_message = "Вас не було авторизовано, як суперкористувача"
+
+#middleware
+
+no_journal_set_message = "Журнал не було відкрито, необхідно відкрити журнал"
 
 #presence options
 def presence_option_to_string(presence_option: Type[PresencePollOptions]):
@@ -167,6 +234,10 @@ profile_form_callback_message = "Профіль зареєстровано"
 
 journal_form_callback_message = "Журнал відвідувань до взводу створено"
 
+profile_deleted_callback_message = "профіль видалено"
+
+journal_deleted_callback_message = "журнал видалено"
+
 absence_reason_form_сallback_text = "Причину записано"
 
 on_registration_fail_text = "Помилка, реєстрацію скасовано"
@@ -203,11 +274,15 @@ superuser_registration_form_initiated_info_message = "superuser registration for
 
 superuser_key_info_message = 'user {} superuser key: {}'
 
-profile_registration_form_initiated_info_message = "profile registration form initiated for user {}"
+profile_registration_form_initiated_info_message = "profile registration form initiated for user {}, mode: {}"
 
 profile_created_info_message = "A profile created for user_id {}"
 
-journal_registration_form_initiated_info_message = "journal registration form initiated at {}"
+profile_reregistered_infor_message = "Profile of user {} has been reregistered"
+
+profile_deleted_info_message = "Profile of user {} deleted"
+
+journal_registration_form_initiated_info_message = "journal registration form initiated at {}, mode: {}"
 
 journal_created_info_message = "A journal created for group_id {}"
 
@@ -246,8 +321,12 @@ absence_reason_set_impossible_error_message = "Absence reason set is impossible 
 #profile
 profile_creation_error_message = "Failed to create a profile for user_id {}\nError:{}"
 
+profile_deletion_error_message = "Failed to delete profile of user {}\nError:{}"
+
 #journal
 journal_creation_error_message = "Failed to create a journal for group_id {}\nError:{}"
+
+journal_deletion_error_message = "Failed to delete journal of group_id {}\nError:{}"
 
 #status
 status_set_error_message = "Failed to set a status for journal_entry for an entry of profile of user id of {}\nError:{}"
@@ -257,6 +336,9 @@ get_report_failed_error_message = "get report failed for {}, wrong parameters"
 
 #set journal
 no_journal_set_error_message = "no journal set for superuser {}"
+
+#call
+no_user_called_logging_error_message = "no user has been called with user {}"
 
 
 

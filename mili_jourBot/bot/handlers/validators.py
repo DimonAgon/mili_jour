@@ -15,7 +15,7 @@ from ..views import on_lesson_presence_check
 
 from ..models import Journal, Superuser, PresencePoll
 
-from ..forms import JournalStatesGroup
+from ..forms import SetJournalStatesGroup
 
 from aiogram.fsm.context import FSMContext
 
@@ -85,7 +85,7 @@ async def validate_on_lesson_presence(user_id):
 
 
 async def check_journal_set(state: FSMContext):
-    return await state.get_state() == JournalStatesGroup.set_journal_name
+    return await state.get_state() == SetJournalStatesGroup.set_journal_name
 
 
 @database_sync_to_async

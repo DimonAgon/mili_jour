@@ -9,6 +9,8 @@ from typing import Type
 
 import datetime
 
+from django.utils import timezone
+
 import prettytable
 
 import regex #TODO: swap regex to re, where possible
@@ -25,9 +27,17 @@ def add_profile(data, user_id):
     initial = data
     initial['external_id'], initial['journal'] = user_id, Journal.objects.get(name=data['journal'])
 
+    if Profile.objects.filter(external_id=user_id).exists():
+        Profile.objects.get(external_id=user_id).delete()
+
     new_profile = Profile.objects.create(**initial)
     new_profile.save()
     Profile.objects.get(external_id=user_id)
+
+
+@database_sync_to_async
+def delete_profile(user_id):
+    Profile.objects.get(external_id=user_id).delete()
 
 
 @database_sync_to_async
@@ -35,9 +45,17 @@ def add_journal(data, group_id):
     initial = data
     initial['external_id'] = group_id
 
+    if Journal.objects.filter(external_id=group_id).exists():
+        Journal.objects.get(external_id=group_id).delete()
+
     new_journal = Journal.objects.create(**initial)
     new_journal.save()
     Journal.objects.get(external_id=group_id)
+
+
+@database_sync_to_async
+def delete_journal(group_id):
+    Journal.objects.get(external_id=group_id).delete()
 
 
 def add_journal_entry(initial):
@@ -71,7 +89,7 @@ def initiate_today_entries(today, group_id, lesson=None, mode=default):
     try:
         report_parameters
 
-        if mode == Presence.LIGHT_MODE:
+        if mode == PresenceMode.LIGHT_MODE:
             if (old_mode:= report_parameters.mode) != mode:
                 if JournalEntry.objects.filter(journal=journal, date=today).exists():
                     earliest_lesson_entries = \
@@ -104,7 +122,7 @@ def initiate_today_entries(today, group_id, lesson=None, mode=default):
 
 @database_sync_to_async
 def process_user_on_lesson_presence(is_present, user_id):
-    now = datetime.datetime.now() #TODO: use time for schedule control, use date for entry's date
+    now = timezone.localtime(timezone.now()) #TODO: use time for schedule control, use date for entry's date
     now_time = now.time()
     now_date = now.date()
 
@@ -118,7 +136,7 @@ def process_user_on_lesson_presence(is_present, user_id):
         journal = profile.journal
         report = ReportParameters.objects.get(date=now_date, journal=journal)
         mode = report.mode
-        if not mode == Presence.LIGHT_MODE:
+        if not mode == PresenceMode.LIGHT_MODE:
             corresponding_entry = JournalEntry.objects.get(journal=journal, profile=profile, date=now_date, lesson=lesson)
         else:
             corresponding_entry = JournalEntry.objects.get(journal=journal, profile=profile, date=now_date)
@@ -156,8 +174,9 @@ def amend_statuses(date, group_id):
 @database_sync_to_async
 def on_lesson_presence_check(user_id):
     profile = Profile.objects.get(external_id=user_id)
-    today = datetime.datetime.now().date()
-    current_lesson = Schedule.lesson_match(datetime.datetime.now().time())
+    now = timezone.localtime(timezone.now())
+    today = now.date()
+    current_lesson = Schedule.lesson_match(now.time())
     on_lesson_entry = JournalEntry.objects.get(profile=profile, lesson=current_lesson, date=today)
     presence = on_lesson_entry.is_present
 
@@ -168,14 +187,14 @@ def on_lesson_presence_check(user_id):
 def set_status(data, user_id, lesson=None): #TODO: if today status: status = today status. return
     profile = Profile.objects.get(external_id=user_id)
     journal = profile.journal
-    now = datetime.datetime.now()
+    now = timezone.localtime(timezone.now())
     today = now.date()
     now_time = now.time()
     status = data['status']
     current_lesson = Schedule.lesson_match(now_time)
     report_parameters = ReportParameters.objects.get(journal=journal, date=today)
     mode = report_parameters.mode
-    if mode == Presence.LIGHT_MODE:
+    if mode == PresenceMode.LIGHT_MODE:
         entry = JournalEntry.objects.get(journal=journal, profile=profile, date=today)
 
     else:
@@ -226,7 +245,7 @@ def report_table(report) -> Type[prettytable.PrettyTable]:
     table = prettytable.PrettyTable(headers)
     table.border = False
 
-    if wp_mode == Presence.LIGHT_MODE:
+    if wp_mode == PresenceMode.LIGHT_MODE:
         for entry in entries:
             profile = entry.profile
 
@@ -269,13 +288,13 @@ def all_entries_empty(entries):
 def filled_absence_cell_row(entry, absence_cell):
     status = entry.status
     last_name = regex.match(r'\p{Lu}\p{Ll}+', str(entry.profile)).group(0)
-    absence_cell.append(last_name if not status else last_name + "— " + status)
+    absence_cell.append(last_name if not status else f"{last_name}— {status}")
     return absence_cell
 
 def filled_absence_cell(entries, wp_mode, lesson):
     absence_cell = []
 
-    if wp_mode == Presence.LIGHT_MODE:
+    if wp_mode == PresenceMode.LIGHT_MODE:
         for entry in entries:
             entry_lesson = entry.lesson
             if not entry_lesson or entry_lesson > lesson:
@@ -290,7 +309,7 @@ def filled_absence_cell(entries, wp_mode, lesson):
 
 def summary_row(wp_mode, report_mode, lesson, entries, journal_strength, report_date=None, today=None, now_time=None):
 
-    if wp_mode == Presence.LIGHT_MODE:
+    if wp_mode == PresenceMode.LIGHT_MODE:
 
         absence_cell = filled_absence_cell(entries, wp_mode, lesson)
 
@@ -349,14 +368,14 @@ def report_summary(report, report_mode) -> Type[prettytable.PrettyTable]:
     headers = ["Зан.", "Сп.", "Пр.", "Відсутні"]
     summary = prettytable.PrettyTable(headers)
 
-    if wp_mode == Presence.LIGHT_MODE:
+    if wp_mode == PresenceMode.LIGHT_MODE:
         for lesson in lessons:
             lesson_row = summary_row(wp_mode, report_mode, lesson, entries, journal_strength)
             summary.add_row(lesson_row)
     else:
         ordered_entries = entries.order_by('profile__ordinal')
 
-        now = datetime.datetime.now()
+        now = timezone.localtime(timezone.now())
         now_time = now.time()
         today = now.date()
 
@@ -384,6 +403,15 @@ def get_on_mode_report(group_id, mode, specified_date: datetime=None) -> Type[Re
             corresponding_report = ReportParameters.objects.get(date=specified_date, journal=journal)
 
     return corresponding_report
+
+async def get_journal_dossier(group_id):
+    journal = Journal.objects.get(external_id=group_id)
+    headers = ["№", "Ім'я"]
+    table = prettytable.PrettyTable(headers)
+    for profile in await get_all_journal_profiles(journal):
+        table.add_row([profile.ordinal, profile.name])
+
+    return table
 
 
 @database_sync_to_async

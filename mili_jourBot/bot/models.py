@@ -62,7 +62,7 @@ class ReportParameters(models.Model):
 
         return lessons_integer_list
 
-    mode = models.CharField(max_length=12, choices=Presence.choices, default=default)
+    mode = models.CharField(max_length=12, choices=PresenceMode.choices, default=default)
 
 class PresencePoll(models.Model):
     external_id = models.PositiveIntegerField(verbose_name='Telegram id')
