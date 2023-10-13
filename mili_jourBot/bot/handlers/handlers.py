@@ -467,8 +467,8 @@ async def today_report_command(message: types.Message, flag=ReportMode.Flag.TEXT
     match ReportMode.Flag(flag):
 
         case ReportMode.Flag.TEXT:
-            await message.answer(f"```{str(table)}```", 'Markdown')
-            await message.answer(f"```{str(summary)}```", 'Markdown', disable_notification=True)
+            await message.answer(f"```{table}```", 'Markdown')
+            await message.answer(f"```{summary}```", 'Markdown', disable_notification=True)
 
         case ReportMode.Flag.DOCUMENT:
                 temp_path = os.path.join(tempfile.gettempdir(), os.urandom(24).hex()) + '.docx'
@@ -519,8 +519,8 @@ async def last_report_command(message: types.Message, flag=ReportMode.Flag.TEXT,
     match ReportMode.Flag(flag):
 
         case ReportMode.Flag.TEXT:
-            await message.answer(f"```{str(table)}```", 'Markdown')
-            await message.answer(f"```{str(summary)}```", 'Markdown', disable_notification=True)
+            await message.answer(f"```{table}```", 'Markdown')
+            await message.answer(f"```{summary}```", 'Markdown', disable_notification=True)
 
         case ReportMode.Flag.DOCUMENT:
             temp_path = os.path.join(tempfile.gettempdir(), os.urandom(24).hex()) + '.docx'
@@ -573,8 +573,8 @@ async def on_date_report_command(message: types.Message, additional_arguments=Fa
     match ReportMode.Flag(flag):
 
         case ReportMode.Flag.TEXT:
-            await message.answer(f"```{str(table)}```", 'Markdown')
-            await message.answer(f"```{str(summary)}```", 'Markdown', disable_notification=True)
+            await message.answer(f"```{table}```", 'Markdown')
+            await message.answer(f"```{summary}```", 'Markdown', disable_notification=True)
 
         case ReportMode.Flag.DOCUMENT:
             temp_path = os.path.join(tempfile.gettempdir(), os.urandom(24).hex()) + '.docx'
