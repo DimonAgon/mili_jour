@@ -437,14 +437,11 @@ async def register_journal_command(message: types.Message, state: FSMContext, mo
     logging.info(superuser_key_info_message.format(f"{message.from_user.id} of chat {chat_id}", key))
 
 
-report_commands_superuser_filters_config = (F.chat.type.in_({'private'}), IsSuperUserFilter())
-report_commands_group_admin_filters_config = (F.chat.type.in_({'group', 'supergroup'}), IsAdminFilter())
-
 today_report_command_filters_config = (Command(commands=['today_report', 'tr'], prefix=prefixes),
                                        AftercommandFullCheck(allow_no_argument=True, modes=ReportMode, flag_checking=True))
 
-@reports_router.message(*today_report_command_filters_config, *report_commands_superuser_filters_config)
-@reports_router.message(*today_report_command_filters_config, *report_commands_group_admin_filters_config,)
+@reports_router.message(*today_report_command_filters_config, F.chat.type.in_({'private'}), IsSuperUserFilter())
+@reports_router.message(*today_report_command_filters_config, F.chat.type.in_({'group', 'supergroup'}), IsAdminFilter())
 async def today_report_command(message: types.Message, flag=ReportMode.Flag.TEXT, set_journal_group_id=None):
     group_id = message.chat.id if not set_journal_group_id else set_journal_group_id
     try:
@@ -467,8 +464,8 @@ async def today_report_command(message: types.Message, flag=ReportMode.Flag.TEXT
     match ReportMode.Flag(flag):
 
         case ReportMode.Flag.TEXT:
-            await message.answer(f"```{str(table)}```", 'Markdown')
-            await message.answer(f"```{str(summary)}```", 'Markdown', disable_notification=True)
+            await message.answer(f"```{table}```", 'Markdown')
+            await message.answer(f"```{summary}```", 'Markdown', disable_notification=True)
 
         case ReportMode.Flag.DOCUMENT:
                 temp_path = os.path.join(tempfile.gettempdir(), os.urandom(24).hex()) + '.docx'
@@ -494,8 +491,8 @@ async def today_report_command(message: types.Message, flag=ReportMode.Flag.TEXT
 last_report_command_filters_config = (Command(commands=['last_report', 'lr'], prefix=prefixes),
                                       AftercommandFullCheck(allow_no_argument=True, modes=ReportMode, flag_checking=True))
 
-@reports_router.message(*last_report_command_filters_config, *report_commands_superuser_filters_config)
-@reports_router.message(*last_report_command_filters_config, *report_commands_group_admin_filters_config)
+@reports_router.message(*last_report_command_filters_config, F.chat.type.in_({'private'}), IsSuperUserFilter())
+@reports_router.message(*last_report_command_filters_config, F.chat.type.in_({'group', 'supergroup'}), IsAdminFilter())
 async def last_report_command(message: types.Message, flag=ReportMode.Flag.TEXT, set_journal_group_id=None):
     group_id = message.chat.id if not set_journal_group_id else set_journal_group_id
 
@@ -519,8 +516,8 @@ async def last_report_command(message: types.Message, flag=ReportMode.Flag.TEXT,
     match ReportMode.Flag(flag):
 
         case ReportMode.Flag.TEXT:
-            await message.answer(f"```{str(table)}```", 'Markdown')
-            await message.answer(f"```{str(summary)}```", 'Markdown', disable_notification=True)
+            await message.answer(f"```{table}```", 'Markdown')
+            await message.answer(f"```{summary}```", 'Markdown', disable_notification=True)
 
         case ReportMode.Flag.DOCUMENT:
             temp_path = os.path.join(tempfile.gettempdir(), os.urandom(24).hex()) + '.docx'
@@ -547,8 +544,8 @@ on_date_report_command_filters_config = (Command(commands=['on_date_report', 'od
                                                         modes=ReportMode,
                                                         additional_arguments_checker=date_validator,
                                                         flag_checking=True))
-@reports_router.message(*on_date_report_command_filters_config, *report_commands_superuser_filters_config)
-@reports_router.message(*on_date_report_command_filters_config, *report_commands_group_admin_filters_config)
+@reports_router.message(*on_date_report_command_filters_config, F.chat.type.in_({'private'}), IsSuperUserFilter())
+@reports_router.message(*on_date_report_command_filters_config, F.chat.type.in_({'group', 'supergroup'}), IsAdminFilter())
 async def on_date_report_command(message: types.Message, additional_arguments=False, flag=ReportMode.Flag.TEXT, set_journal_group_id=None):
     date_string = additional_arguments[0]
     date_format = NativeDateFormat.date_format
@@ -573,8 +570,8 @@ async def on_date_report_command(message: types.Message, additional_arguments=Fa
     match ReportMode.Flag(flag):
 
         case ReportMode.Flag.TEXT:
-            await message.answer(f"```{str(table)}```", 'Markdown')
-            await message.answer(f"```{str(summary)}```", 'Markdown', disable_notification=True)
+            await message.answer(f"```{table}```", 'Markdown')
+            await message.answer(f"```{summary}```", 'Markdown', disable_notification=True)
 
         case ReportMode.Flag.DOCUMENT:
             temp_path = os.path.join(tempfile.gettempdir(), os.urandom(24).hex()) + '.docx'
@@ -602,8 +599,8 @@ dossier_command_filters_config = (Command(commands='dossier', prefix=prefixes),
                                                          allow_no_mode=True,
                                                          flag_checking=True))
 
-@reports_router.message(*dossier_command_filters_config, *report_commands_superuser_filters_config)
-@reports_router.message(*dossier_command_filters_config, *report_commands_group_admin_filters_config)
+@reports_router.message(*dossier_command_filters_config, F.chat.type.in_({'private'}), IsSuperUserFilter())
+@reports_router.message(*dossier_command_filters_config, F.chat.type.in_({'group', 'supergroup'}), IsAdminFilter())
 async def dossier_command(message: Message, flag=ReportMode.Flag.TEXT, set_journal_group_id=None):
     group_id = message.chat.id if not set_journal_group_id else set_journal_group_id
     logging.info(report_requested_info_message.format(group_id, 'DOSSIER', flag))
