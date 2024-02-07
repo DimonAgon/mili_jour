@@ -11,7 +11,7 @@ from ..infrastructure.enums import *
 
 from .static_text import *
 
-from ..views import on_lesson_presence_check
+from ..db_actions import on_lesson_presence_check
 
 from ..models import Journal, Superuser, PresencePoll
 

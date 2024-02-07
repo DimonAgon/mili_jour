@@ -20,7 +20,7 @@ from .dispatcher import dp,\
     bot
 from ..models import *
 from ..forms import *
-from ..views import *
+from ..db_actions import *
 from .filters import *
 from .middleware import *
 from ..infrastructure.enums import *

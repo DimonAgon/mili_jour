@@ -10,7 +10,7 @@ from channels.db import database_sync_to_async
 import regex, re #TODO: adapt validators to re, where possible
 
 from bot.handlers.dispatcher import bot
-from .views import *
+from .db_actions import *
 from .models import *
 from .handlers.static_text import *
 
