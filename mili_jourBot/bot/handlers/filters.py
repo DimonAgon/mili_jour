@@ -14,8 +14,11 @@ from .validators import *
 
 from ..infrastructure.enums import *
 
+from ..forms import UserInformStatesGroup
+
 import logging
 
+import re
 
 
 class RegisteredExternalIdFilter(BaseFilter):
@@ -23,18 +26,31 @@ class RegisteredExternalIdFilter(BaseFilter):
 
     def __init__(self, model: Type[models.Model], use_chat_id: bool = False):
         self.model = model
-        self.chat_mode = use_chat_id
+        self.use_chat_id = use_chat_id
 
-    async def __call__(self, message: types.Message) -> bool:
+    async def __call__(self, message: types.Message, command: CommandObject) -> bool:
         @database_sync_to_async
         def on_id_object_exists():
-            if self.chat_mode:
+            if self.use_chat_id:
                 id_ = message.chat.id
             else:
                 id_ = message.from_user.id
-            return not self.model.objects.filter(external_id=id_).exists()
+            return self.model.objects.filter(external_id=id_).exists()
 
-        return await on_id_object_exists()
+        if await on_id_object_exists()\
+                and (mode:=command.args) != RegistrationMode.REREGISTER.value\
+                and mode != RegistrationMode.DELETE.value:
+            if self.use_chat_id:
+                await message.answer(on_id_model_object_exists_error_message_to_group)
+                logging.error(on_id_model_object_exists_logging_error_message_to_group.format(message.chat.id))
+
+            else:
+                await message.answer(on_id_model_object_exists_error_message_to_user)
+                logging.error(on_id_model_object_exists_logging_error_to_user.format(message.from_user.id))
+
+            return False
+
+        return True
 
 class IsAdminFilter(BaseFilter): #TODO: add a middleware to check both is admin or is superuser rights when is admin checking
     key = 'is_admin'
@@ -48,7 +64,13 @@ class IsAdminFilter(BaseFilter): #TODO: add a middleware to check both is admin 
         member = await bot.get_chat_member(chat_id, user_id)
         is_admin = member.status == self.required_auth_level or member.status == self.creator
 
-        return is_admin
+        if is_admin:
+            return True
+
+        else:
+            logging.error(user_unauthorised_as_admin_logging_info_message.format(user_id))
+            await message.answer(user_unauthorised_as_admin_message)
+            return False
 
 class IsSuperUserFilter(BaseFilter):
     async def __call__(self, message: types.Message) -> bool:
@@ -59,9 +81,31 @@ class IsSuperUserFilter(BaseFilter):
                 return True
 
         else:
-            logging.error(f"{user_id} unauthorised as superuser")
-            message.answer("Вас не було авторизовано, як суперкористувача") #TODO: fix, add await
+            logging.error(user_unauthorised_as_superuser_logging_info_message.format(user_id))
+            await message.answer(user_unauthorised_as_superuser_message)
             return False
+
+
+class SuperUserCalledUserToDELETEFilter(BaseFilter):
+    async def __call__(self, message: types.Message, command: CommandObject, state: FSMContext):
+
+        user_id = message.from_user.id
+
+        if await is_superuser(user_id):
+
+            if (mode:=command.args) == RegistrationMode.DELETE.value:
+                if await state.get_state() == UserInformStatesGroup.receiver_id.state and await state.get_data():
+                    return True
+
+                else:
+                    await message.answer(user_not_called_text)
+                    logging.error(no_user_called_logging_error_message.format(user_id))
+
+            else:
+                return True
+
+        else:
+            return True
 
 #TODO: in case of dialoging via call
 # class IsNowSpeaking(BaseFilter):
@@ -176,3 +220,15 @@ class AftercommandFullCheck(BaseFilter): #TODO: pass all arguments to middleware
 
         return True
 
+
+class NoCommandFilter(BaseFilter):
+    async def __call__(self, message: types.Message) -> bool:
+        command_pattern_compiled = re.compile('\/.*')
+
+        return not command_pattern_compiled.fullmatch(message.text)
+
+
+class PresencePollFilter(BaseFilter):
+    async def __call__(self, poll_answer: types.PollAnswer) -> bool:
+
+        return await is_presence_poll(poll_answer.poll_id)

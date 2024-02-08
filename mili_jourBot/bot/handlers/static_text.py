@@ -3,45 +3,171 @@ from typing import Type
 
 from ..infrastructure.enums import PresencePollOptions
 
-#greeting
+#handlers
+#message
+
+profile_does_not_exist_text = "Помилка, профіль не існує"
+
+journal_does_not_exist_text = "Помилка, журнал не існує"
+
+#command
+#start
 greeting_text = "Mili_jour (Military Journal)." \
                " Бота створено для підтримки роботи командирського складу учбових взводів." \
-               " Надано можливість ведення журналу відвідувань через команди. Проект на стадії розробки." \
-               " Дійовість деяких аспектів буде перевірена та перероблена за необхідності."
+               " Надано можливість ведення журналу відвідувань через команди."
 
-#HELP
+#help
 HELPFUL_REPLY = f"Для роботи необхідно виконати реєстрацію журналу взводу та ЗАРЕЕСТРУВАТИСЬ." \
                     "\nПодальше, право на взаємодію із ботом покладається на командирський склад." \
+                    "\n" \
+                    "\nСтандартний вигляд команди:" \
+                    "\n     команда мод агрументи флаг" \
+                    "\n" \
+                    "\nПриклади команд:" \
+                    "\n     /odr 01.01.1001 doc" \
+                    "\n     /p 1 2 3 4 5" \
+                    "\n     /register re" \
+                    "\n"\
                     "\nСписок команд наведено нижче:" \
                     "\n/start– введення у бот" \
                     "\n/help– інструкція до взаємодії із ботом" \
+                    "\n" \
+                    "\n          Розділ Реєстрація" \
                     "\n/register– реєструвати профіль" \
                     "\n/register_journal– створити журнал відвідувань" \
-                    "\n/cancel– відмінити реєстрацію aбо вказання причини відсутності" \
-                    "\n/who_s_present– створити опитування щодо присутності" \
-                    "\n/absence_reason– вказати причину відсутності" \
-                    "\n/today_report– викликати звіт за сьогоднішній день" \
-                    "\n/last_report– викликати останній звіт" \
-                    "\n/on_date_report– викликати звіт за датою"
+                    "\n            флаги розділу:" \
+                    "\n   {" \
+                    "\n    re– перереєструвати" \
+                    "\n    delete– видалити" \
+                    "\n    }" \
+                    "\n" \
+                    "\n/presence /p– створити опитування щодо присутності" \
+                    "\n                моди:" \
+                    "\n   {" \
+                    "\n    normal[N](за замовчуванням)–" \
+                    "\n         створити опитування на кожне заняття" \
+                    "\n    light[L]– створити опитування лише один раз," \
+                    "\n         (відмічатися лише, коли прибув(ла) на заняття)" \
+                    "\n    hardcore[H]– cтворити опитування на кожне заняття," \
+                    "\n         в випадковий момент заняття" \
+                    "\n    }" \
+                    "\n" \
+                    "\n/absence_reason /ar– вказати причину відсутності" \
+                    "\n" \
+                    "\n           Розділ Звіти" \
+                    "\n/today_report /tr– викликати звіт за сьогоднішній день" \
+                    "\n/last_report /lr– викликати останній звіт" \
+                    "\n/on_date_report /odr– викликати звіт за датою," \
+                    "\n     формат дати: день.місяць.рік" \
+                    "\n/dossier– викликати список студентів" \
+                    "\n            флаги розділу:" \
+                    "\n   {" \
+                    "\n    text(за замовчуванням)–" \
+                    "\n         викликати в текстовому форматі" \
+                    "\n    doc– викликати в форматі файлу" \
+                    "\n    }" \
+                    "\n" \
+                    "\n/set_journal /sj– відкрити журнал певного взводу" \
+                    "\n" \
+                    "\n/call- викликати студента за ім'ям," \
+                    "\n     щоб надіслати йому повідомлення" \
+                    "\n/groupcall /gc– викликати взвод за номером," \
+                    "\n     щоб зробити об'яву" \
+                    "\n" \
+                    "\n/cancel– скасувати ввід даних" \
+                    "\n/leave_chat_delete_journal– видалити журнал," \
+                    "\n     покинути групу" \
 
 #registration
+#profile
 profile_registration_text = "ініціюю реєстрацію"
 
+#group
 group_registration_text = "Ініціюю реєстрацію взводу"
 
-canceling_text = "Процес вводу було перервано"
+#superuser
+key_is_unauthentic_text = "Ключ суперкористувача не є дійсним. Ввeсти ключ повторно"
 
-#absence
+#presence
+lesson_skipped_text = "Заняття {} пропущено, час заняття вичерпано"
+
+#absence_reason
 absence_reason_share_suggestion_text = "Вказати причину відстутності? Т/Н"
 
-#comands
+#report
+report_text = "Таблиця присутності, Звіт за {}"
+
+#set_journal
+journal_set_text = "Журнал взводу {} відкрито"
+
+#call
 enter_profile_name_message = "Ввести Прізвище та Ім'я студента"
+user_inform_text = "Студенту {}, надіслати наступні повідомлення"
+user_not_called_text = "Не було звернено до студента"
+
+#groupcall
+enter_journal_name_message = "Ввести номер взводу"
+group_inform_text = "Взвод {} сповістити:"
+
+#cancel
+data_input_canceling_message = "Ввід даних скасовано"
+
+absence_reason_share_canceling_message = "Вказання причини відсутності перервано"
+
+journal_unset_message = "Журнал закрито"
+
+call_canceling_message = "Прийняття повідомлень завершено"
+
+group_inform_canceling_message = "Оповіщення скасовано"
+
+no_state_message = "Стан не встановлено, або було скасовано"
+
+#leave_chat_delete_journal
+user_requested_bot_leave_chat_delete_journal_logging_info_message = "user {} requested bot to leave chat and delete journal at {}"
+
+journal_deleted_logging_info_message = "journal of group {} deleted"
+
+journal_deleted_text = "Ваш журнал видалено"
+
+group_leaved_logging_info_message = "bot has leaved chat group {}"
+
+#poll
+
+absence_reason_input_suggested_logging_info_message = "absence reason input suggested for user {}"
 
 #states
 inform_message = "Повідомлення від викладача:"
 
-#filters
+group_inform_message = "Об'ява:"
+
 is_not_now_speaking_error_message = "*дочекатись відповіді співрозмовника"
+
+#filters
+#RegisteredExternalIdFilter
+
+on_id_model_object_exists_error_message_to_user = "Помилка, вас вже було зареєстровано"
+
+on_id_model_object_exists_logging_error_to_user = "failed to create a profile for user {}, profile already exists"
+
+on_id_model_object_exists_error_message_to_group = "Помилка, ваш взвод вже було зареєстровано"
+
+on_id_model_object_exists_logging_error_message_to_group = "failed to create a journal for group {}, journal already exists"
+
+#IsAdmin
+
+user_unauthorised_as_admin_logging_info_message = "user {} unauthorised as a admin"
+
+user_unauthorised_as_admin_message = "Вас не розпізнано, як адміна групи"
+
+#IsSuperUser
+
+user_unauthorised_as_superuser_logging_info_message = "user {} unauthorised as a superuser"
+
+user_unauthorised_as_superuser_message = "Вас не було авторизовано, як суперкористувача"
+
+#middleware
+
+no_journal_set_message = "Журнал не було відкрито, необхідно відкрити журнал"
 
 #presence options
 def presence_option_to_string(presence_option: Type[PresencePollOptions]):
@@ -68,10 +194,10 @@ out_of_lesson_absence_reason_sharing_error_message = "Помилка, причи
 
 on_present_absence_reason_sharing_error_message = "Помилка, вас відмічено як присутнього"
 
-on_invalid_date_report_error_message = "Помилка, задана дата не відповідає жодному звіту взводу"
+invalid_parameters_report_error_message = "Помилка, за даними параметрами не знайдено жодного звіту взводу"
 
 #forms validation
-name_format_validation_error_message = "Ввести ім'я коректно"
+name_format_validation_error_message = "Ввести Прізвище, ім'я коректно"
 
 name_availability_validation_error_message = "Профіль вже зареєстровано"
 
@@ -108,6 +234,10 @@ profile_form_callback_message = "Профіль зареєстровано"
 
 journal_form_callback_message = "Журнал відвідувань до взводу створено"
 
+profile_deleted_callback_message = "профіль видалено"
+
+journal_deleted_callback_message = "журнал видалено"
+
 absence_reason_form_сallback_text = "Причину записано"
 
 on_registration_fail_text = "Помилка, реєстрацію скасовано"
@@ -115,5 +245,100 @@ on_registration_fail_text = "Помилка, реєстрацію скасова
 absence_reason_fail_text = "Помилка, причину не записано"
 
 #logging
+#info
+statuses_amended_for_group_info_message = "statuses amended for group {}"
+
+lesson_poll_sent_to_group_info_message = "lesson {} poll sent to {}"
+
+lesson_poll_stopped_info_message = "lesson {} poll has been stopped at {}"
+
+data_entering_canceled_message = "data entering canceled at {}"
+
+poll_expected_info_message = "poll for group {} expected in {} seconds"
+
+poll_sent_info_message = "poll sent to {} mode: {}"
+
+poll_expected_to_stop_info_message = "poll for group {} expected to stop in {} seconds"
+
+poll_stopped_info_message = "poll has been stopped at {}"
+
+poll_answer_info_message = "poll answer {}:{} from {}"
+
+presence_set_for_user_info_message = "presence set for user {}"
+
+absence_reason_form_initiated_info_message = "absence reason form initiated for user {}"
+
+superuser_created_info_message = "A superuser created for user_id {}"
+
+superuser_registration_form_initiated_info_message = "superuser registration form initiated for user {}"
+
+superuser_key_info_message = 'user {} superuser key: {}'
+
+profile_registration_form_initiated_info_message = "profile registration form initiated for user {}, mode: {}"
+
+profile_created_info_message = "A profile created for user_id {}"
+
+profile_reregistered_infor_message = "Profile of user {} has been reregistered"
+
+profile_deleted_info_message = "Profile of user {} deleted"
+
+journal_registration_form_initiated_info_message = "journal registration form initiated at {}, mode: {}"
+
+journal_created_info_message = "A journal created for group_id {}"
+
+report_requested_info_message = "report requested at {}, mode: {}, flag: {}"
+
+today_report_initiated_info_message = "today report initiated for group {}, mode: {}"
+
+today_entries_initiated_info_message = "today entries initiated for group {}"
+
+lesson_entries_initiated_info_message = "lesson {} entries initiated for group {}"
+
+#presence poll
+on_lesson_presence_poll_expected_info_message = "poll for group {} for lesson {} expected in {} seconds"
+
+presence_poll_added_info_message = "poll {} added"
+
+on_lesson_presence_poll_expected_to_stop_info_message = "poll for group {} for lesson {} expected to stop in {} seconds"
+
+presence_poll_deleted_info_message = "poll {} deleted"
+
+#error
+#command
+#args
+no_arguments_logging_error_message = "Command initiation failed\nError: no arguments expected"
+
+#presence
+lesson_skipped_logging_error_message = "lesson {} iteration skipped, lesson time is over"
+
+#registration
+#superuser
+superuser_creation_error_message = "Failed to create a superuser for user_id {}\nError:{}"
+
+#absence_reason
+absence_reason_set_impossible_error_message = "Absence reason set is impossible for user {}, is_present: True"
+
+#profile
+profile_creation_error_message = "Failed to create a profile for user_id {}\nError:{}"
+
+profile_deletion_error_message = "Failed to delete profile of user {}\nError:{}"
+
+#journal
+journal_creation_error_message = "Failed to create a journal for group_id {}\nError:{}"
+
+journal_deletion_error_message = "Failed to delete journal of group_id {}\nError:{}"
+
+#status
+status_set_error_message = "Failed to set a status for journal_entry for an entry of profile of user id of {}\nError:{}"
+
+#report
+get_report_failed_error_message = "get report failed for {}, wrong parameters"
+
+#set journal
+no_journal_set_error_message = "no journal set for superuser {}"
+
+#call
+no_user_called_logging_error_message = "no user has been called with user {}"
+
 
 

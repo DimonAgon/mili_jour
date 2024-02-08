@@ -9,7 +9,8 @@ from channels.db import database_sync_to_async
 
 import regex, re #TODO: adapt validators to re, where possible
 
-from .views import *
+from bot.handlers.dispatcher import bot
+from .db_actions import *
 from .models import *
 from .handlers.static_text import *
 
@@ -85,13 +86,16 @@ def validate_super_user_key(value: str, authentic_key, user_id):
 
     if not value == authentic_key:
 
-        raise DjangoCoreValidationError(f"Failed to create superuser for user {user_id}, superuser key is unauthentic", code='superuser_key')
+        raise DjangoCoreValidationError(f"user {user_id} superuser key is unauthentic", code='superuser_key')
 
+
+class UserLeftGroupException(Exception):
+    pass
 
 @dispatcher.register('profileform')
 class ProfileForm(Form):
-    journal = fields.TextField(journal_field_message, validators=[validate_journal_format, validate_journal_name_available])
-    name = fields.TextField(name_field_message, validators=[validate_name_format, validate_name_available]) # TODO: accent on order
+    journal = fields.TextField(journal_field_message, validators=[validate_journal_format, check_journal_exists])
+    name = fields.TextField(name_field_message, validators=[validate_name_format]) # TODO: accent on order
     ordinal = fields.TextField(ordinal_field_message, validators=[validate_ordinal_format])
 
     @classmethod
@@ -99,26 +103,29 @@ class ProfileForm(Form):
 
         data = await forms.get_data(ProfileForm)
         user_id = message.from_user.id
-        # if not Profile.objects.filter(external_id=user_id).exists():
+        journal = await get_journal_by_name_async(data['journal'])
+        journal_group_id = journal.external_id
+
 
         try:
-            await add_profile(data, user_id)
-            await message.answer(text=profile_form_callback_message)
-            logging.info(f"A profile created for user_id {user_id}")
+            status = await bot.get_chat_member(journal_group_id, user_id)
+            if status.status == 'left':
+                raise UserLeftGroupException
+
+            else:
+                await add_profile(data, user_id)
+                await message.answer(text=profile_form_callback_message)
+                logging.info(profile_created_info_message.format(user_id))
 
 
         except Exception as e:
             await message.answer(text=on_registration_fail_text)
-            logging.error(f"Failed to create a profile for user_id {user_id}\nError:{e}")
-
-        # else:
-        #     await message.answer(text="Помилка, профіль за цим telegram-ID існує")
-
+            logging.error(profile_creation_error_message.format(user_id, e))
 
 
 @dispatcher.register('journalform')
 class JournalForm(Form):
-    name = fields.TextField(journal_field_message, validators=[validate_journal_format, validate_journal_name_available])
+    name = fields.TextField(journal_field_message, validators=[validate_journal_format])
     strength = fields.TextField(strength_field_message, validators=[validate_strength_format])
 
     @classmethod
@@ -126,19 +133,15 @@ class JournalForm(Form):
 
         data = await forms.get_data(JournalForm)
         group_id = message.chat.id
-        # if not Profile.objects.filter(external_id=group_id).exists():
 
         try:
             await add_journal(data, group_id)
             await message.answer(text=journal_form_callback_message)
-            logging.info(f"A journal created for group_id {group_id}")
+            logging.info(journal_created_info_message.format(group_id))
 
         except Exception as e:
             await message.answer(text=on_registration_fail_text) #Does not work, no message
-            logging.error(f"Failed to create a journal for group_id {group_id}\nError:{e}")
-
-        # else:
-        #     await message.answer(text="Помилка, журнал за цим telegram-ID існує")
+            logging.error(journal_creation_error_message)
 
 
 @dispatcher.register('absenceform')
@@ -158,17 +161,26 @@ class AbsenceReason(Form):
 
         except Exception as e:
             await message.answer(text=absence_reason_fail_text)
-            logging.error(f"Failed to set a status for journal_entry for an entry of profile of user id of {user_id}\nError:{e}")
+            logging.error(status_set_error_message.format(user_id, e))
 
 
 class SuperuserKeyStates(StatesGroup): key = State()
 
+class JournalRegistrationStates(StatesGroup):
+    key = State()
+    set_journal_group_id = State()
+    mode = State()
+
 class AbsenceReasonStates(StatesGroup): AbsenceReason = State()
 
-class JournalStatesGroup(StatesGroup):
+class SetJournalStatesGroup(StatesGroup):
     setting_journal = State()
     set_journal_name = State()
 
-class InformStatesGroup(StatesGroup):
+class UserInformStatesGroup(StatesGroup):
+    call = State()
+    receiver_id = State()
+
+class GroupInformStatesGroup(StatesGroup):
     call = State()
     receiver_id = State()

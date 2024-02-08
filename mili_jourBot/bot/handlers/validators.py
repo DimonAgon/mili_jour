@@ -11,11 +11,11 @@ from ..infrastructure.enums import *
 
 from .static_text import *
 
-from ..views import on_lesson_presence_check
+from ..db_actions import on_lesson_presence_check
 
-from ..models import Journal, Superuser
+from ..models import Journal, Superuser, PresencePoll
 
-from ..forms import JournalStatesGroup
+from ..forms import SetJournalStatesGroup
 
 from aiogram.fsm.context import FSMContext
 
@@ -85,7 +85,7 @@ async def validate_on_lesson_presence(user_id):
 
 
 async def check_journal_set(state: FSMContext):
-    return await state.get_state() == JournalStatesGroup.set_journal_name
+    return await state.get_state() == SetJournalStatesGroup.set_journal_name
 
 
 @database_sync_to_async
@@ -93,3 +93,6 @@ def is_superuser(user_id):
     return Superuser.objects.filter(external_id=user_id).exists()
 
 
+@database_sync_to_async
+def is_presence_poll(poll_id):
+    return PresencePoll.objects.filter(external_id=poll_id).exists()
