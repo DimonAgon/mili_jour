@@ -7,12 +7,11 @@ from aiogram.filters.state import State, StatesGroup
 
 from channels.db import database_sync_to_async
 
-import regex, re #TODO: adapt validators to re, where possible
-
 from bot.handlers.dispatcher import bot
 from .db_actions import *
 from .models import *
 from .handlers.static_text import *
+from misc.re_patterns import *
 
 import logging
 from django.core.exceptions import ValidationError as DjangoCoreValidationError
@@ -23,8 +22,6 @@ from key_generator.key_generator import generate
 #TODO: add an ordinal filter
 #TODO forms: add logging errors for all the validations
 def validate_name_format(value: str):
-
-    name_rePattern = "\p{Lu}\p{Ll}+\s\p{Lu}\p{Ll}+(?:[-]\p{Lu}\p{Ll}+)?" #for any language
 
     if not regex.fullmatch(pattern=name_rePattern, string=value):
 
@@ -40,8 +37,6 @@ def validate_name_available(value: str):
 
 
 def validate_journal_format(value: str):
-
-    journal_rePattern = "(?!0)\d{3}"
 
     if not regex.fullmatch(pattern=journal_rePattern, string=value):
 
@@ -66,16 +61,12 @@ def check_journal_exists(value: str):
 
 def validate_ordinal_format(value: str):
 
-    ordinal_rePattern = "(?!0)\d{1,2}"
-
     if not regex.fullmatch(pattern=ordinal_rePattern, string=value):
 
         raise ValidationError(ordinal_format_validation_error_message, code='regex_match')
 
 
 def validate_strength_format(value: str):
-
-    sterngth_rePattern = "(?!0)\d{2}"
 
     if not regex.fullmatch(pattern=sterngth_rePattern, string=value):
 
