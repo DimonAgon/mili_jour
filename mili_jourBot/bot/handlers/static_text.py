@@ -3,6 +3,8 @@ from typing import Type
 
 from ..infrastructure.enums import PresencePollOptions
 
+from prettytable import PrettyTable
+
 #handlers
 #message
 
@@ -96,6 +98,15 @@ absence_reason_share_suggestion_text = "Вказати причину відст
 
 #report
 report_text = "Таблиця присутності, Звіт за {}"
+
+#redo_report
+redo_report_suggestion = "Надати таблицю присутності виду"
+report_example = PrettyTable()
+report_example.border = False
+report_example.field_names = ["Студент", "n(заняття)"]
+row = ["Xxxxxxx", "?"]
+report_example.add_rows((row, row))
+report_example_text = str(report_example)
 
 #set_journal
 journal_set_text = "Журнал взводу {} відкрито"
@@ -213,6 +224,8 @@ ordinal_format_validation_error_message = "Ввести номер корект�
 
 strength_format_validation_error_message = "Ввести чисельність коректно"
 
+report_format_validation_error_message = "Надати таблицю присутності вказаного виду"
+
 #forms
 #fields
 superuser_key_field_message = "Ввести ключ суперкористувача"
@@ -234,6 +247,8 @@ profile_form_callback_message = "Профіль зареєстровано"
 
 journal_form_callback_message = "Журнал відвідувань до взводу створено"
 
+report_redone_callback_message = "виправлення внесено до записів звіту"
+
 profile_deleted_callback_message = "профіль видалено"
 
 journal_deleted_callback_message = "журнал видалено"
@@ -243,6 +258,8 @@ absence_reason_form_сallback_text = "Причину записано"
 on_registration_fail_text = "Помилка, реєстрацію скасовано"
 
 absence_reason_fail_text = "Помилка, причину не записано"
+
+report_redo_fail_text = "Помилка, виправлення до записів звіту не було внесено"
 
 #logging
 #info
@@ -287,6 +304,10 @@ journal_registration_form_initiated_info_message = "journal registration form in
 journal_created_info_message = "A journal created for group_id {}"
 
 report_requested_info_message = "report requested at {}, mode: {}, flag: {}"
+
+report_redo_requested_info_message = "redo requested on report on {} for {}"
+
+report_redone_info_message = "report on {} redone for {}"
 
 today_report_initiated_info_message = "today report initiated for group {}, mode: {}"
 
@@ -333,6 +354,9 @@ status_set_error_message = "Failed to set a status for journal_entry for an entr
 
 #report
 get_report_failed_error_message = "get report failed for {}, wrong parameters"
+
+#redo_report
+report_redo_failed_error_message = "report on {} redo failed for {}"
 
 #set journal
 no_journal_set_error_message = "no journal set for superuser {}"

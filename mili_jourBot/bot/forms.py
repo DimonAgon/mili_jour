@@ -23,7 +23,7 @@ from key_generator.key_generator import generate
 #TODO forms: add logging errors for all the validations
 def validate_name_format(value: str):
 
-    if not regex.fullmatch(pattern=name_rePattern, string=value):
+    if not regex.fullmatch(pattern=full_name_rePattern, string=value):
 
         raise ValidationError(name_format_validation_error_message, code='regex_match')
 
@@ -78,6 +78,7 @@ def validate_super_user_key(value: str, authentic_key, user_id):
     if not value == authentic_key:
 
         raise DjangoCoreValidationError(f"user {user_id} superuser key is unauthentic", code='superuser_key')
+        #  TODO: move string to static_text.py
 
 
 class UserLeftGroupException(Exception):
@@ -175,3 +176,7 @@ class UserInformStatesGroup(StatesGroup):
 class GroupInformStatesGroup(StatesGroup):
     call = State()
     receiver_id = State()
+
+class ReportRedoStatesGroup(StatesGroup):
+    redoing = State()
+    date: datetime.datetime = State()

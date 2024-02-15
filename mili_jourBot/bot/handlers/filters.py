@@ -126,7 +126,7 @@ class SuperUserCalledUserToDELETEFilter(BaseFilter):
 class AftercommandFullCheck(BaseFilter): #TODO: pass all arguments to middleware to handler
     key = 'aftercommand'
 
-    def __init__(self, allow_no_argument: bool, modes: Enum, mode_checking: bool=False, allow_no_mode: bool=False,
+    def __init__(self, allow_no_argument: bool, modes: Enum=None, mode_checking: bool=False, allow_no_mode: bool=False,
                  additional_arguments_checker: Type[AdditionalArgumentsValidator]=None,
                  flag_checking=False):
         """

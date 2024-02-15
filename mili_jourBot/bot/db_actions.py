@@ -1,11 +1,13 @@
+import re
 
 from .models import *
 from .forms import *
 from .infrastructure.enums import *
+from misc.re_patterns import *
 
 from channels.db import database_sync_to_async
 
-from typing import Type
+from typing import Type, List
 
 import datetime
 
@@ -403,6 +405,35 @@ def get_on_mode_report(group_id, mode, specified_date: datetime=None) -> Type[Re
             corresponding_report = ReportParameters.objects.get(date=specified_date, journal=journal)
 
     return corresponding_report
+
+
+@database_sync_to_async
+def redo_entries_by_report_row(report_row_match: Type[re.Match], group_id, date, lessons: List[int]):
+    name_part = report_row_match.group(1)
+    report_marks = report_row_match.group(2)
+    report_marks_split: list = report_marks.split()
+
+    journal = Journal.objects.get(external_id=group_id)
+    journal_profiles = Profile.objects.filter(journal=journal)
+    for profile in journal_profiles:
+        if name_part in profile.name:
+            target_profile = profile
+            break
+    else:
+        None
+
+    if target_profile:
+        on_date_profile_entries = JournalEntry.objects.filter(profile=target_profile, date=date).order_by('lesson')
+        on_date_profile_lessons_entries: list = [entry for entry in on_date_profile_entries if entry.lesson in lessons]
+        for mark, lesson_entry in zip(report_marks_split, on_date_profile_lessons_entries):
+            if mark == '·':
+                lesson_entry.is_present = True
+            elif mark == 'н':
+                lesson_entry.is_present = False
+            else:
+                lesson_entry.is_present = None
+            lesson_entry.save()
+
 
 async def get_journal_dossier(group_id):
     journal = Journal.objects.get(external_id=group_id)

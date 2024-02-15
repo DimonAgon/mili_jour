@@ -17,7 +17,11 @@ from ..models import Journal, Superuser, PresencePoll
 
 from ..forms import SetJournalStatesGroup
 
+from misc.re_patterns import *
+
 from aiogram.fsm.context import FSMContext
+
+import regex
 
 
 
@@ -76,12 +80,23 @@ def validate_date_format(value):
 date_validator = AdditionalArgumentsValidator(validate_date_format, wrong_date_validation_error_message)
 
 
-async def validate_on_lesson_presence(user_id):
+async def validate_on_lesson_presence(user_id): #TODO: check
     try:
         await on_lesson_presence_check(user_id)
 
     except:
         raise ValidationError(f"failed to set a status for user {user_id}, lesson is None", code='presence check')
+    #  TODO: move string to static_text.py
+
+
+def validate_report_format(value: str):
+
+    if not regex.fullmatch(pattern=report_rePattern, string=value):
+
+        raise ValidationError("report foramt validation failed", code='regex_match')
+
+    else:
+        return True
 
 
 async def check_journal_set(state: FSMContext):

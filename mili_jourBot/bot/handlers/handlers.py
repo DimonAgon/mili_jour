@@ -26,6 +26,7 @@ from .middleware import *
 from ..infrastructure.enums import *
 from ..infrastructure import enums
 from .static_text import *
+from misc.re_patterns import *
 
 import asyncio
 
@@ -547,7 +548,7 @@ on_date_report_command_filters_config = (Command(commands=['on_date_report', 'od
 @reports_router.message(*on_date_report_command_filters_config, F.chat.type.in_({'private'}), IsSuperUserFilter())
 @reports_router.message(*on_date_report_command_filters_config, F.chat.type.in_({'group', 'supergroup'}), IsAdminFilter())
 async def on_date_report_command(message: types.Message, additional_arguments=False, flag=ReportMode.Flag.TEXT, set_journal_group_id=None):
-    date_string = additional_arguments[0]
+    date_string = additional_arguments[0] #TODO: fix additional_arguments duplication
     date_format = NativeDateFormat.date_format
     date = datetime.datetime.strptime(date_string, date_format).date()
 
@@ -622,6 +623,59 @@ async def dossier_command(message: Message, flag=ReportMode.Flag.TEXT, set_journ
             input_file = types.FSInputFile(temp_path)
             await message.answer_document(input_file)
 
+
+@reports_router.message(ReportRedoStatesGroup.redoing, NoCommandFilter())
+async def report_redo(message: Message, state: FSMContext, set_journal_group_id=None):
+    group_id = message.chat.id if not set_journal_group_id else set_journal_group_id
+
+    try:
+        data = await state.get_data()
+        date = data['date']
+        string_date = str(date)
+
+        slash_n_free_message_text = message.text.replace("\n", "")
+
+        if validate_report_format(slash_n_free_message_text): #TODO: add name-in-journal check via regex by adding journal\
+            report = slash_n_free_message_text #TODO:                                                     names to pattern
+            report_headers_match = re.search(report_headers_rePattern, report)
+            lessons_string = report_headers_match.group(2)
+            lessons_string_split: list = lessons_string.split()
+            lessons: list = [int(l) for l in lessons_string_split]
+            report_rows = regex.finditer(report_row_rePattern, report)
+            for row_match in report_rows:
+                await redo_entries_by_report_row(row_match, group_id, date, lessons)
+
+            logging.info(report_redone_info_message.format(string_date, group_id))
+            await message.answer(report_redone_callback_message)
+
+        else:
+            await message.answer(report_format_validation_error_message)
+            return
+
+    except Exception:
+        logging.error(report_redo_failed_error_message.format(string_date, group_id))
+        await message.answer(report_redo_fail_text)
+
+redo_report_filters_config = (Command(commands=['redo_report', 'rr'], prefix=prefixes),
+                              AftercommandFullCheck(
+                                  allow_no_argument=False,
+                                  allow_no_mode=False,
+                                  additional_arguments_checker=date_validator))  #TODO: add flags (show_current, get example)
+
+@reports_router.message(F.chat.type.in_({'private'}), IsSuperUserFilter(), *redo_report_filters_config)
+@reports_router.message(F.chat.type.in_({'group', 'supergroup'}), IsAdminFilter(), *redo_report_filters_config)
+async def redo_report_command(message: Message, state: FSMContext, additional_arguments):
+    chat_id = message.chat.id
+
+    await message.answer(redo_report_suggestion)
+    await message.answer(f"```{report_example_text}```", parse_mode='Markdown')
+    await state.set_state(ReportRedoStatesGroup.date)
+    date_string = additional_arguments[0]
+    date_format = NativeDateFormat.date_format
+    date = datetime.datetime.strptime(date_string, date_format).date()
+    await state.update_data(date=date)
+    await state.set_state(ReportRedoStatesGroup.redoing)
+    logging.info(report_redo_requested_info_message.format(str(date), chat_id))
 
 
 @commands_router.message(SetJournalStatesGroup.setting_journal, NoCommandFilter(), F.chat.type.in_({'private'}))
