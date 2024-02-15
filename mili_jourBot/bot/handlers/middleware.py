@@ -14,6 +14,8 @@ from .validators import *
 from ..forms import *
 from ..db_actions import *
 
+from django.core.exceptions import ValidationError
+
 
 
 class SuperuserSetJournal(BaseMiddleware):
@@ -46,6 +48,7 @@ class ApplyArguments(BaseMiddleware):
                        handler: Callable[[Message, Dict[str, Any]], Awaitable[Any]],
                        event: Message,
                        data: Dict[str, Any]) -> Any:
+
         try:
             arguments = data['command'].args.split()
 
@@ -53,7 +56,6 @@ class ApplyArguments(BaseMiddleware):
             return await handler(event, data)
 
         pseudo_mode = arguments[0]
-        additional_arguments = arguments[1: -1]
 
         for modes in all_modes:
             try:
@@ -62,29 +64,38 @@ class ApplyArguments(BaseMiddleware):
                 data['mode'] = mode
                 break
 
-            except Exception: continue
+            except ValidationError:
+                continue
 
-        else: additional_arguments.insert(0, pseudo_mode)
+        else:
+            mode = None
 
         pseudo_flag = arguments[-1]
 
-        try:
-            mode
-            validate_is_mode(pseudo_flag, modes.Flag)
-            flag = pseudo_flag
-            data['flag'] = flag
+        if mode:
+            try:
+                validate_is_mode(pseudo_flag, modes.Flag)
+                flag = pseudo_flag
+                data['flag'] = flag
 
-        except Exception:
+            except Exception:
+                flag = None
+
+        else:
             for modes in all_modes:
                 try:
                     validate_is_mode(pseudo_flag, modes.Flag)
                     flag = pseudo_flag
                     data['flag'] = flag
+                    break
 
                 except Exception:
                     continue
 
-            else: additional_arguments.append(pseudo_flag)
+            else:
+                flag = None
+
+        additional_arguments = tuple(set(arguments) - set((mode, flag)))
 
         if additional_arguments:
             data['additional_arguments'] = additional_arguments
