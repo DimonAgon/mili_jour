@@ -671,7 +671,7 @@ redo_report_filters_config = (Command(commands=['redo_report', 'rr'], prefix=pre
 
 @reports_router.message(F.chat.type.in_({'private'}), IsSuperUserFilter(), *redo_report_filters_config)
 @reports_router.message(F.chat.type.in_({'group', 'supergroup'}), IsAdminFilter(), *redo_report_filters_config)
-async def redo_report_command(message: Message, state: FSMContext, additional_arguments):
+async def redo_report_command(message: Message, state: FSMContext, additional_arguments): #TODO: fix superusage state bug
     chat_id = message.chat.id
 
     await message.answer(redo_report_suggestion)
