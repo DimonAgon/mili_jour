@@ -13,7 +13,7 @@ from .static_text import *
 
 from ..db_actions import on_lesson_presence_check
 
-from ..models import Journal, Superuser, PresencePoll
+from ..models import Journal, Superuser, PresencePoll, Profile
 
 from ..forms import SetJournalStatesGroup
 
@@ -94,6 +94,21 @@ def validate_report_format(value: str):
     if not regex.fullmatch(pattern=report_rePattern, string=value):
 
         raise ValidationError("report foramt validation failed", code='regex_match')
+
+    else:
+        return True
+
+
+@database_sync_to_async
+def validate_report_name_references(value: str, journal):
+    names_matches = regex.finditer(f"{full_name_rePattern}|{name_rePattern}", value) #order inside pattern matters
+    names = [match.group() for match in names_matches]
+    names.remove("Студент")
+    journal_profiles = Profile.objects.filter(journal=journal)
+    referred_profiles = [profile for profile in journal_profiles if any(name in profile.name for name in names)]
+
+    if not len(names) == len(referred_profiles):
+        raise ValidationError("report name references validation failed", code='name references check')
 
     else:
         return True

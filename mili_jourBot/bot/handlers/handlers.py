@@ -634,6 +634,7 @@ async def dossier_command(message: Message, flag=ReportMode.Flag.TEXT, set_journ
 @reports_router.message(ReportRedoStatesGroup.redoing, NoCommandFilter())
 async def report_redo(message: Message, state: FSMContext, set_journal_group_id=None):
     group_id = message.chat.id if not set_journal_group_id else set_journal_group_id
+    journal = await get_journal_by_external_id_async(group_id)
 
     try:
         data = await state.get_data()
@@ -642,18 +643,23 @@ async def report_redo(message: Message, state: FSMContext, set_journal_group_id=
 
         slash_n_free_message_text = message.text.replace("\n", "")
 
-        if validate_report_format(slash_n_free_message_text): #TODO: add name-in-journal check via regex by adding journal\
-            report = slash_n_free_message_text #TODO:                                                     names to pattern
-            report_headers_match = re.search(report_headers_rePattern, report)
-            lessons_string = report_headers_match.group(2)
-            lessons_string_split: list = lessons_string.split()
-            lessons: list = [int(l) for l in lessons_string_split]
-            report_rows = regex.finditer(report_row_rePattern, report)
-            for row_match in report_rows:
-                await redo_entries_by_report_row(row_match, group_id, date, lessons)
+        if validate_report_format(slash_n_free_message_text):
+            if await validate_report_name_references(slash_n_free_message_text, journal):
+                report = slash_n_free_message_text
+                report_headers_match = re.search(report_headers_rePattern, report)
+                lessons_string = report_headers_match.group(2)
+                lessons_string_split: list = lessons_string.split()
+                lessons: list = [int(l) for l in lessons_string_split]
+                report_rows = regex.finditer(report_row_rePattern, report)
+                for row_match in report_rows:
+                    await redo_entries_by_report_row(row_match, group_id, date, lessons)
 
-            logging.info(report_redone_info_message.format(string_date, group_id))
-            await message.answer(report_redone_callback_message)
+                logging.info(report_redone_info_message.format(string_date, group_id))
+                await message.answer(report_redone_callback_message)
+
+            else:
+                await message.answer(report_name_references_validation_error_message)
+                return
 
         else:
             await message.answer(report_format_validation_error_message)

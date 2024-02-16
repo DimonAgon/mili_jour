@@ -226,6 +226,8 @@ strength_format_validation_error_message = "Ввести чисельність 
 
 report_format_validation_error_message = "Надати таблицю присутності вказаного виду"
 
+report_name_references_validation_error_message = "Невірно вказані іменні дані, вказати іменні дані коректно"
+
 #forms
 #fields
 superuser_key_field_message = "Ввести ключ суперкористувача"
