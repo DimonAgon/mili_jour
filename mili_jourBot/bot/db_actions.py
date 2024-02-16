@@ -82,7 +82,7 @@ def get_all_journal_profiles(journal):
 
 
 @database_sync_to_async
-def initiate_today_entries(today, group_id, lesson=None, mode=default):
+def initiate_today_entries(today, group_id, lesson): #TODO: fix on less lessons reinitiation bug
     journal = Journal.objects.get(external_id=group_id)
     try: report_parameters = ReportParameters.objects.get(journal=journal, date=today)
     except Exception: pass
@@ -91,31 +91,15 @@ def initiate_today_entries(today, group_id, lesson=None, mode=default):
     try:
         report_parameters
 
-        if mode == PresenceMode.LIGHT_MODE:
-            if (old_mode:= report_parameters.mode) != mode:
-                if JournalEntry.objects.filter(journal=journal, date=today).exists():
-                    earliest_lesson_entries = \
-                        set(JournalEntry.objects.filter(journal=journal, date=today, profile=profile, is_present=True).order_by('lesson').first()
-                         for profile in profiles)
+        existing_lesson_entries_profiles = None
+        if JournalEntry.objects.filter(journal=journal, date=today, lesson=lesson).exists():
+            existing_lesson_entries = JournalEntry.objects.filter(journal=journal, date=today, lesson=lesson)
+            if existing_lesson_entries.count() == int(journal.strength): return
 
-                    to_delete_entries =\
-                        set(JournalEntry.objects.filter(journal=journal, date=today)) - set(earliest_lesson_entries)
-                    for entry in to_delete_entries: entry.delete()
+            else:
+                existing_lesson_entries_profiles = {e.profile for e in existing_lesson_entries}
 
-                    no_entry_profiles = set(profiles) - set(e.profile for e in earliest_lesson_entries)
-
-            elif JournalEntry.objects.filter(journal=journal, date=today).exists(): return
-
-        else:
-            existing_lesson_entries_profiles = None
-            if JournalEntry.objects.filter(journal=journal, date=today, lesson=lesson).exists():
-                existing_lesson_entries = JournalEntry.objects.filter(journal=journal, date=today, lesson=lesson)
-                if existing_lesson_entries.count() == int(journal.strength): return
-
-                else:
-                    existing_lesson_entries_profiles = {e.profile for e in existing_lesson_entries}
-
-            no_entry_profiles = profiles if not existing_lesson_entries_profiles else set(profiles) - existing_lesson_entries_profiles
+        no_entry_profiles = profiles if not existing_lesson_entries_profiles else set(profiles) - existing_lesson_entries_profiles
 
         for p in no_entry_profiles: add_journal_entry({'journal': journal, 'profile': p, 'date': today, 'lesson': lesson})
     except Exception:
@@ -133,25 +117,41 @@ def process_user_on_lesson_presence(is_present, user_id):
         after_recess_time = (now + Schedule.recess).time()
         lesson = Schedule.lesson_match(after_recess_time) #If user voted during recess
 
-    if lesson:
-        profile = Profile.objects.get(external_id=user_id)
-        journal = profile.journal
-        report = ReportParameters.objects.get(date=now_date, journal=journal)
-        mode = report.mode
-        if not mode == PresenceMode.LIGHT_MODE:
+    profile = Profile.objects.get(external_id=user_id)
+    journal = profile.journal
+    report = ReportParameters.objects.get(date=now_date, journal=journal)
+    mode = report.mode
+
+    if not mode == PresenceMode.LIGHT_MODE:
+        if lesson: #TODO remove condition, there would always be a lesson
             corresponding_entry = JournalEntry.objects.get(journal=journal, profile=profile, date=now_date, lesson=lesson)
+            corresponding_entry.lesson = lesson
+
+        if is_present:
+            corresponding_entry.is_present = True
+            corresponding_entry.save()
+
         else:
-            corresponding_entry = JournalEntry.objects.get(journal=journal, profile=profile, date=now_date)
-
-        corresponding_entry.lesson = lesson
-
-    if is_present:
-        corresponding_entry.is_present = True
-        corresponding_entry.save()
+            corresponding_entry.is_present = False
+            corresponding_entry.save()
 
     else:
-        corresponding_entry.is_present = False
-        corresponding_entry.save()
+        profile_entries = JournalEntry.objects.filter(profile=profile)
+
+        if is_present:
+            for entry in profile_entries:
+                if entry.lesson >= lesson:
+                    entry.is_present = True
+
+                else:
+                    entry.is_present = False
+
+                entry.save()
+
+        else:
+            for entry in profile_entries:
+                entry.is_present = False
+                entry.save()
 
 
 @database_sync_to_async
@@ -242,43 +242,27 @@ def report_table(report) -> Type[prettytable.PrettyTable]:
     report_date = report.date
     entries = JournalEntry.objects.filter(journal=journal, date=report_date)
     lessons = report.lessons_integer_list
-    wp_mode = report.mode
     headers = ["Студент"] + [l for l in lessons]
     table = prettytable.PrettyTable(headers)
     table.border = False
 
-    if wp_mode == PresenceMode.LIGHT_MODE:
-        for entry in entries:
-            profile = entry.profile
+    journal_profiles = Profile.objects.filter(journal=journal)
+    ordered_profiles = journal_profiles.order_by('ordinal')
+    for profile in ordered_profiles:
+        profile_entries = entries.filter(profile=profile)
+        ordered_profile_entries = profile_entries.order_by('lesson')
 
-            if entry.is_present:
-                appeared_at = entry.lesson
-                appeared_at_lesson_index = lessons.index(appeared_at)
-                lessons_quantity = len(lessons)
-                presence = ["н" if i < appeared_at_lesson_index else "·" for i in range(lessons_quantity)]
-            else:
-                presence = ["н" for l in lessons]
+        row = [regex.match(r'\p{Lu}\p{Ll}+', str(profile)).group(0)]
 
-            table.add_row([regex.match(r'\p{Lu}\p{Ll}+', str(profile)).group(0), *presence])
+        for entry in ordered_profile_entries:
+            presence = entry.is_present
+            row.append("·" if presence else "н")
 
-    else:
-        journal_profiles = Profile.objects.filter(journal=journal)
-        ordered_profiles = journal_profiles.order_by('ordinal')
-        for profile in ordered_profiles:
-            profile_entries = entries.filter(profile=profile)
-            ordered_profile_entries = profile_entries.order_by('lesson')
-
-            row = [regex.match(r'\p{Lu}\p{Ll}+', str(profile)).group(0)]
-
-            for entry in ordered_profile_entries:
-                presence = entry.is_present
-                row.append("·" if presence else "н")
-
-            try: table.add_row(row)
-            except:
-                missing_entries_count = len(headers) - len(row)
-                for i in range(missing_entries_count): row.append("_")
-                table.add_row(row)
+        try: table.add_row(row)
+        except:
+            missing_entries_count = len(headers) - len(row)
+            for i in range(missing_entries_count): row.append("_")
+            table.add_row(row)
 
     return table
 
@@ -293,71 +277,56 @@ def filled_absence_cell_row(entry, absence_cell):
     absence_cell.append(last_name if not status else f"{last_name}— {status}")
     return absence_cell
 
-def filled_absence_cell(entries, wp_mode, lesson):
+def filled_absence_cell(entries):
     absence_cell = []
 
-    if wp_mode == PresenceMode.LIGHT_MODE:
-        for entry in entries:
-            entry_lesson = entry.lesson
-            if not entry_lesson or entry_lesson > lesson:
-                absence_cell = filled_absence_cell_row(entry, absence_cell)
-
-    else:
-        for entry in entries:
-            if not entry.is_present:
-                absence_cell = filled_absence_cell_row(entry, absence_cell)
+    for entry in entries:
+        if not entry.is_present:
+            absence_cell = filled_absence_cell_row(entry, absence_cell)
 
     return absence_cell
 
 def summary_row(wp_mode, report_mode, lesson, entries, journal_strength, report_date=None, today=None, now_time=None):
 
-    if wp_mode == PresenceMode.LIGHT_MODE:
+    lesson_entries = entries.filter(lesson=lesson)
 
-        absence_cell = filled_absence_cell(entries, wp_mode, lesson)
+    absence_cell = []
 
-        present_count = int(journal_strength) - len(absence_cell)
-        return [lesson, journal_strength, present_count, "\n".join(absence_cell)]
+    lesson_time_interval = Schedule.lessons_intervals[lesson]
+    lesson_start_time = lesson_time_interval.lower
+    lesson_end_time = lesson_time_interval.upper
+
+    if not report_mode == ReportMode.TODAY and today > report_date:
+
+        absence_cell = filled_absence_cell(lesson_entries)
+
+        absent_count = len(absence_cell)
+        present_count = int(journal_strength) - absent_count
+        presence_indicator = present_count
 
     else:
-        lesson_entries = entries.filter(lesson=lesson)
 
-        absence_cell = []
+        if now_time > lesson_start_time:
 
-        lesson_time_interval = Schedule.lessons_intervals[lesson]
-        lesson_start_time = lesson_time_interval.lower
-        lesson_end_time = lesson_time_interval.upper
-
-        if not report_mode == ReportMode.TODAY and today > report_date:
-
-            absence_cell = filled_absence_cell(lesson_entries, wp_mode, lesson)
+            absence_cell = filled_absence_cell(lesson_entries)
 
             absent_count = len(absence_cell)
             present_count = int(journal_strength) - absent_count
-            presence_indicator = present_count
 
-        else:
-
-            if now_time > lesson_start_time:
-
-                absence_cell = filled_absence_cell(lesson_entries, wp_mode, lesson)
-
-                absent_count = len(absence_cell)
-                present_count = int(journal_strength) - absent_count
-
-                if present_count == 0:
-                    if now_time < lesson_end_time:
-                        if all_entries_empty(lesson_entries) or not lesson_entries:
-                            presence_indicator = '?'
-                        else:
-                            presence_indicator = present_count
+            if present_count == 0:
+                if now_time < lesson_end_time:
+                    if all_entries_empty(lesson_entries) or not lesson_entries:
+                        presence_indicator = '?'
                     else:
                         presence_indicator = present_count
                 else:
                     presence_indicator = present_count
             else:
-                presence_indicator = '?'
+                presence_indicator = present_count
+        else:
+            presence_indicator = '?'
 
-        return [lesson, journal_strength, presence_indicator, "\n".join(absence_cell)]
+    return [lesson, journal_strength, presence_indicator, "\n".join(absence_cell)]
 
 @database_sync_to_async
 def report_summary(report, report_mode) -> Type[prettytable.PrettyTable]:
@@ -370,20 +339,15 @@ def report_summary(report, report_mode) -> Type[prettytable.PrettyTable]:
     headers = ["Зан.", "Сп.", "Пр.", "Відсутні"]
     summary = prettytable.PrettyTable(headers)
 
-    if wp_mode == PresenceMode.LIGHT_MODE:
-        for lesson in lessons:
-            lesson_row = summary_row(wp_mode, report_mode, lesson, entries, journal_strength)
-            summary.add_row(lesson_row)
-    else:
-        ordered_entries = entries.order_by('profile__ordinal')
+    ordered_entries = entries.order_by('profile__ordinal')
 
-        now = timezone.localtime(timezone.now())
-        now_time = now.time()
-        today = now.date()
+    now = timezone.localtime(timezone.now())
+    now_time = now.time()
+    today = now.date()
 
-        for lesson in lessons:
-            lesson_row = summary_row(wp_mode, report_mode, lesson, ordered_entries, journal_strength, report_date, today, now_time)
-            summary.add_row(lesson_row)
+    for lesson in lessons:
+        lesson_row = summary_row(wp_mode, report_mode, lesson, ordered_entries, journal_strength, report_date, today, now_time)
+        summary.add_row(lesson_row)
 
     return summary
 

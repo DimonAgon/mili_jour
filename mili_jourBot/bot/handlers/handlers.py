@@ -170,7 +170,7 @@ async def presence_command(message: types.Message, mode=default, additional_argu
         logging.info(today_report_initiated_info_message.format(group_id, mode))
 
         for lesson in unique_lessons:
-            await initiate_today_entries(today, group_id, lesson, mode)
+            await initiate_today_entries(today, group_id, lesson)
             logging.info(lesson_entries_initiated_info_message.format(lesson, group_id))
 
             try:
@@ -209,7 +209,9 @@ async def presence_command(message: types.Message, mode=default, additional_argu
         logging.info(statuses_amended_for_group_info_message.format(group_id))
 
     else:
-        await initiate_today_entries(today, group_id, mode=mode) #TODO: the better choice may be to call function on every study day
+        for lesson in unique_lessons:
+            await initiate_today_entries(today, group_id, lesson)
+            logging.info(lesson_entries_initiated_info_message.format(lesson, group_id))
         logging.info(today_entries_initiated_info_message.format(group_id))
         await initiate_today_report(today, group_id, unique_lessons, mode='L')
         logging.info(today_report_initiated_info_message.format(group_id, mode))
@@ -227,6 +229,9 @@ async def presence_command(message: types.Message, mode=default, additional_argu
         await delete_presence_poll(poll_id)
         logging.info(presence_poll_deleted_info_message.format(poll_id))
         logging.info(poll_stopped_info_message.format(group_id))
+
+        await amend_statuses(today, group_id)
+        logging.info(statuses_amended_for_group_info_message.format(group_id))
 
     return
 
