@@ -356,7 +356,7 @@ status_set_error_message = "Failed to set a status for journal_entry for an entr
 get_report_failed_error_message = "get report failed for {}, wrong parameters"
 
 #redo_report
-report_redo_failed_error_message = "report on {} redo failed for {}"
+report_redo_failed_error_message = "report on {} redo failed for {}, error:{}"
 
 #set journal
 no_journal_set_error_message = "no journal set for superuser {}"

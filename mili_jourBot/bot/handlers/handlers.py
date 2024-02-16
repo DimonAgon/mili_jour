@@ -659,8 +659,8 @@ async def report_redo(message: Message, state: FSMContext, set_journal_group_id=
             await message.answer(report_format_validation_error_message)
             return
 
-    except Exception:
-        logging.error(report_redo_failed_error_message.format(string_date, group_id))
+    except Exception as e:
+        logging.error(report_redo_failed_error_message.format(string_date, group_id, e))
         await message.answer(report_redo_fail_text)
 
 redo_report_filters_config = (Command(commands=['redo_report', 'rr'], prefix=prefixes),
