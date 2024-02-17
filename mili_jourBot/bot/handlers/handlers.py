@@ -675,8 +675,8 @@ redo_report_filters_config = (Command(commands=['redo_report', 'rr'], prefix=pre
                                   allow_no_mode=False,
                                   additional_arguments_checker=date_validator))  #TODO: add flags (show_current, get example)
 
-@reports_router.message(F.chat.type.in_({'private'}), IsSuperUserFilter(), *redo_report_filters_config)
-@reports_router.message(F.chat.type.in_({'group', 'supergroup'}), IsAdminFilter(), *redo_report_filters_config)
+@reports_router.message(*redo_report_filters_config, F.chat.type.in_({'private'}), IsSuperUserFilter())
+@reports_router.message(*redo_report_filters_config, F.chat.type.in_({'group', 'supergroup'}), IsAdminFilter())
 async def redo_report_command(message: Message, state: FSMContext, additional_arguments): #TODO: fix superusage state bug
     chat_id = message.chat.id
 
