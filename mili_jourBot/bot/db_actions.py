@@ -327,7 +327,8 @@ def summary_row(wp_mode, report_mode, lesson, entries, journal_strength, report_
             presence_indicator = '?'
 
     return [lesson, journal_strength, presence_indicator, "\n".join(absence_cell)]
-
+#TODO: add full table creation, separate full and narrow tables creation
+#TODO: add documentary table creation
 @database_sync_to_async
 def report_summary(report, report_mode) -> Type[prettytable.PrettyTable]:
     journal = report.journal
@@ -414,6 +415,6 @@ def add_presence_poll(poll_id):
     PresencePoll.objects.create(external_id=poll_id)
 
 @database_sync_to_async
-def delete_presence_poll(poll_id):
+def delete_presence_poll(poll_id): #TODO: instead set status to 'expired'
     poll = PresencePoll.objects.get(external_id=poll_id)
     poll.delete()

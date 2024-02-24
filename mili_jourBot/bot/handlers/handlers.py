@@ -444,7 +444,7 @@ async def register_journal_command(message: types.Message, state: FSMContext, mo
     await message.answer(superuser_key_field_message)
     logging.info(superuser_key_info_message.format(f"{message.from_user.id} of chat {chat_id}", key))
 
-
+#TODO:classify report commands similar
 today_report_command_filters_config = (Command(commands=['today_report', 'tr'], prefix=prefixes),
                                        AftercommandFullCheck(allow_no_argument=True, modes=ReportMode, flag_checking=True))
 
@@ -644,7 +644,7 @@ async def report_redo(message: Message, state: FSMContext, set_journal_group_id=
         slash_n_free_message_text = message.text.replace("\n", "")
 
         if validate_report_format(slash_n_free_message_text):
-            if await validate_report_name_references(slash_n_free_message_text, journal):
+            if await validate_report_name_references(slash_n_free_message_text, journal): #TODO: change if to try
                 report = slash_n_free_message_text
                 report_headers_match = re.search(report_headers_rePattern, report)
                 lessons_string = report_headers_match.group(2)
