@@ -677,9 +677,8 @@ redo_report_filters_config = (Command(commands=['redo_report', 'rr'], prefix=pre
 
 @reports_router.message(*redo_report_filters_config, F.chat.type.in_({'private'}), IsSuperUserFilter())
 @reports_router.message(*redo_report_filters_config, F.chat.type.in_({'group', 'supergroup'}), IsAdminFilter())
-async def redo_report_command(message: Message, state: FSMContext, additional_arguments): #TODO: fix superusage state bug
-    chat_id = message.chat.id
-
+async def redo_report_command(message: Message, state: FSMContext, additional_arguments, set_journal_group_id = None): #TODO: fix superusage state bug
+    group_id = message.chat.id if not set_journal_group_id else set_journal_group_id
     await message.answer(redo_report_suggestion)
     await message.answer(f"```{report_example_text}```", parse_mode='Markdown')
     await state.set_state(ReportRedoStatesGroup.date)
@@ -688,7 +687,7 @@ async def redo_report_command(message: Message, state: FSMContext, additional_ar
     date = datetime.datetime.strptime(date_string, date_format).date()
     await state.update_data(date=date)
     await state.set_state(ReportRedoStatesGroup.redoing)
-    logging.info(report_redo_requested_info_message.format(str(date), chat_id))
+    logging.info(report_redo_requested_info_message.format(str(date), group_id))
 
 
 @commands_router.message(SetJournalStatesGroup.setting_journal, NoCommandFilter(), F.chat.type.in_({'private'}))
