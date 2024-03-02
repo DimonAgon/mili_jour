@@ -13,7 +13,7 @@ from aiogram_forms import FormsManager
 from aiogram_forms.errors import ValidationError
 
 from .dispatcher import dp,\
-    commands_router, reports_router,\
+    commands_router, journal_router,\
     presence_poll_router,\
     registration_router,\
     journal_registration_subrouter,\
@@ -47,7 +47,7 @@ from typing import Any
 
 commands_router.message.middleware(ApplyArguments())
 presence_poll_router.poll_answer.filter(PresencePollFilter())
-reports_router.message.middleware(SuperuserSetJournal())
+journal_router.message.middleware(SuperuserSetJournal())
 journal_registration_subrouter.message.middleware(SuperuserSetJournal())
 
 
@@ -448,8 +448,8 @@ async def register_journal_command(message: types.Message, state: FSMContext, mo
 today_report_command_filters_config = (Command(commands=['today_report', 'tr'], prefix=prefixes),
                                        AftercommandFullCheck(allow_no_argument=True, modes=ReportMode, flag_checking=True))
 
-@reports_router.message(*today_report_command_filters_config, F.chat.type.in_({'private'}), IsSuperUserFilter())
-@reports_router.message(*today_report_command_filters_config, F.chat.type.in_({'group', 'supergroup'}), IsAdminFilter())
+@journal_router.message(*today_report_command_filters_config, F.chat.type.in_({'private'}), IsSuperUserFilter())
+@journal_router.message(*today_report_command_filters_config, F.chat.type.in_({'group', 'supergroup'}), IsAdminFilter())
 async def today_report_command(message: types.Message, flag=ReportMode.Flag.TEXT, set_journal_group_id=None):
     group_id = message.chat.id if not set_journal_group_id else set_journal_group_id
     try:
@@ -499,8 +499,8 @@ async def today_report_command(message: types.Message, flag=ReportMode.Flag.TEXT
 last_report_command_filters_config = (Command(commands=['last_report', 'lr'], prefix=prefixes),
                                       AftercommandFullCheck(allow_no_argument=True, modes=ReportMode, flag_checking=True))
 
-@reports_router.message(*last_report_command_filters_config, F.chat.type.in_({'private'}), IsSuperUserFilter())
-@reports_router.message(*last_report_command_filters_config, F.chat.type.in_({'group', 'supergroup'}), IsAdminFilter())
+@journal_router.message(*last_report_command_filters_config, F.chat.type.in_({'private'}), IsSuperUserFilter())
+@journal_router.message(*last_report_command_filters_config, F.chat.type.in_({'group', 'supergroup'}), IsAdminFilter())
 async def last_report_command(message: types.Message, flag=ReportMode.Flag.TEXT, set_journal_group_id=None):
     group_id = message.chat.id if not set_journal_group_id else set_journal_group_id
 
@@ -552,8 +552,8 @@ on_date_report_command_filters_config = (Command(commands=['on_date_report', 'od
                                                         modes=ReportMode,
                                                         additional_arguments_checker=date_validator,
                                                         flag_checking=True))
-@reports_router.message(*on_date_report_command_filters_config, F.chat.type.in_({'private'}), IsSuperUserFilter())
-@reports_router.message(*on_date_report_command_filters_config, F.chat.type.in_({'group', 'supergroup'}), IsAdminFilter())
+@journal_router.message(*on_date_report_command_filters_config, F.chat.type.in_({'private'}), IsSuperUserFilter())
+@journal_router.message(*on_date_report_command_filters_config, F.chat.type.in_({'group', 'supergroup'}), IsAdminFilter())
 async def on_date_report_command(message: types.Message, additional_arguments=False, flag=ReportMode.Flag.TEXT, set_journal_group_id=None):
     date_string = additional_arguments[0] #TODO: fix additional_arguments duplication
     date_format = NativeDateFormat.date_format
@@ -607,8 +607,8 @@ dossier_command_filters_config = (Command(commands='dossier', prefix=prefixes),
                                                          allow_no_mode=True,
                                                          flag_checking=True))
 
-@reports_router.message(*dossier_command_filters_config, F.chat.type.in_({'private'}), IsSuperUserFilter())
-@reports_router.message(*dossier_command_filters_config, F.chat.type.in_({'group', 'supergroup'}), IsAdminFilter())
+@journal_router.message(*dossier_command_filters_config, F.chat.type.in_({'private'}), IsSuperUserFilter())
+@journal_router.message(*dossier_command_filters_config, F.chat.type.in_({'group', 'supergroup'}), IsAdminFilter())
 async def dossier_command(message: Message, flag=ReportMode.Flag.TEXT, set_journal_group_id=None):
     group_id = message.chat.id if not set_journal_group_id else set_journal_group_id
     logging.info(report_requested_info_message.format(group_id, 'DOSSIER', flag))
@@ -631,7 +631,7 @@ async def dossier_command(message: Message, flag=ReportMode.Flag.TEXT, set_journ
             await message.answer_document(input_file)
 
 
-@reports_router.message(ReportRedoStatesGroup.redoing, NoCommandFilter())
+@journal_router.message(ReportRedoStatesGroup.redoing, NoCommandFilter())
 async def report_redo(message: Message, state: FSMContext, set_journal_group_id=None):
     group_id = message.chat.id if not set_journal_group_id else set_journal_group_id
     journal = await get_journal_by_external_id_async(group_id)
@@ -675,8 +675,8 @@ redo_report_filters_config = (Command(commands=['redo_report', 'rr'], prefix=pre
                                   allow_no_mode=False,
                                   additional_arguments_checker=date_validator))  #TODO: add flags (show_current, get example)
 
-@reports_router.message(*redo_report_filters_config, F.chat.type.in_({'private'}), IsSuperUserFilter())
-@reports_router.message(*redo_report_filters_config, F.chat.type.in_({'group', 'supergroup'}), IsAdminFilter())
+@journal_router.message(*redo_report_filters_config, F.chat.type.in_({'private'}), IsSuperUserFilter())
+@journal_router.message(*redo_report_filters_config, F.chat.type.in_({'group', 'supergroup'}), IsAdminFilter())
 async def redo_report_command(message: Message, state: FSMContext, additional_arguments, set_journal_group_id = None): #TODO: fix superusage state bug
     group_id = message.chat.id if not set_journal_group_id else set_journal_group_id
     await message.answer(redo_report_suggestion)
