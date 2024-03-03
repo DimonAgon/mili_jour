@@ -79,7 +79,7 @@ def poll_time_interval(mode, lesson=None, last_lesson=None):
         deadline_time = last_lesson_time.upper
         deadline = now.replace(hour=deadline_time.hour, minute=deadline_time.minute, second=deadline_time.second)
 
-    if not mode == PresenceMode.LIGHT_MODE:
+    if not mode == PresenceMode.LIGHT_MODE: #TODO: fix too-early poll-time, should be recess before first lesson
         now_time = timezone.localtime(timezone.now()).time()
 
         lesson_time_interval = Schedule.lessons_intervals[lesson]
