@@ -67,14 +67,10 @@ def add_journal_entry(initial):
 
 
 @database_sync_to_async
-def get_journal_by_name_async(journal_name):
-    journal = Journal.objects.get(name=journal_name)
+def get_journal_async(data):
+    journal = Journal.objects.get(**data)
     return journal
 
-@database_sync_to_async
-def get_journal_by_external_id_async(journal_external_id):
-    journal = Journal.objects.get(external_id=journal_external_id)
-    return journal
 
 @database_sync_to_async
 def get_all_journal_profiles(journal):

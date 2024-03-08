@@ -634,7 +634,7 @@ async def dossier_command(message: Message, flag=ReportMode.Flag.TEXT, set_journ
 @journal_router.message(ReportRedoStatesGroup.redoing, NoCommandFilter())
 async def report_redo(message: Message, state: FSMContext, set_journal_group_id=None):
     group_id = message.chat.id if not set_journal_group_id else set_journal_group_id
-    journal = await get_journal_by_external_id_async(group_id)
+    journal = await get_journal_async({'external_id': group_id})
 
     try:
         data = await state.get_data()
@@ -775,7 +775,7 @@ async def inform_all_journal_users(journal, message_text):
 @commands_router.message(GroupInformStatesGroup.receiver_id, NoCommandFilter(), F.chat.type.in_({'private'}))
 async def group_inform_handler(message: types.Message, state: FSMContext):
     journal_external_id = await state.get_data()
-    journal = await get_journal_by_external_id_async(journal_external_id['receiver_id'])
+    journal = await get_journal_async({'external_id': journal_external_id['receiver_id']})
     await inform_all_journal_users(journal, message.text)
     await state.clear()
 
@@ -791,7 +791,7 @@ async def group_call_handler(message: types.Message, state: FSMContext):
         return
     journal_name = response
     try:
-        journal = await get_journal_by_name_async(journal_name)
+        journal = await get_journal_async({'name': journal_name})
 
     except Exception as e:
         print(e)
