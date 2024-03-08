@@ -240,7 +240,7 @@ async def presence_command(message: types.Message, mode=default, additional_argu
 async def cancel_command(message: types.Message, state: FSMContext):
     current_state = await state.get_state()
     states_canceling_messages = {AbsenceReasonStates.AbsenceReason: absence_reason_share_canceling_message,
-                                 SetJournalStatesGroup.set_journal_name: journal_unset_message,
+                                 SetJournalStatesGroup.set_journal: journal_unset_message, #TODO: consider
                                  UserInformStatesGroup.receiver_id: call_canceling_message,
                                  GroupInformStatesGroup.receiver_id: group_inform_canceling_message}
 
@@ -399,12 +399,12 @@ async def journal_registrator(message: types.Message, forms: FormsManager, state
         await message.answer(key_is_unauthentic_text)
         return
 
-    set_journal_group_id = data['set_journal_group_id']
+    set_journal = data['set_journal']
     mode = data['mode']
     if mode == RegistrationMode.DELETE.value:
         try:
             if message.chat.type == 'private':
-                await delete_journal(set_journal_group_id)
+                await delete_journal(set_journal.external_id)
                 await message.answer(text=journal_deleted_callback_message)
 
             else:
@@ -425,7 +425,7 @@ async def journal_registrator(message: types.Message, forms: FormsManager, state
 @journal_registration_subrouter.message(*register_journal_command_filters_config,
                          F.chat.type.in_({'group', 'supergroup'}),
                          IsAdminFilter())
-async def register_journal_command(message: types.Message, state: FSMContext, mode=None, set_journal_group_id=None):
+async def register_journal_command(message: types.Message, state: FSMContext, mode=None, set_journal: Journal=None):
     chat_id = message.chat.id
 
     logging.info(journal_registration_form_initiated_info_message.format(chat_id, ('regular' if not mode else mode)))
@@ -435,8 +435,8 @@ async def register_journal_command(message: types.Message, state: FSMContext, mo
     await state.set_state(JournalRegistrationStates.mode)
     await state.update_data(mode=mode)
 
-    await state.set_state(JournalRegistrationStates.set_journal_group_id)
-    await state.update_data(set_journal_group_id=set_journal_group_id)
+    await state.set_state(JournalRegistrationStates.set_journal)
+    await state.update_data(set_journal=set_journal)
 
     await state.set_state(JournalRegistrationStates.key)
     key = key_generator.generate().get_key()
@@ -450,8 +450,8 @@ today_report_command_filters_config = (Command(commands=['today_report', 'tr'], 
 
 @journal_router.message(*today_report_command_filters_config, F.chat.type.in_({'private'}), IsSuperUserFilter())
 @journal_router.message(*today_report_command_filters_config, F.chat.type.in_({'group', 'supergroup'}), IsAdminFilter())
-async def today_report_command(message: types.Message, flag=ReportMode.Flag.TEXT, set_journal_group_id=None):
-    group_id = message.chat.id if not set_journal_group_id else set_journal_group_id
+async def today_report_command(message: types.Message, flag=ReportMode.Flag.TEXT, set_journal: Journal=None):
+    group_id = message.chat.id if not set_journal else set_journal.external_id
     try:
         today_report = await get_on_mode_report(group_id, ReportMode.TODAY)
 
@@ -501,8 +501,8 @@ last_report_command_filters_config = (Command(commands=['last_report', 'lr'], pr
 
 @journal_router.message(*last_report_command_filters_config, F.chat.type.in_({'private'}), IsSuperUserFilter())
 @journal_router.message(*last_report_command_filters_config, F.chat.type.in_({'group', 'supergroup'}), IsAdminFilter())
-async def last_report_command(message: types.Message, flag=ReportMode.Flag.TEXT, set_journal_group_id=None):
-    group_id = message.chat.id if not set_journal_group_id else set_journal_group_id
+async def last_report_command(message: types.Message, flag=ReportMode.Flag.TEXT, set_journal: Journal=None):
+    group_id = message.chat.id if not set_journal else set_journal.external_id
 
     try:
         last_report = await get_on_mode_report(group_id, ReportMode.LAST)
@@ -554,12 +554,12 @@ on_date_report_command_filters_config = (Command(commands=['on_date_report', 'od
                                                         flag_checking=True))
 @journal_router.message(*on_date_report_command_filters_config, F.chat.type.in_({'private'}), IsSuperUserFilter())
 @journal_router.message(*on_date_report_command_filters_config, F.chat.type.in_({'group', 'supergroup'}), IsAdminFilter())
-async def on_date_report_command(message: types.Message, additional_arguments=False, flag=ReportMode.Flag.TEXT, set_journal_group_id=None):
+async def on_date_report_command(message: types.Message, additional_arguments=False, flag=ReportMode.Flag.TEXT, set_journal: Journal=None):
     date_string = additional_arguments[0] #TODO: fix additional_arguments duplication
     date_format = NativeDateFormat.date_format
     date = datetime.datetime.strptime(date_string, date_format).date()
 
-    group_id = message.chat.id if not set_journal_group_id else set_journal_group_id
+    group_id = message.chat.id if not set_journal else set_journal.external_id
 
     try:
         on_date_report = await get_on_mode_report(group_id, ReportMode.ON_DATE, date)
@@ -609,8 +609,8 @@ dossier_command_filters_config = (Command(commands='dossier', prefix=prefixes),
 
 @journal_router.message(*dossier_command_filters_config, F.chat.type.in_({'private'}), IsSuperUserFilter())
 @journal_router.message(*dossier_command_filters_config, F.chat.type.in_({'group', 'supergroup'}), IsAdminFilter())
-async def dossier_command(message: Message, flag=ReportMode.Flag.TEXT, set_journal_group_id=None):
-    group_id = message.chat.id if not set_journal_group_id else set_journal_group_id
+async def dossier_command(message: Message, flag=ReportMode.Flag.TEXT,set_journal: Journal=None):
+    group_id = message.chat.id if not set_journal else set_journal.external_id
     logging.info(report_requested_info_message.format(group_id, 'DOSSIER', flag))
 
     table = await get_journal_dossier(group_id)
@@ -632,9 +632,9 @@ async def dossier_command(message: Message, flag=ReportMode.Flag.TEXT, set_journ
 
 
 @journal_router.message(ReportRedoStatesGroup.redoing, NoCommandFilter())
-async def report_redo(message: Message, state: FSMContext, set_journal_group_id=None):
-    group_id = message.chat.id if not set_journal_group_id else set_journal_group_id
-    journal = await get_journal_async({'external_id': group_id})
+async def report_redo(message: Message, state: FSMContext, set_journal: Journal=None):
+    group_id = message.chat.id if not set_journal else set_journal.external_id
+    journal = await get_journal_async({'external_id': group_id}) if not set_journal else set_journal
 
     try:
         data = await state.get_data()
@@ -677,8 +677,8 @@ redo_report_filters_config = (Command(commands=['redo_report', 'rr'], prefix=pre
 
 @journal_router.message(*redo_report_filters_config, F.chat.type.in_({'private'}), IsSuperUserFilter())
 @journal_router.message(*redo_report_filters_config, F.chat.type.in_({'group', 'supergroup'}), IsAdminFilter())
-async def redo_report_command(message: Message, state: FSMContext, additional_arguments, set_journal_group_id = None): #TODO: fix superusage state bug
-    group_id = message.chat.id if not set_journal_group_id else set_journal_group_id
+async def redo_report_command(message: Message, state: FSMContext, additional_arguments, set_journal: Journal=None): #TODO: fix superusage state bug
+    group_id = message.chat.id if not set_journal else set_journal.external_id
     await message.answer(redo_report_suggestion)
     await message.answer(f"```{report_example_text}```", parse_mode='Markdown')
     await state.set_state(ReportRedoStatesGroup.date)
@@ -710,9 +710,10 @@ async def set_journal_handler(message: types.Message, state: FSMContext):
         return
 
     set_journal_name = response
+    set_journal = await get_journal_async({'name': set_journal_name})
 
-    await state.set_state(SetJournalStatesGroup.set_journal_name)
-    await state.update_data(set_journal_name=set_journal_name)
+    await state.set_state(SetJournalStatesGroup.set_journal)
+    await state.update_data(set_journal=set_journal)
     await message.answer(journal_set_text.format(set_journal_name))
 
 @commands_router.message(Command(commands=['set_journal', 'sj'], prefix=prefixes),

@@ -115,7 +115,7 @@ def validate_report_name_references(value: str, journal):
 
 
 async def check_journal_set(state: FSMContext):
-    return await state.get_state() == SetJournalStatesGroup.set_journal_name
+    return await state.get_state() == SetJournalStatesGroup.set_journal
 
 
 @database_sync_to_async

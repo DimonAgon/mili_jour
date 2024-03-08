@@ -160,14 +160,14 @@ class SuperuserKeyStates(StatesGroup): key = State()
 
 class JournalRegistrationStates(StatesGroup):
     key = State()
-    set_journal_group_id = State()
+    set_journal = State()
     mode = State()
 
 class AbsenceReasonStates(StatesGroup): AbsenceReason = State()
 
 class SetJournalStatesGroup(StatesGroup):
     setting_journal = State()
-    set_journal_name = State()
+    set_journal = State()
 
 class UserInformStatesGroup(StatesGroup):
     call = State()

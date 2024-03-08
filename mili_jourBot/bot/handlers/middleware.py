@@ -29,10 +29,8 @@ class SuperuserSetJournal(BaseMiddleware):
         if event.chat.type == 'private':
             state = data['state']
             if await check_journal_set(state):
-                set_journal_name = (await state.get_data())['set_journal_name']
-                set_journal = await get_journal_by_name_async(set_journal_name)
-                set_journal_external_id = set_journal.external_id
-                data['set_journal_group_id'] = set_journal_external_id
+                set_journal = (await state.get_data())['set_journal']
+                data['set_journal'] = set_journal
 
             else:
                 logging.error(no_journal_set_error_message.format(user_id))
