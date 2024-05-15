@@ -23,6 +23,7 @@ from ..db_actions import *
 from .filters import *
 from .middleware import *
 from ..infrastructure.enums import *
+from ..infrastructure.Schedule import *
 from .validators import *
 from .checks import *
 from static_text.utilities import *

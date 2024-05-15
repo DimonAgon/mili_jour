@@ -5,6 +5,7 @@ import re
 
 from .models import *
 from .forms import *
+from .infrastructure.Schedule import *
 from .infrastructure.enums import *
 from misc.re_patterns import *
 from logging_native.utilis.frame_log_track.frame_log_track import log_track_frame

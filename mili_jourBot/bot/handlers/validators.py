@@ -7,6 +7,7 @@ from channels.db import database_sync_to_async
 
 from aenum import Enum
 
+from ..infrastructure.Schedule import *
 from ..infrastructure.enums import *
 
 from static_text import chat_messages
