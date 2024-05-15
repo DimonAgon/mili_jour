@@ -306,7 +306,7 @@ journal_registration_success_chat_info_message = \
 journal_deletion_success_chat_info_message = \
     f"{journal_nom_kw} {have_been_kw} {adv_deleted_kw}"
 journal_set_success_chat_info_message = \
-    f"{journal_nom_kw} {'{journal_attributes}'} {adv_opened_kw}"
+    f"{journal_nom_kw} {adv_opened_kw}"
     #s̶u̶c̶c̶e̶s̶s̶
 
 #̶p̶h̶r̶a̶s̶e̶s̶

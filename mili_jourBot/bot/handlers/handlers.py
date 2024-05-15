@@ -847,7 +847,9 @@ async def set_journal_handler(message: types.Message, state: FSMContext, *args, 
 
     await state.set_state(SetJournalStatesGroup.set_journal)
     await state.update_data(set_journal=set_journal)
-    await message.answer(journal_set_success_chat_info_message.format(set_journal_name))
+    logger.info(journal_setting_success_logging_info_message.format(journal_attributes=set_journal.__dict__)) #TODO: fix model state attribute pass
+    await message.answer(journal_set_success_chat_info_message)
+
 
 async def request_journal(chat_id: int):
     await bot.send_message(chat_id, journal_name_chat_field_message)
