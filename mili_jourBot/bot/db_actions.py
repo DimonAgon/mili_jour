@@ -1,9 +1,13 @@
+
+import logging
+
 import re
 
 from .models import *
 from .forms import *
 from .infrastructure.enums import *
 from misc.re_patterns import *
+from logging_native.utilis.frame_log_track.frame_log_track import log_track_frame
 
 from channels.db import database_sync_to_async
 
@@ -17,67 +21,84 @@ import prettytable
 
 import regex #TODO: swap regex to re, where possible
 
+#TODO: replace all async get- and delete- functions with universals
 
+@log_track_frame(total=False)
 @database_sync_to_async
 def add_superuser(user_id):
     new_superuser = Superuser.objects.create(external_id=user_id)
     new_superuser.save()
 
 
+@log_track_frame(total=False)
 @database_sync_to_async
-def add_profile(data, user_id):
-    initial = data
-    initial['external_id'], initial['journal'] = user_id, Journal.objects.get(name=data['journal'])
+def add_profile(attributes):
+    external_id = attributes['external_id']
 
-    if Profile.objects.filter(external_id=user_id).exists():
-        Profile.objects.get(external_id=user_id).delete()
+    if Profile.objects.filter(external_id=external_id).exists():
+        Profile.objects.get(external_id=external_id).delete()
 
-    new_profile = Profile.objects.create(**initial)
+    new_profile = Profile.objects.create(**attributes)
     new_profile.save()
-    Profile.objects.get(external_id=user_id)
 
 
+
+@log_track_frame(total=False)
 @database_sync_to_async
 def delete_profile(user_id):
     Profile.objects.get(external_id=user_id).delete()
 
 
+@log_track_frame(total=False)
 @database_sync_to_async
-def add_journal(data, group_id):
-    initial = data
-    initial['external_id'] = group_id
+def add_journal(attributes):
+    external_id = attributes['external_id']
 
-    if Journal.objects.filter(external_id=group_id).exists():
-        Journal.objects.get(external_id=group_id).delete()
+    if Journal.objects.filter(external_id=external_id).exists():
+        Journal.objects.get(external_id=external_id).delete()
 
-    new_journal = Journal.objects.create(**initial)
+    new_journal = Journal.objects.create(**attributes)
     new_journal.save()
-    Journal.objects.get(external_id=group_id)
 
 
+@log_track_frame(total=False)
 @database_sync_to_async
-def delete_journal(group_id):
-    Journal.objects.get(external_id=group_id).delete()
+def delete_journal(journal: Journal=None, **journal_attributes):
+    if journal:
+        journal.delete()
+
+    else:
+        Journal.objects.get(**journal_attributes).delete()
 
 
+@log_track_frame(total=False)
 def add_journal_entry(initial):
-
     new_journal_entry = JournalEntry.objects.create(**initial)
     new_journal_entry.save()
 
-
+@log_track_frame(total=False)
 @database_sync_to_async
 def get_journal_async(data):
     journal = Journal.objects.get(**data)
     return journal
 
 
+@log_track_frame(total=False)
+@database_sync_to_async
+def get_profile_async(data) -> Profile:
+    profile = Profile.objects.get(**data)
+    return profile
+
+
+@log_track_frame(total=False)
 @database_sync_to_async
 def get_all_journal_profiles(journal):
     return Profile.objects.filter(journal=journal)
 
 
+@log_track_frame(total=False)
 @database_sync_to_async
+#TODO: redo to on-date entries initiation
 def initiate_today_entries(today, group_id, lesson): #TODO: fix on less lessons reinitiation bug
     journal = Journal.objects.get(external_id=group_id)
     try: report_parameters = ReportParameters.objects.get(journal=journal, date=today)
@@ -102,6 +123,7 @@ def initiate_today_entries(today, group_id, lesson): #TODO: fix on less lessons 
         for p in profiles: add_journal_entry({'journal': journal, 'profile': p, 'date': today, 'lesson': lesson})
 
 
+@log_track_frame(total=False)
 @database_sync_to_async
 def process_user_on_lesson_presence(is_present, user_id):
     now = timezone.localtime(timezone.now()) #TODO: use time for schedule control, use date for entry's date
@@ -150,6 +172,7 @@ def process_user_on_lesson_presence(is_present, user_id):
                 entry.save()
 
 
+@log_track_frame(total=False)
 @database_sync_to_async
 def amend_statuses(date, group_id):
     journal = Journal.objects.get(external_id=group_id)
@@ -169,18 +192,21 @@ def amend_statuses(date, group_id):
                 entry.save()
 
 
+@log_track_frame(total=False)
 @database_sync_to_async
-def on_lesson_presence_check(user_id):
-    profile = Profile.objects.get(external_id=user_id)
-    now = timezone.localtime(timezone.now())
-    today = now.date()
-    current_lesson = Schedule.lesson_match(now.time())
-    on_lesson_entry = JournalEntry.objects.get(profile=profile, lesson=current_lesson, date=today)
-    presence = on_lesson_entry.is_present
+def on_lesson_presence_check(user_id): #TODO: move to checks.py
 
-    return presence
+        profile = Profile.objects.get(external_id=user_id)
+        now = timezone.localtime(timezone.now())
+        today = now.date()
+        current_lesson = Schedule.lesson_match(now.time())
+        on_lesson_entry = JournalEntry.objects.get(profile=profile, lesson=current_lesson, date=today)
+        presence = on_lesson_entry.is_present
+
+        return presence
 
 
+@log_track_frame(total=False)
 @database_sync_to_async
 def set_status(data, user_id, lesson=None): #TODO: if today status: status = today status. return
     profile = Profile.objects.get(external_id=user_id)
@@ -202,6 +228,8 @@ def set_status(data, user_id, lesson=None): #TODO: if today status: status = tod
     entry.save()
 
 
+
+@log_track_frame(total=False)
 @database_sync_to_async
 def initiate_today_report(today, group_id, lessons, mode=default):
     journal = Journal.objects.get(external_id=group_id)
@@ -232,6 +260,8 @@ def initiate_today_report(today, group_id, lessons, mode=default):
             report.save()
 
 
+
+@log_track_frame(total=False)
 @database_sync_to_async
 def report_table(report) -> Type[prettytable.PrettyTable]:
     journal = report.journal
@@ -263,16 +293,19 @@ def report_table(report) -> Type[prettytable.PrettyTable]:
     return table
 
 
-def all_entries_empty(entries):
+def all_entries_empty(entries): #TODO: move to checks.py
     if not entries.filter(is_present=True) and not entries.filter(is_present=False):
         return True
 
+@log_track_frame(total=False)
 def filled_absence_cell_row(entry, absence_cell):
     status = entry.status
     last_name = regex.match(r'\p{Lu}\p{Ll}+', str(entry.profile)).group(0)
     absence_cell.append(last_name if not status else f"{last_name}— {status}")
     return absence_cell
 
+
+@log_track_frame(total=False)
 def filled_absence_cell(entries):
     absence_cell = []
 
@@ -325,6 +358,7 @@ def summary_row(wp_mode, report_mode, lesson, entries, journal_strength, report_
     return [lesson, journal_strength, presence_indicator, "\n".join(absence_cell)]
 #TODO: add full table creation, separate full and narrow tables creation
 #TODO: add documentary table creation
+@log_track_frame(total=False)
 @database_sync_to_async
 def report_summary(report, report_mode) -> Type[prettytable.PrettyTable]:
     journal = report.journal
@@ -349,6 +383,7 @@ def report_summary(report, report_mode) -> Type[prettytable.PrettyTable]:
     return summary
 
 
+@log_track_frame(total=False)
 @database_sync_to_async
 def get_on_mode_report(group_id, mode, specified_date: datetime=None) -> Type[ReportParameters]:
     journal = Journal.objects.get(external_id=group_id)
@@ -368,6 +403,7 @@ def get_on_mode_report(group_id, mode, specified_date: datetime=None) -> Type[Re
     return corresponding_report
 
 
+@log_track_frame(total=False)
 @database_sync_to_async
 def redo_entries_by_report_row(report_row_match: Type[re.Match], group_id, date, lessons: List[int]):
     name_part = report_row_match.group(1)
@@ -396,7 +432,8 @@ def redo_entries_by_report_row(report_row_match: Type[re.Match], group_id, date,
             lesson_entry.save()
 
 
-async def get_journal_dossier(group_id):
+@log_track_frame(total=False)
+async def get_journal_dossier(group_id): #TODO: check (it somehow works)
     journal = Journal.objects.get(external_id=group_id)
     headers = ["№", "Ім'я"]
     table = prettytable.PrettyTable(headers)
@@ -406,10 +443,13 @@ async def get_journal_dossier(group_id):
     return table
 
 
+@log_track_frame(total=False)
 @database_sync_to_async
 def add_presence_poll(poll_id):
     PresencePoll.objects.create(external_id=poll_id)
 
+
+@log_track_frame(total=False)
 @database_sync_to_async
 def delete_presence_poll(poll_id): #TODO: instead set status to 'expired'
     poll = PresencePoll.objects.get(external_id=poll_id)

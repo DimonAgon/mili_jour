@@ -12,13 +12,25 @@ from .dispatcher import bot
 
 from .validators import *
 
+from .checks import *
+
 from ..infrastructure.enums import *
 
-from ..forms import UserInformStatesGroup
+from .forms.forms import UserInformStatesGroup
 
-import logging
+from static_text.chat_messages import *
+from static_text.logging_messages import *
+from logging_native.utilis.frame_log_track.frame_log_track import log_track_frame
+from .logger import handlers_logger
 
 import re
+
+
+logger = handlers_logger
+
+untracked_data = {
+    'bot'
+}
 
 
 class RegisteredExternalIdFilter(BaseFilter):
@@ -28,27 +40,66 @@ class RegisteredExternalIdFilter(BaseFilter):
         self.model = model
         self.use_chat_id = use_chat_id
 
-    async def __call__(self, message: types.Message, command: CommandObject) -> bool:
+    @log_track_frame('filter_registered_external_id', untracked_data=untracked_data)
+    async def __call__(self, message: types.Message, command: CommandObject, *args, **kwargs) -> bool: #TODO: consider swapping operating
+    #TODO:                                                                      a message to operating a telegram object
+        logger.info("")
+
+        if self.use_chat_id:
+            id_ = message.chat.id
+        else:
+            id_ = message.from_user.id
+        model_object_attributes={'external_id': id_}
+
         @database_sync_to_async
-        def on_id_object_exists():
-            if self.use_chat_id:
-                id_ = message.chat.id
-            else:
-                id_ = message.from_user.id
+        def on_id_object_exists(): #TODO: consider moving to checks.py
             return self.model.objects.filter(external_id=id_).exists()
 
-        if await on_id_object_exists()\
-                and (mode:=command.args) != RegistrationMode.REREGISTER.value\
-                and mode != RegistrationMode.DELETE.value:
-            if self.use_chat_id:
-                await message.answer(on_id_model_object_exists_error_message_to_group)
-                logging.error(on_id_model_object_exists_logging_error_message_to_group.format(message.chat.id))
+        if self.model == Profile: #match-case statement does not work due to name capturing
+            if await on_id_object_exists()\
+                    and (mode:=command.args) != RegistrationMode.REREGISTER.value\
+                    and mode != RegistrationMode.DELETE.value: #TODO: use in instead
+                logger.error(
+                    profile_is_not_registered_by_attributes_check_fail_logging_error_message.format(
+                        profile_attributes=model_object_attributes
+                    )
+                )
+                await message.answer(
+                    profile_is_not_registered_by_attributes_check_fail_chat_error_message.format(
+                        profile_attributes=external_id_kwc
+                    )
+                )
 
-            else:
-                await message.answer(on_id_model_object_exists_error_message_to_user)
-                logging.error(on_id_model_object_exists_logging_error_to_user.format(message.from_user.id))
+                return False
 
-            return False
+            logger.error(
+                profile_is_not_registered_by_attributes_check_success_logging_info_message.format(
+                    profile_attributes=model_object_attributes
+                )
+            )
+
+        if self.model == Journal:
+            if await on_id_object_exists() \
+                    and (mode := command.args) != RegistrationMode.REREGISTER.value \
+                    and mode != RegistrationMode.DELETE.value:  # TODO: use in instead
+                logger.error(
+                    journal_is_not_registered_by_attributes_check_fail_logging_error_message.format(
+                        journal_attributes=model_object_attributes
+                    )
+                )
+                await message.answer(
+                    journal_is_not_registered_by_attributes_check_fail_chat_error_message.format(
+                        journal_attributes=external_id_kwc
+                    )
+                )
+
+                return False
+
+            logger.error(
+                journal_is_not_registered_by_attributes_check_success_logging_info_message.format(
+                    journal_attributes=model_object_attributes
+                )
+            )
 
         return True
 
@@ -57,7 +108,9 @@ class IsAdminFilter(BaseFilter): #TODO: add a middleware to check both is admin 
     required_auth_level = 'administrator'
     creator = 'creator'
 
-    async def __call__(self, message: types.Message) -> bool:
+    @log_track_frame('filter_is_admin', untracked_data=untracked_data)
+    async def __call__(self, message: types.Message, *args, **kwargs) -> bool:
+        logger.info("")
         
         chat_id = message.chat.id
         user_id = message.from_user.id
@@ -68,26 +121,29 @@ class IsAdminFilter(BaseFilter): #TODO: add a middleware to check both is admin 
             return True
 
         else:
-            logging.error(user_unauthorised_as_admin_logging_info_message.format(user_id))
-            await message.answer(user_unauthorised_as_admin_message)
+            await message.answer(is_superuser_check_fail_chat_error_message)
             return False
 
 class IsSuperUserFilter(BaseFilter):
-    async def __call__(self, message: types.Message) -> bool:
+    @log_track_frame('filter_is_superuser', untracked_data=untracked_data)
+    async def __call__(self, message: types.Message, *args, **kwargs) -> bool:
+        logger.info("")
 
         user_id = message.from_user.id
 
         if await is_superuser(user_id):
-                return True
+            return True
 
         else:
-            logging.error(user_unauthorised_as_superuser_logging_info_message.format(user_id))
-            await message.answer(user_unauthorised_as_superuser_message)
+            await message.answer(is_superuser_check_fail_chat_error_message)
+            logging.error(is_superuser_check_fail_logging_error_message)
             return False
 
 
-class SuperUserCalledUserToDELETEFilter(BaseFilter):
-    async def __call__(self, message: types.Message, command: CommandObject, state: FSMContext):
+class SuperuserCalledUserToDELETEFilter(BaseFilter):
+    @log_track_frame('filter_super_user_called_user_to_delete', untracked_data=untracked_data)
+    async def __call__(self, message: types.Message, command: CommandObject, state: FSMContext, *args, **kwargs):
+        logger.info("")
 
         user_id = message.from_user.id
 
@@ -98,8 +154,8 @@ class SuperUserCalledUserToDELETEFilter(BaseFilter):
                     return True
 
                 else:
-                    await message.answer(user_not_called_text)
-                    logging.error(no_user_called_logging_error_message.format(user_id))
+                    await message.answer(profile_is_applied_to_check_fail_chat_error_message)
+                    logger.error(profile_is_applied_to_check_fail_logging_error_message)
 
             else:
                 return True
@@ -123,7 +179,7 @@ class SuperUserCalledUserToDELETEFilter(BaseFilter):
 #             return False
 
 
-class AftercommandFullCheck(BaseFilter): #TODO: pass all arguments to middleware to handler
+class AftercommandFullCheck(BaseFilter): #TODO: pass all arguments to middleware to handler #TODO: configure for multiple flags usage
     key = 'aftercommand'
 
     def __init__(self, allow_no_argument: bool, modes: Enum=None, mode_checking: bool=False, allow_no_mode: bool=False,
@@ -138,15 +194,21 @@ class AftercommandFullCheck(BaseFilter): #TODO: pass all arguments to middleware
         self.mode_checking = mode_checking
         self.additional_arguments_checker = additional_arguments_checker
         self.flag_checking = flag_checking
-    async def __call__(self, message: types.Message, command: CommandObject) -> bool:
+
+    @log_track_frame('filter_aftercommand_full_check', untracked_data=untracked_data)
+    async def __call__(self, message: types.Message, command: CommandObject, *args, **kwargs) -> bool:
+        logger.info("")
+
         aftercommand = command.args
 
-        try: aftercommand_check(aftercommand)
+        try:
+            aftercommand_check(aftercommand)
         except:
             if self.allow_no_argument:
                 return True
 
-            await message.answer(no_arguments_validation_error_message)
+            logger.error(arguments_pass_check_fail_logging_error_message)
+            await message.answer(arguments_pass_check_fail_chat_error_message)
             return False
 
         arguments = aftercommand.split()
@@ -173,12 +235,20 @@ class AftercommandFullCheck(BaseFilter): #TODO: pass all arguments to middleware
             pseudo_flag = arguments[0]
 
         if self.mode_checking:
-            try: pseudo_mode
+            try:
+                pseudo_mode
+                logger.info(
+                    mode_pass_check_success_logging_error_message.format(arguments=arguments)
+                )
             except:
-                await message.answer(no_mode_validation_error_message)
+                logger.info(
+                    mode_pass_check_fail_logging_error_message.format(arguments=arguments)
+                )
+                await message.answer(mode_pass_check_fail_chat_error_message)
                 return False
 
-            try: validate_is_mode(pseudo_mode, self.modes)
+            try:
+                validate_is_mode(pseudo_mode, self.modes)
             except:
 
                 if self.allow_no_mode:
@@ -188,14 +258,16 @@ class AftercommandFullCheck(BaseFilter): #TODO: pass all arguments to middleware
                         additional_arguments.insert(0, additional_argument)
 
                     except:
-                        await message.answer(wrong_mode_validation_error_message)
+                        await message.answer(mode_validation_fail_chat_error_message)
                         return False
                 else:
-                    await message.answer(wrong_mode_validation_error_message)
+                    logger.info(mode_pass_check_fail_logging_error_message.format(arguments=arguments))
+                    await message.answer(mode_pass_check_fail_chat_error_message) #TODO: check
                     return False
 
-        if self.flag_checking:
-            try: validate_is_mode(pseudo_flag, self.modes.Flag)
+        if self.flag_checking: #TODO: add separate flag validator, implement it
+            try:
+                validate_is_mode(pseudo_flag, self.modes.Flag)
             except:
                 try:
                     self.additional_arguments_checker.validation_function(pseudo_flag)
@@ -203,32 +275,52 @@ class AftercommandFullCheck(BaseFilter): #TODO: pass all arguments to middleware
                     additional_arguments.append(additional_argument)
 
                 except:
-                    await message.answer(wrong_mode_validation_error_message)
+                    await message.answer(flag_validation_fail_chat_error_message)
                     return False
 
         if self.additional_arguments_checker:
             if not additional_arguments:
-                await message.answer(self.additional_arguments_checker.validation_error_message)
+                logger.error(
+                    self.additional_arguments_checker.validation_fail_logging_error_message.format(
+                        arguments=additional_arguments
+                    )
+                )
+                await message.answer(self.additional_arguments_checker.validation_fail_chat_error_message)
                 return False
 
             try:
-                for i in additional_arguments:
-                    self.additional_arguments_checker.validation_function(i)
+                for argument in additional_arguments:
+                    self.additional_arguments_checker.validation_function(argument)
+                logger.info(
+                    self.additional_arguments_checker.validation_success_logging_info_message.format(
+                        arguments=additional_arguments
+                    )
+                )
             except:
-                await message.answer(self.additional_arguments_checker.validation_error_message)
+                logger.error(
+                    self.additional_arguments_checker.validation_fail_logging_error_message.format(
+                        arguments=additional_arguments
+                    )
+                )
+                await message.answer(self.additional_arguments_checker.validation_fail_chat_error_message)
                 return False
 
         return True
 
 
 class NoCommandFilter(BaseFilter):
-    async def __call__(self, message: types.Message) -> bool:
+    @log_track_frame('filter_no_command', untracked_data=untracked_data)
+    async def __call__(self, message: types.Message, *args, **kwargs) -> bool:
+        logger.info("")
+
         command_pattern_compiled = re.compile('\/.*')
 
         return not command_pattern_compiled.fullmatch(message.text)
 
 
 class PresencePollFilter(BaseFilter):
-    async def __call__(self, poll_answer: types.PollAnswer) -> bool:
+    @log_track_frame('filter_presence_poll', untracked_data=untracked_data)
+    async def __call__(self, poll_answer: types.PollAnswer, *args, **kwargs) -> bool:
+        logger.info("")
 
         return await is_presence_poll(poll_answer.poll_id)

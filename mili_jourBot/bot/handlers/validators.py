@@ -1,4 +1,4 @@
-
+#TODO: rename file
 import logging
 
 from django.core.exceptions import ValidationError
@@ -9,13 +9,16 @@ from aenum import Enum
 
 from ..infrastructure.enums import *
 
-from .static_text import *
+from static_text import chat_messages
+from static_text.chat_messages import *
+from static_text import logging_messages
+from static_text.logging_messages import *
 
 from ..db_actions import on_lesson_presence_check
 
 from ..models import Journal, Superuser, PresencePoll, Profile
 
-from ..forms import SetJournalStatesGroup
+from .forms.forms import SetJournalStatesGroup
 
 from misc.re_patterns import *
 
@@ -29,7 +32,7 @@ def aftercommand_check(value): #TODO: pass a command object instead
     if value:
         return True
 
-    raise ValidationError("Command initiation failed\nError: no arguments", code='arguments')
+    raise ValidationError(arguments_pass_check_fail_logging_error_message.format(arguments=value), code=arguments_kw)
 
 
 def validate_is_mode(value, modes: Enum):
@@ -39,33 +42,55 @@ def validate_is_mode(value, modes: Enum):
     if mode:
         return  True
 
-    raise ValidationError(f"Command initiation failed\nError:no such mode \"{value}\"", code='arguments')
+    raise ValidationError(mode_validation_fail_chat_error_message.format(mode=value), code=arguments_kw)
+
+
+ #TODO: add separate flag validator, implement it
 
 
 class AdditionalArgumentsValidator:
-    def __init__(self, validation_function, validation_error_message):
+    def __init__(
+            self,
+            validation_function                     ,
+            validation_fail_chat_error_message      ,
+            validation_fail_logging_error_message   ,
+            validation_success_logging_info_message ,
+    ):
         self.validation_function = validation_function
-        self.validation_error_message = validation_error_message
+        self.validation_fail_chat_error_message = validation_fail_chat_error_message
+        self.validation_fail_logging_error_message = validation_fail_logging_error_message
+        self.validation_success_logging_info_message = validation_success_logging_info_message
 
 def validate_lesson(value):
     try:
         value_integer = int(value)
 
     except Exception as e:
-        raise ValidationError(f"Command initiation failed\nError:{e}", code='arguments')
+        logging.exception("", exc_info=True)
+        raise ValidationError(
+            lessons_pass_check_fail_logging_error_message.format(
+                arguments=value
+            )
+            ,
+            code=arguments_kw
+        )
 
     if value_integer in Schedule.lessons_intervals.keys():
         return True
 
     else:
-        raise ValidationError("Command initiation failed\nError: wrong lesson arguments", code='arguments')
+        raise ValidationError(lessons_pass_check_fail_logging_error_message.format(arguments=value), code=arguments_kw)
 
-lessons_validator = AdditionalArgumentsValidator(validate_lesson, wrong_lessons_validation_error_mesage)
-
+lessons_validator = AdditionalArgumentsValidator(
+    validate_lesson                                 ,
+    lessons_pass_check_fail_chat_error_message      ,
+    lessons_pass_check_fail_logging_error_message   ,
+    lessons_pass_check_success_logging_info_message ,
+)
 
 
 class NativeDateFormat:
-    date_format = '%d.%m.%Y'
+    date_format = '%d.%m.%Y' #TODO: move date format to separate file
 
 def validate_date_format(value):
     date_format = NativeDateFormat.date_format
@@ -75,25 +100,32 @@ def validate_date_format(value):
         return
 
     except:
-        raise ValidationError("wrong date format", code='format')
+        raise ValidationError(date_format_validation_fail_logging_error_message.format(arguments=value), code='format')
 
-date_validator = AdditionalArgumentsValidator(validate_date_format, wrong_date_validation_error_message)
+date_validator = AdditionalArgumentsValidator(
+    validate_date_format                         ,
+    date_pass_check_fail_chat_error_message      ,
+    date_pass_check_fail_logging_error_message   ,
+    date_pass_check_success_logging_info_message ,
+)
 
 
-async def validate_on_lesson_presence(user_id): #TODO: check
+async def validate_during_lesson_presence(user_id): #TODO: rename to "validate_during_lesson_presence
     try:
         await on_lesson_presence_check(user_id)
-
+        #TODO: return true
     except:
-        raise ValidationError(f"failed to set a status for user {user_id}, lesson is None", code='presence check')
-    #  TODO: move string to static_text.py
+        raise ValidationError(during_lesson_check_fail_logging_error_message.format(arguments=user_id), code=presence_kw)
 
 
 def validate_report_format(value: str):
 
     if not regex.fullmatch(pattern=report_rePattern, string=value):
 
-        raise ValidationError("report foramt validation failed", code='regex_match')
+        raise ValidationError(
+            report_table_format_validation_fail_logging_error_message.format(arguments=value),
+            code='regex_match'
+        )
 
     else:
         return True
@@ -108,21 +140,21 @@ def validate_report_name_references(value: str, journal):
     referred_profiles = [profile for profile in journal_profiles if any(name in profile.name for name in names)]
 
     if not len(names) == len(referred_profiles):
-        raise ValidationError("report name references validation failed", code='name references check')
+        raise ValidationError(report_table_name_references_validation_fail_logging_error_message.format(arguments=value), code=profile_name_kws + references)
 
     else:
         return True
 
 
-async def check_journal_set(state: FSMContext):
-    return await state.get_state() == SetJournalStatesGroup.set_journal
-
-
 @database_sync_to_async
-def is_superuser(user_id):
-    return Superuser.objects.filter(external_id=user_id).exists()
+def validate_journal_is_registered(**journal_attributes):
+    try:
+        journal = Journal.objects.get(**journal_attributes)
 
+    except Journal.DoesNotExist:
 
-@database_sync_to_async
-def is_presence_poll(poll_id):
-    return PresencePoll.objects.filter(external_id=poll_id).exists()
+        raise ValidationError(
+            journal_is_registered_by_attributes_check_fail_logging_error_message.format(
+                journal_attributes=journal_attributes
+            )
+        )

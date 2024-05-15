@@ -1,4 +1,3 @@
-import logging
 import re
 
 import htmldocx
@@ -19,14 +18,22 @@ from .dispatcher import dp,\
     journal_registration_subrouter,\
     bot
 from ..models import *
-from ..forms import *
+from .forms.forms import *
 from ..db_actions import *
 from .filters import *
 from .middleware import *
 from ..infrastructure.enums import *
-from ..infrastructure import enums
-from .static_text import *
+from .validators import *
+from .checks import *
+from static_text.utilities import *
+from static_text import chat_messages
+from static_text.chat_messages import *
+from static_text import logging_messages
+from static_text.logging_messages import *
+from logging_native.utilis.frame_log_track.frame_log_track import log_track_frame
+from .logger import handlers_logger
 from misc.re_patterns import *
+from misc.exceptions import *
 
 import asyncio
 
@@ -44,7 +51,29 @@ from key_generator import key_generator
 
 from typing import Any
 
+import operator
 
+
+logger = handlers_logger
+
+untracked_data = {
+    'bot'             ,
+    'event_from_user' ,
+    'event_chat'      ,
+    'fsm_storage'     ,
+    'state'           ,
+    'raw_state'       ,
+    'handler'         ,
+    'event_update'    ,
+    'event_router'    ,
+    'command'         ,
+    'forms'           ,
+}
+
+dp.message.outer_middleware(PassUserCredentials())
+dp.poll_answer.outer_middleware(PassUserCredentials())
+dp.message.outer_middleware(PassChatCredentials())
+dp.poll_answer.outer_middleware(PassChatCredentials())
 commands_router.message.middleware(ApplyArguments())
 presence_poll_router.poll_answer.filter(PresencePollFilter())
 journal_router.message.middleware(SuperuserSetJournal())
@@ -54,26 +83,27 @@ journal_registration_subrouter.message.middleware(SuperuserSetJournal())
 prefixes = {'🗡', '/'}
 
 @commands_router.message(Command(commands='start')) #TODO add middleware to show help for superuser
-async def start_command(message: types.Message):  # Self-presentation of the bot
+@log_track_frame(untracked_data=untracked_data, track_non_keyword_args=False)
+async def start_command(message: types.Message, *args, **kwargs):  # Self-presentation of the bot
+    logger.info('')
 
-    await message.reply(greeting_text)
+    await message.reply(start_chat_info_message)
 
 
 @commands_router.message(Command(commands='help', prefix=prefixes))
-async def help_command(message: types.Message):
-    #TODO: on_update_info
+@log_track_frame(untracked_data=untracked_data, track_non_keyword_args=False)
+async def help_command(message: types.Message, *args, **kwargs):
+    logger.info('')
 
+    #TODO: on_update_info
     await message.reply(HELPFUL_REPLY)
 
 
-class LessonSkippedException(Exception):
-    pass
-
-def poll_time_interval(mode, lesson=None, last_lesson=None):
+def poll_time_interval(mode, lesson=None, last_lesson=None): #TODO: set till_lesson instead of bot lesson and last_lesson
     now = timezone.localtime(timezone.now())
     if mode == PresenceMode.LIGHT_MODE:
         last_lesson_time = Schedule.lessons_intervals[last_lesson]
-        if last_lesson_time.upper < now.time():
+        if last_lesson_time.upper < now.time(): #TODO: add checker
             raise LessonSkippedException
 
         deadline_time = last_lesson_time.upper
@@ -114,7 +144,6 @@ def poll_time_interval(mode, lesson=None, last_lesson=None):
     return P.openclosed(now, deadline)
 
 
-
 @commands_router.message(Command(commands=['presence', 'p'], prefix=prefixes),
                          F.chat.type.in_({'group', 'supergroup'}),
                          IsAdminFilter(),
@@ -123,17 +152,13 @@ def poll_time_interval(mode, lesson=None, last_lesson=None):
                                       mode_checking=True,
                                       allow_no_mode= True,
                                       additional_arguments_checker=lessons_validator))
-async def presence_command(message: types.Message, mode=default, additional_arguments=None, flag=None):
+@log_track_frame(untracked_data=untracked_data, track_non_keyword_args=False)                                                                          #processing first two lessons written conjointly raise mode validation error
+async def presence_command(message: types.Message, mode=default, additional_arguments=None, flag=None, *args, **kwargs): #TODO: modify L mode to send 'arrived' and 'left' polls to calculate presence data
+    chat_id = message.chat.id
+
     lessons_string_list = additional_arguments
 
-    if mode in (PresenceMode.LIGHT_MODE, PresenceMode.NORMAL_MODE, PresenceMode.HARDCORE_MODE):
-        lessons = [int(e) for e in lessons_string_list]
-
-    else:# TODO: for further schedule mode
-        if lessons_string_list:
-            await message.answer(no_additional_arguments_required)
-            logging.error(no_arguments_logging_error_message)
-            pass
+    lessons = [int(e) for e in lessons_string_list]
 
     lessons.sort()
     unique_lessons = list(set(lessons))
@@ -142,8 +167,6 @@ async def presence_command(message: types.Message, mode=default, additional_argu
     today = now.date()
     date_format = NativeDateFormat.date_format
     today_string = today.strftime(date_format)
-
-    group_id = message.chat.id
 
     poll_configuration = {'options': list(presence_option_to_string(o) for o in PresencePollOptions),
                            'type': 'quiz', 'correct_option_id': 0,
@@ -156,227 +179,307 @@ async def presence_command(message: types.Message, mode=default, additional_argu
         try:
             poll__time_interval = poll_time_interval(mode, last_lesson=last_lesson)
 
-        except LessonSkippedException:
-            await message.answer(lesson_skipped_text.format(last_lesson))
-            logging.info(lesson_skipped_logging_error_message.format(last_lesson))
+        except LessonSkippedException: #TODO: add checker
+            logger.info(lesson_time_skipped_logging_info_message.format(lesson_attributes="\bs"))
+            await message.answer(lesson_time_skipped_chat_info_message.format(lesson_attributes=""))
             return
 
         deadline = poll__time_interval.upper
-        question = today_string + " Присутність"
-        poll_configuration.update({'question': question})
+        question = f"{today_string} {chat_messages.presence_kw}"
+        poll_identifying_attributes = {'question': question}
+        poll_configuration.update(poll_identifying_attributes)
 
     if not mode == PresenceMode.LIGHT_MODE:
-        await initiate_today_report(today, group_id, unique_lessons, mode)
-        logging.info(today_report_initiated_info_message.format(group_id, mode))
+        await initiate_today_report(today, chat_id, unique_lessons, mode)
 
         for lesson in unique_lessons:
-            await initiate_today_entries(today, group_id, lesson)
-            logging.info(lesson_entries_initiated_info_message.format(lesson, group_id))
+            await initiate_today_entries(today, chat_id, lesson)
 
             try:
                 poll__time_interval = poll_time_interval(mode, lesson)
 
-            except LessonSkippedException:
-                await message.answer(lesson_skipped_text.format(lesson))
-                logging.info(lesson_skipped_logging_error_message.format(lesson))
+            except LessonSkippedException: #TODO: add checker
+                await message.answer(lesson_time_skipped_chat_info_message.format(lesson_attributes=lesson))
+                logger.info(
+                    lesson_time_skipped_logging_info_message.format(lesson_attributes=lesson)
+                )
                 continue
 
             poll_time = poll__time_interval.lower
             deadline = poll__time_interval.upper
 
             question = today_string + f" Заняття {str(lesson)}"
-            poll_configuration.update({'question': question})
+            poll_identifying_attributes = {'question': question}
+            poll_configuration.update(poll_identifying_attributes)
 
             till_poll = poll_time - timezone.localtime(timezone.now())
             till_poll_seconds = till_poll.seconds
-            logging.info(on_lesson_presence_poll_expected_info_message.format(group_id, lesson, till_poll_seconds))
+            logger.info(
+                presence_poll_on_send_expectation_logging_info_message.format(
+                    poll_attributes = poll_identifying_attributes,
+                    time=f"{till_poll_seconds} {seconds_kw}")
+
+            )
             await asyncio.sleep(till_poll_seconds)
             till_deadline = deadline - timezone.localtime(timezone.now()) #TODO: create an async scheduler
             till_deadline_seconds = till_deadline.seconds
-            poll_message = await message.answer_poll(**poll_configuration) #TODO: consider using poll configuration dict
-            logging.info(lesson_poll_sent_to_group_info_message.format(lesson, group_id))
+            poll_message = await message.answer_poll(**poll_configuration)
             poll_id = poll_message.poll.id
+            poll_identifying_attributes.update({'id': poll_id})
+            logger.info(
+                presence_poll_on_sending_logging_info_message.format(
+                    poll_attributes = poll_identifying_attributes
+                )
+            )
             await add_presence_poll(poll_id)
-            logging.info(presence_poll_added_info_message.format(poll_id))
-            logging.info(on_lesson_presence_poll_expected_to_stop_info_message.format(group_id, lesson, till_deadline_seconds))
+            logger.info(
+                presence_poll_on_stop_expectation_logging_info_message.format(
+                    poll_attributes = poll_identifying_attributes,
+                    time=f'{till_deadline_seconds} {seconds_kw}')
+            )
             await asyncio.sleep(till_deadline_seconds)  #TODO: schedule instead
             await bot.stop_poll(chat_id=poll_message.chat.id, message_id=poll_message.message_id)
-            logging.info(lesson_poll_stopped_info_message.format(lesson, group_id))
+            logger.info(
+                presence_poll_on_stopping_logging_info_message.format(
+                    poll_attributes = poll_identifying_attributes
+                )
+            )
             await delete_presence_poll(poll_id)
-            logging.info(presence_poll_deleted_info_message.format(poll_id))
+            logger.info(
+                presence_poll_deleted_logging_info_message.format(poll_attributes=poll_id)
+            )
 
-        await amend_statuses(today, group_id)
-        logging.info(statuses_amended_for_group_info_message.format(group_id))
+        await amend_statuses(today, chat_id)
+        logger.info(
+            statuses_amended_logging_info_message
+        )
 
     else:
         for lesson in unique_lessons:
-            await initiate_today_entries(today, group_id, lesson)
-            logging.info(lesson_entries_initiated_info_message.format(lesson, group_id))
-        logging.info(today_entries_initiated_info_message.format(group_id))
-        await initiate_today_report(today, group_id, unique_lessons, mode='L')
-        logging.info(today_report_initiated_info_message.format(group_id, mode))
-        logging.info(poll_expected_info_message.format(group_id, 0))
+            await initiate_today_entries(today, chat_id, lesson)
+
+        await initiate_today_report(today, chat_id, unique_lessons, mode='L')
+
+        logger.info(
+            presence_poll_on_send_expectation_logging_info_message.format(
+                poll_attributes=poll_identifying_attributes,
+                time=0
+            )
+        )
         poll_message = await message.answer_poll(**poll_configuration)
-        logging.info(poll_sent_info_message.format(group_id, mode))
+        logger.info(
+            presence_poll_on_sending_logging_info_message
+        )
         poll_id = poll_message.poll.id
+        poll_identifying_attributes.update({'id': poll_id})
         await add_presence_poll(poll_id)
-        logging.info(presence_poll_added_info_message.format(poll_id))
+        logger.info(
+            presence_poll_added_logging_info_message.format(poll_id)
+        )
         till_deadline = deadline - now
         till_deadline_seconds = till_deadline.seconds
-        logging.info(poll_expected_to_stop_info_message.format(group_id, till_deadline_seconds))
+        logger.info(
+            presence_poll_on_stop_expectation_logging_info_message.format(time=till_deadline_seconds)
+        )
         await asyncio.sleep(till_deadline_seconds) #TODO: schedule instead
         await bot.stop_poll(chat_id=poll_message.chat.id, message_id=poll_message.message_id)
-        await delete_presence_poll(poll_id)
-        logging.info(presence_poll_deleted_info_message.format(poll_id))
-        logging.info(poll_stopped_info_message.format(group_id))
+        await delete_presence_poll(poll_id) #TODO: consider deleting presence polls
+        logger.info(
+            presence_poll_deleted_logging_info_message.format(poll_id)
+        )
+        logger.info(
+            presence_poll_on_stopping_logging_info_message.format(
+                poll_attrtibutes = poll_identifying_attributes
+            )
+        )
 
-        await amend_statuses(today, group_id)
-        logging.info(statuses_amended_for_group_info_message.format(group_id))
+        await amend_statuses(today, chat_id)
 
     return
 
 
 @commands_router.message(Command(commands='cancel', prefix=prefixes))
-async def cancel_command(message: types.Message, state: FSMContext):
+@log_track_frame(untracked_data=untracked_data, track_non_keyword_args=False)
+async def cancel_command(message: types.Message, state: FSMContext, *args, **kwargs):
     current_state = await state.get_state()
-    states_canceling_messages = {AbsenceReasonStates.AbsenceReason: absence_reason_share_canceling_message,
-                                 SetJournalStatesGroup.set_journal: journal_unset_message, #TODO: consider
-                                 UserInformStatesGroup.receiver_id: call_canceling_message,
-                                 GroupInformStatesGroup.receiver_id: group_inform_canceling_message}
+    states_canceling_messages = {
+        AbsenceReasonStates.AbsenceReason:
+            [
+                absence_reason_share_on_canceling_chat_info_message,
+                absence_reason_share_on_canceling_logging_info_message
+            ],
+        SetJournalStatesGroup.set_journal:
+            [
+                journal_unset_success_chat_info_message,
+                journal_unset_success_logging_info_message
+            ],
+        UserInformStatesGroup.receiver_id:
+            [
+                call_on_canceling_chat_info_message,
+                call_on_canceling_logging_info_message
+            ],
+        GroupInformStatesGroup.receiver_id:
+            [
+                group_inform_on_canceling_chat_info_message,
+                group_inform_on_canceling_logging_info_message
+            ]
+    }
 
-    for state_key, canceling_message in states_canceling_messages.items():
+    for state_key, (on_canceling_chat_message, on_canceling_logging_message) in states_canceling_messages.items():
         if current_state == state_key.state:
-            callback_message = canceling_message
+            response_on_canceling_chat_message = on_canceling_chat_message
+            response_on_canceling_logging_message = on_canceling_logging_message
             break
 
     else:
         if current_state is None:
-            callback_message = no_state_message
+            response_on_canceling_chat_message = state_check_fail_chat_info_message
+            response_on_canceling_logging_message = state_check_fail_logging_info_message
 
         else:
-            callback_message = data_input_canceling_message
+            logging.exception(
+                data_input_on_canceling_logging_info_message
+            )
+            await message.reply(data_input_on_canceling_chat_info_message)
+            return
 
-    chat_id = message.chat.id
     await state.clear()
-    logging.info(data_entering_canceled_message.format(chat_id))
-    await message.reply(text=callback_message)
+    logger.info(response_on_canceling_logging_message)
+    await message.reply(response_on_canceling_chat_message)
 
 
 @commands_router.message(AbsenceReasonStates.AbsenceReason, F.text.regexp(r'Т'),
                          NoCommandFilter(),
                          F.chat.type.in_({'private'}))
-async def absence_reason_handler_T(message: types.Message, forms: FormsManager):
+@log_track_frame(untracked_data=untracked_data, track_non_keyword_args=False)
+async def absence_reason_handler_T(message: types.Message, forms: FormsManager, *args, **kwargs): #TODO: rename to "suggestion handler" type
     await forms.show('absenceform')
 
-@commands_router.message(AbsenceReasonStates.AbsenceReason,
+@commands_router.message(AbsenceReasonStates.AbsenceReason, #TODO: rename to "suggestion handler" type
                          NoCommandFilter(),
                          F.text.regexp(r'Н'), F.chat.type.in_({'private'}))
-async def absence_reason_handler_H(message: types.Message, state: FSMContext):
+@log_track_frame(untracked_data=untracked_data, track_non_keyword_args=False)
+async def absence_reason_handler_H(message: types.Message, state: FSMContext, *args, **kwargs):
+    await message.answer(absence_reason_share_on_canceling_chat_info_message)
     await state.clear()
 
-@commands_router.message(AbsenceReasonStates.AbsenceReason, F.text.regexp(r'[^ТН]'),
+@commands_router.message(AbsenceReasonStates.AbsenceReason, F.text.regexp(r'[^ТН]'), #TODO: rename to "suggestion handler" type
                          NoCommandFilter(),
                          F.chat.type.in_({'private'}))
-async def absence_reason_handler_invalid(message: types.Message, state: FSMContext):
-    await message.answer(absence_reason_share_suggestion_text)
+@log_track_frame(untracked_data=untracked_data, track_non_keyword_args=False)
+async def absence_reason_handler_invalid(message: types.Message, state: FSMContext, *args, **kwargs): #TODO: remove state argument
+    await message.answer(absence_reason_share_suggestion_chat_field_message)
+    logger.info(
+        absence_reason_share_suggestion_logging_field_message
+    )
 
 @presence_poll_router.poll_answer(PresencePollFilter()) #TODO: add a flag for vote-answer mode, add an every-lesson mode
-async def presence_poll_answer_handler (poll_answer: types.poll_answer, state: FSMContext):  #TODO: add an ability to re-answer
+@log_track_frame(untracked_data=untracked_data, track_non_keyword_args=False)
+async def presence_poll_answer_handler (poll_answer: types.poll_answer, state: FSMContext, *args, **kwargs):  #TODO: add an ability to re-answer
     is_present = poll_answer.option_ids == [PresencePollOptions.Present.value]
     user_id = poll_answer.user.id
 
-    logging.info(poll_answer_info_message.format(poll_answer.option_ids, is_present, user_id))
+    logger.info(
+        presence_poll_on_answer_logging_info_message.format(
+            poll_attributes={"id": poll_answer.poll_id},
+            answer_attributes=f"{poll_answer.option_ids[0]}:{is_present}"
+        )
+    )
+
     await process_user_on_lesson_presence(is_present, user_id)
-    logging.info(presence_set_for_user_info_message.format(user_id))
 
     if not is_present:
-        await bot.send_message(user_id, absence_reason_share_suggestion_text)
+        await bot.send_message(user_id, absence_reason_share_suggestion_chat_field_message)
         await state.set_state(AbsenceReasonStates.AbsenceReason)
-        logging.info(absence_reason_input_suggested_logging_info_message.format(user_id))
+        logger.info(
+            absence_reason_share_suggestion_logging_field_message
+        )
 
 
 @commands_router.message(Command(commands=['absence_reason', 'ar'], prefix=prefixes), F.chat.type.in_({'private'}))
-async def absence_reason_command(message: types.Message, forms: FormsManager):
+@log_track_frame(untracked_data=untracked_data, track_non_keyword_args=False)
+async def absence_reason_command(message: types.Message, forms: FormsManager, *args, **kwargs):
     user_id = message.from_user.id
     #TODO: pass the lesson if lesson is none, then answer and return
     try:
-        await validate_on_lesson_presence(user_id)
+        await validate_during_lesson_presence(user_id)
 
     except:
-        await message.answer(out_of_lesson_absence_reason_sharing_error_message)
+        await message.answer(during_lesson_check_fail_chat_error_message) #validation fail if of-lesson entry does not exist
         return
 
     if not await on_lesson_presence_check(user_id):
-        logging.info(absence_reason_form_initiated_info_message.format(user_id))
         await forms.show('absenceform')
 
     else:
-        await message.answer(on_present_absence_reason_sharing_error_message)
-        logging.error(absence_reason_set_impossible_error_message.format(user_id))
+        await message.answer(is_absent_check_fail_chat_error_message)
 
 
 @registration_router.message(SuperuserKeyStates.key, F.chat.type.in_({'private'}))
-async def super_user_registrator(message: types.Message, state: FSMContext):
+@log_track_frame(untracked_data=untracked_data, track_non_keyword_args=False)
+async def register_superuser_handler(message: types.Message, state: FSMContext, *args, **kwargs):
     user_id = message.from_user.id
     authentic_key = await state.get_data()
 
     try:
         validate_super_user_key(message.text, authentic_key['key'], user_id)
+
     except:
-        await message.answer(key_is_unauthentic_text)
+        await message.answer(key_validation_fail_chat_error_message)
         return
 
     try:
         await add_superuser(user_id)
-        await message.answer(text=superuser_form_callback_message)
-        logging.info(superuser_created_info_message.format(user_id))
 
     except Exception as e:
-        await message.answer(text=on_registration_fail_text)
-        logging.error(superuser_creation_error_message.format(user_id, e))
+        logging.error(superuser_registration_fail_logging_error_message)
+        await message.answer(registration_fail_chat_error_message)
+        return
 
+    logger.error(superuser_registration_success_logging_info_message)
+    await message.answer(superuser_registration_success_chat_message)
+
+async def request_key(chat_id: int, key: str) -> None:
+    await bot.send_message(chat_id, key_field_chat_message)
+    logger.info(key_field_logging_message.format(key=key))
 
 @registration_router.message(Command(commands='register_superuser', prefix=prefixes),
                          F.chat.type.in_({'private'}),
                          RegisteredExternalIdFilter(Superuser))
-async def register_superuser_command(message: types.Message, state: FSMContext):
+@log_track_frame(untracked_data=untracked_data, track_non_keyword_args=False)
+async def register_superuser_command(message: types.Message, state: FSMContext, *args, **kwargs):
     user_id = message.from_user.id
-    logging.info(superuser_registration_form_initiated_info_message.format(user_id))
-    await message.reply(text=profile_registration_text)
-    await asyncio.sleep(3)
 
     key = key_generator.generate().get_key()
 
     await state.set_state(SuperuserKeyStates.key)
     await state.update_data(key=key)
-    await message.answer(superuser_key_field_message)
-    logging.info(superuser_key_info_message.format(user_id, key))
+    await request_key(user_id, key)
 
 
 @registration_router.message(Command(commands='register', prefix=prefixes),
-                         F.chat.type.in_({'private'}),
-                         AftercommandFullCheck(allow_no_argument=True, modes=RegistrationMode, mode_checking=True),
-                         RegisteredExternalIdFilter(Profile), SuperUserCalledUserToDELETEFilter())
-async def register_command(message: types.Message, forms: FormsManager, state: FSMContext, mode=None):
+                             F.chat.type.in_({'private'}),
+                             AftercommandFullCheck(allow_no_argument=True, modes=RegistrationMode, mode_checking=True),
+                             RegisteredExternalIdFilter(Profile), SuperuserCalledUserToDELETEFilter())
+@log_track_frame(untracked_data=untracked_data, track_non_keyword_args=False)
+async def register_command(message: types.Message, forms: FormsManager, state: FSMContext, mode=None, *args, **kwargs):
     user_id = message.from_user.id
-    logging.info(profile_registration_form_initiated_info_message.format(user_id, ('regular' if not mode else mode)))
-    await message.reply(text=profile_registration_text)
-    await asyncio.sleep(3)
 
     if mode == RegistrationMode.DELETE.value:
         try:
             if await is_superuser(user_id):
                 called_user_id = await state.get_data()
                 await delete_profile(called_user_id['Interlocutor_id'])
-                await message.answer(text=profile_deleted_callback_message)
+                logging.info(profile_deletion_success_chat_info_message)
 
             else:
                 await delete_profile(user_id)
-                await message.answer(text=profile_deleted_callback_message)
+            await message.answer(text=profile_deletion_success_chat_info_message)
 
-        except Exception as e:
-            logging.error(profile_deletion_error_message.format(user_id, e))
-            await message.answer(text=profile_does_not_exist_text)
+
+        except Exception:
+            logging.error(profile_deletion_fail_logging_error_message, exc_info=True)
+            await message.answer(text=profile_deletion_fail_chat_error_message)
 
     else:
         await forms.show('profileform')
@@ -388,33 +491,29 @@ register_journal_command_filters_config = (Command(commands='register_journal',p
 
 
 @registration_router.message(JournalRegistrationStates.key, NoCommandFilter())
-async def journal_registrator(message: types.Message, forms: FormsManager, state: FSMContext):
+@log_track_frame(untracked_data=untracked_data, track_non_keyword_args=False)
+async def register_journal_handler(message: types.Message, forms: FormsManager, state: FSMContext, *args, **kwargs):
+    user_id = message.from_user.id
     chat_id = message.chat.id
     data = await state.get_data()
     authentic_key = data['key']
     try:
-        validate_super_user_key(message.text, authentic_key, message.from_user.id)
+        validate_super_user_key(message.text, authentic_key, user_id)
 
     except:
-        await message.answer(key_is_unauthentic_text)
+        await message.answer(key_validation_fail_chat_error_message.format(user_id, chat_id))
         return
 
     set_journal = data['set_journal']
+    journal = set_journal if set_journal else await get_journal_async({'external_id': chat_id})
     mode = data['mode']
-    if mode == RegistrationMode.DELETE.value:
+    if mode == RegistrationMode.DELETE.value: #TODO: fix deletion, if no journal group journal (causes MultipleObjectsReturned)
         try:
-            if message.chat.type == 'private':
-                await delete_journal(set_journal.external_id)
-                await message.answer(text=journal_deleted_callback_message)
+            await delete_journal(journal)
+            await message.answer(text=journal_deletion_success_chat_info_message)
 
-            else:
-                await delete_journal(chat_id)
-                await message.answer(text=journal_deleted_callback_message)
-
-
-        except Exception as e:
-            logging.error(journal_deletion_error_message.format(chat_id, e))
-            await message.answer(text=journal_does_not_exist_text)
+        except Exception:
+            await message.answer(text=journal_existence_check_fail_chat_message)
 
     else:
         await forms.show('journalform')
@@ -425,12 +524,16 @@ async def journal_registrator(message: types.Message, forms: FormsManager, state
 @journal_registration_subrouter.message(*register_journal_command_filters_config,
                          F.chat.type.in_({'group', 'supergroup'}),
                          IsAdminFilter())
-async def register_journal_command(message: types.Message, state: FSMContext, mode=None, set_journal: Journal=None):
+@log_track_frame(untracked_data=untracked_data, track_non_keyword_args=False)
+async def register_journal_command(
+        message: types.Message    ,
+        state: FSMContext         ,
+        mode=None                 ,
+        set_journal: Journal=None ,
+        *args                     ,
+        **kwargs                  ,
+):
     chat_id = message.chat.id
-
-    logging.info(journal_registration_form_initiated_info_message.format(chat_id, ('regular' if not mode else mode)))
-    await message.reply(text=group_registration_text)
-    await asyncio.sleep(3)
 
     await state.set_state(JournalRegistrationStates.mode)
     await state.update_data(mode=mode)
@@ -441,23 +544,28 @@ async def register_journal_command(message: types.Message, state: FSMContext, mo
     await state.set_state(JournalRegistrationStates.key)
     key = key_generator.generate().get_key()
     await state.update_data(key=key)
-    await message.answer(superuser_key_field_message)
-    logging.info(superuser_key_info_message.format(f"{message.from_user.id} of chat {chat_id}", key))
-
+    await request_key(chat_id, key)
+#TODO: catch report commands if no group journal
 #TODO:classify report commands similar
 today_report_command_filters_config = (Command(commands=['today_report', 'tr'], prefix=prefixes),
                                        AftercommandFullCheck(allow_no_argument=True, modes=ReportMode, flag_checking=True))
 
 @journal_router.message(*today_report_command_filters_config, F.chat.type.in_({'private'}), IsSuperUserFilter())
 @journal_router.message(*today_report_command_filters_config, F.chat.type.in_({'group', 'supergroup'}), IsAdminFilter())
-async def today_report_command(message: types.Message, flag=ReportMode.Flag.TEXT, set_journal: Journal=None):
+@log_track_frame(untracked_data=untracked_data, track_non_keyword_args=False)
+async def today_report_command(
+        message: types.Message    ,
+        flag=ReportMode.Flag.TEXT ,
+        set_journal: Journal=None ,
+        *args                     ,
+        **kwargs
+):
     group_id = message.chat.id if not set_journal else set_journal.external_id
     try:
         today_report = await get_on_mode_report(group_id, ReportMode.TODAY)
 
     except Exception:
-        await message.answer(invalid_parameters_report_error_message)
-        logging.error(get_report_failed_error_message.format(group_id))
+        await message.answer(report_parameters_check_fail_chat_error_message)
         return
 
     table = await report_table(today_report)
@@ -466,8 +574,9 @@ async def today_report_command(message: types.Message, flag=ReportMode.Flag.TEXT
     date_format = NativeDateFormat.date_format
     date_string = today_report.date.strftime(date_format)
 
-    logging.info(report_requested_info_message.format(group_id, "TODAY", flag))
-    await message.answer(report_text.format(date_string))
+    await message.answer(
+        report_description_chat_info_message.format(report_parameters=f"{chat_messages.on_kw} {date_string}")
+    )
 
     match ReportMode.Flag(flag):
 
@@ -501,15 +610,21 @@ last_report_command_filters_config = (Command(commands=['last_report', 'lr'], pr
 
 @journal_router.message(*last_report_command_filters_config, F.chat.type.in_({'private'}), IsSuperUserFilter())
 @journal_router.message(*last_report_command_filters_config, F.chat.type.in_({'group', 'supergroup'}), IsAdminFilter())
-async def last_report_command(message: types.Message, flag=ReportMode.Flag.TEXT, set_journal: Journal=None):
+@log_track_frame(untracked_data=untracked_data, track_non_keyword_args=False)
+async def last_report_command(
+        message: types.Message    ,
+        flag=ReportMode.Flag.TEXT ,
+        set_journal: Journal=None ,
+        *args                     ,
+        **kwargs
+):
     group_id = message.chat.id if not set_journal else set_journal.external_id
 
     try:
         last_report = await get_on_mode_report(group_id, ReportMode.LAST)
 
     except Exception:
-        await message.answer(invalid_parameters_report_error_message)
-        logging.error(get_report_failed_error_message.format(group_id))
+        await message.answer(report_parameters_check_fail_chat_error_message)
         return
 
     table = await report_table(last_report)
@@ -518,8 +633,9 @@ async def last_report_command(message: types.Message, flag=ReportMode.Flag.TEXT,
     date_format = NativeDateFormat.date_format
     date_string = last_report.date.strftime(date_format)
 
-    logging.info(report_requested_info_message.format(group_id, "LAST", flag))
-    await message.answer(report_text.format(date_string))
+    await message.answer(
+        report_description_chat_info_message.format(f"{chat_messages.on_kw} {date_string}")
+    )
 
     match ReportMode.Flag(flag):
 
@@ -554,7 +670,15 @@ on_date_report_command_filters_config = (Command(commands=['on_date_report', 'od
                                                         flag_checking=True))
 @journal_router.message(*on_date_report_command_filters_config, F.chat.type.in_({'private'}), IsSuperUserFilter())
 @journal_router.message(*on_date_report_command_filters_config, F.chat.type.in_({'group', 'supergroup'}), IsAdminFilter())
-async def on_date_report_command(message: types.Message, additional_arguments=False, flag=ReportMode.Flag.TEXT, set_journal: Journal=None):
+@log_track_frame(untracked_data=untracked_data, track_non_keyword_args=False)
+async def on_date_report_command(
+        message: types.Message     ,
+        additional_arguments=False ,
+        flag=ReportMode.Flag.TEXT  ,
+        set_journal: Journal=None  ,
+        *args                      ,
+        **kwargs
+):
     date_string = additional_arguments[0] #TODO: fix additional_arguments duplication
     date_format = NativeDateFormat.date_format
     date = datetime.datetime.strptime(date_string, date_format).date()
@@ -565,15 +689,15 @@ async def on_date_report_command(message: types.Message, additional_arguments=Fa
         on_date_report = await get_on_mode_report(group_id, ReportMode.ON_DATE, date)
 
     except: #TODO: write a decorator-validator instead
-        await message.answer(invalid_parameters_report_error_message)
-        logging.error(get_report_failed_error_message.format(group_id))
+        await message.answer(report_parameters_check_fail_chat_error_message)
         return
 
     table = await report_table(on_date_report)
     summary = await report_summary(on_date_report, ReportMode.ON_DATE)
 
-    logging.info(report_requested_info_message.format(group_id, "ON DATE", flag))
-    await message.answer(report_text.format(date_string))
+    await message.answer(
+        report_description_chat_info_message.format(f"{chat_messages.on_kw} {date_string}")
+    )
 
     match ReportMode.Flag(flag):
 
@@ -609,9 +733,9 @@ dossier_command_filters_config = (Command(commands='dossier', prefix=prefixes),
 
 @journal_router.message(*dossier_command_filters_config, F.chat.type.in_({'private'}), IsSuperUserFilter())
 @journal_router.message(*dossier_command_filters_config, F.chat.type.in_({'group', 'supergroup'}), IsAdminFilter())
-async def dossier_command(message: Message, flag=ReportMode.Flag.TEXT,set_journal: Journal=None):
+@log_track_frame(untracked_data=untracked_data, track_non_keyword_args=False)
+async def dossier_command(message: Message, flag=ReportMode.Flag.TEXT,set_journal: Journal=None, *args, **kwargs):
     group_id = message.chat.id if not set_journal else set_journal.external_id
-    logging.info(report_requested_info_message.format(group_id, 'DOSSIER', flag))
 
     table = await get_journal_dossier(group_id)
 
@@ -632,7 +756,8 @@ async def dossier_command(message: Message, flag=ReportMode.Flag.TEXT,set_journa
 
 
 @journal_router.message(ReportRedoStatesGroup.redoing, NoCommandFilter())
-async def report_redo(message: Message, state: FSMContext, set_journal: Journal=None):
+@log_track_frame(untracked_data=untracked_data, track_non_keyword_args=False)
+async def redo_report_handler(message: Message, state: FSMContext, set_journal: Journal=None, *args, **kwargs):
     group_id = message.chat.id if not set_journal else set_journal.external_id
     journal = await get_journal_async({'external_id': group_id}) if not set_journal else set_journal
 
@@ -654,20 +779,19 @@ async def report_redo(message: Message, state: FSMContext, set_journal: Journal=
                 for row_match in report_rows:
                     await redo_entries_by_report_row(row_match, group_id, date, lessons)
 
-                logging.info(report_redone_info_message.format(string_date, group_id))
-                await message.answer(report_redone_callback_message)
+                logger.info(report_redo_success_logging_info_message)
+                await message.answer(report_redo_success_chat_info_message)
 
             else:
-                await message.answer(report_name_references_validation_error_message)
+                await message.answer(report_table_name_references_validation_fail_chat_error_message)
                 return
 
         else:
-            await message.answer(report_format_validation_error_message)
+            await message.answer(report_table_format_validation_chat_error_message)
             return
 
     except Exception as e:
-        logging.error(report_redo_failed_error_message.format(string_date, group_id, e))
-        await message.answer(report_redo_fail_text)
+        await message.answer(report_redo_fail_chat_error_message)
 
 redo_report_filters_config = (Command(commands=['redo_report', 'rr'], prefix=prefixes),
                               AftercommandFullCheck(
@@ -677,9 +801,17 @@ redo_report_filters_config = (Command(commands=['redo_report', 'rr'], prefix=pre
 
 @journal_router.message(*redo_report_filters_config, F.chat.type.in_({'private'}), IsSuperUserFilter())
 @journal_router.message(*redo_report_filters_config, F.chat.type.in_({'group', 'supergroup'}), IsAdminFilter())
-async def redo_report_command(message: Message, state: FSMContext, additional_arguments, set_journal: Journal=None): #TODO: fix superusage state bug
-    group_id = message.chat.id if not set_journal else set_journal.external_id
-    await message.answer(redo_report_suggestion)
+@log_track_frame(untracked_data=untracked_data, track_non_keyword_args=False)
+async def redo_report_command(
+        message: Message          ,
+        state: FSMContext         ,
+        additional_arguments      ,
+        set_journal: Journal=None ,
+        *args                     ,
+        **kwargs
+): #TODO: fix superusage state bug
+    await message.answer(redo_report_chat_field_message)
+    logger.info(redo_report_logging_field_message)
     await message.answer(f"```{report_example_text}```", parse_mode='Markdown')
     await state.set_state(ReportRedoStatesGroup.date)
     date_string = additional_arguments[0]
@@ -687,11 +819,11 @@ async def redo_report_command(message: Message, state: FSMContext, additional_ar
     date = datetime.datetime.strptime(date_string, date_format).date()
     await state.update_data(date=date)
     await state.set_state(ReportRedoStatesGroup.redoing)
-    logging.info(report_redo_requested_info_message.format(str(date), group_id))
 
 
 @commands_router.message(SetJournalStatesGroup.setting_journal, NoCommandFilter(), F.chat.type.in_({'private'}))
-async def set_journal_handler(message: types.Message, state: FSMContext):
+@log_track_frame(untracked_data=untracked_data, track_non_keyword_args=False)
+async def set_journal_handler(message: types.Message, state: FSMContext, *args, **kwargs):
     response = message.text
     try:
         validate_journal_format(response)
@@ -714,125 +846,150 @@ async def set_journal_handler(message: types.Message, state: FSMContext):
 
     await state.set_state(SetJournalStatesGroup.set_journal)
     await state.update_data(set_journal=set_journal)
-    await message.answer(journal_set_text.format(set_journal_name))
+    await message.answer(journal_set_success_chat_info_message.format(set_journal_name))
+
+async def request_journal(chat_id: int):
+    await bot.send_message(chat_id, journal_name_chat_field_message)
+    logger.info(journal_name_logging_field_message)
 
 @commands_router.message(Command(commands=['set_journal', 'sj'], prefix=prefixes),
                          F.chat.type.in_({'private'}),
                          IsSuperUserFilter())
-async def set_journal_command(message: types.Message, state: FSMContext):
+@log_track_frame(untracked_data=untracked_data, track_non_keyword_args=False)
+async def set_journal_command(message: types.Message, state: FSMContext, *args, **kwargs):
+    await request_journal(message.chat.id)
     await state.set_state(SetJournalStatesGroup.setting_journal)
-    await message.answer(enter_journal_name_message)
 
 
 @commands_router.message(UserInformStatesGroup.receiver_id, NoCommandFilter(), F.chat.type.in_({'private'}))
-async def user_inform_handler(message: types.Message, state: FSMContext):
+@log_track_frame(untracked_data=untracked_data, track_non_keyword_args=False)
+async def user_inform_handler(message: types.Message, state: FSMContext, *args, **kwargs):
     user_id = message.from_user.id
     interlocutor_id = await state.get_data()
     await bot.send_message(interlocutor_id['Interlocutor_id'], message.text)
     await state.update_data(receiver_id=user_id)
 
 @commands_router.message(UserInformStatesGroup.call, NoCommandFilter(), F.chat.type.in_({'private'}))
-async def user_call_handler(message: types.Message, state: FSMContext):
+@log_track_frame(untracked_data, track_non_keyword_args=False)
+async def user_call_handler(message: types.Message, state: FSMContext, *args, **kwargs):
     response = message.text
-    user_id = message.from_user.id
-
-    @database_sync_to_async
-    def get_profile_by_name(name):
-        return Profile.objects.get(name=name)
 
     try:
         validate_name_format(response)
     except Exception:
-        await message.answer(name_format_validation_error_message)
+        await message.answer(profile_name_format_validation_fail_logging_error_message)
         return
     name = response
     try:
-        profile = await get_profile_by_name(name)
-    except Exception as e:
-        print(e)
-        await message.answer(profile_by_name_not_in_db_error_message)
+        profile = await get_profile_async(name=name)
+
+    except Exception:
+        await message.answer(
+            profile_is_registered_by_attributes_сheck_fail_chat_error_message.format(
+                profile_attributes=chat_messages.profile_name_kwс
+            )
+        )
         await state.clear()
         return
 
     profile_id = profile.external_id
     await state.set_state(UserInformStatesGroup.receiver_id)
     await state.update_data(Interlocutor_id=profile_id)
-    await message.answer(user_inform_text.format(name))
-    await bot.send_message(profile_id, inform_message)
+    await message.answer(inform_to_profile_user_chat_info_message.format(name))
+    logging.info(inform_to_sender_logging_info_message)
+    await bot.send_message(profile_id, user_inform_to_receiver_chat_error_message)
 
 @commands_router.message(Command(commands=['call'], prefix=prefixes),
                          F.chat.type.in_({'private'}),
                          IsSuperUserFilter())
-async def call_command(message: types.Message, state: FSMContext):
+@log_track_frame(untracked_data=untracked_data, track_non_keyword_args=False)
+async def call_command(message: types.Message, state: FSMContext, *args, **kwargs):
     await state.set_state(UserInformStatesGroup.call)
-    await message.answer(enter_profile_name_message)
+    await message.answer(profile_name_logging_field_message)
 
-async def inform_all_journal_users(journal, message_text):
-    all_journal_profiles = await get_all_journal_profiles(journal)
-    for profile in all_journal_profiles: await bot.send_message(profile.external_id, message_text)
+async def inform_profile_user(profile: Profile, message_text=str) -> None:
+    await bot.send_message(profile.external_id, message_text)
+
+async def inform_journal_group(journal: Journal, message_text=str) -> None:
     await bot.send_message(journal.external_id, message_text)
 
 
+async def inform_all_journal_profiles_users_and_journal_group(journal, message_text):
+    all_journal_profiles = await get_all_journal_profiles(journal)
+    for profile in all_journal_profiles:
+        await inform_profile_user(profile, message_text)
+
+    await inform_journal_group(journal, message_text)
+
+
 @commands_router.message(GroupInformStatesGroup.receiver_id, NoCommandFilter(), F.chat.type.in_({'private'}))
-async def group_inform_handler(message: types.Message, state: FSMContext):
+@log_track_frame(untracked_data=untracked_data, track_non_keyword_args=False)
+async def group_inform_handler(message: types.Message, state: FSMContext, *args, **kwargs):
     journal_external_id = await state.get_data()
     journal = await get_journal_async({'external_id': journal_external_id['receiver_id']})
-    await inform_all_journal_users(journal, message.text)
+    await inform_all_journal_profiles_users_and_journal_group(journal, message.text)
     await state.clear()
 
 @commands_router.message(GroupInformStatesGroup.call, NoCommandFilter(), F.chat.type.in_({'private'}))
-async def group_call_handler(message: types.Message, state: FSMContext):
+@log_track_frame(untracked_data=untracked_data, track_non_keyword_args=False)
+async def group_call_handler(message: types.Message, state: FSMContext, *args, **kwargs):
     response = message.text
 
     try:
         validate_journal_format(response)
 
     except Exception:
-        await message.answer(journal_format_validation_error_message)
+        await message.answer(journal_name_format_validation_fail_chat_error_message)
         return
-    journal_name = response
-    try:
-        journal = await get_journal_async({'name': journal_name})
 
-    except Exception as e:
-        print(e)
-        await message.answer(journal_name_in_base_validation_error_message)
+    journal_name = response
+    journal_attributes = {'name': journal_name}
+    try:
+        await validate_journal_is_registered(**journal_attributes)
+        journal = await get_journal_async(journal_attributes) #TODO: add check
+
+    except Exception:
+        await message.answer(
+            journal_is_registered_by_attributes_check_fail_chat_error_message.format(
+                journal_attributes=chat_messages.journal_name_kw
+            )
+        )
         await state.clear()
         return
 
     await state.set_state(GroupInformStatesGroup.receiver_id)
     await state.update_data(receiver_id=journal.external_id)
-    await message.answer(group_inform_text.format(journal_name))
-    await inform_all_journal_users(journal, group_inform_message)
+    await message.answer(group_inform_chat_info_message.format(journal_name))
+    await inform_all_journal_profiles_users_and_journal_group(journal, group_inform_to_receiver_chat_info_message)
 
 
 @commands_router.message(Command(commands=['groupcall', 'gc'], prefix=prefixes),
                          F.chat.type.in_({'private'}),
                          IsSuperUserFilter())
-async def group_call_command(message: types.Message, state: FSMContext):
+@log_track_frame(untracked_data=untracked_data, track_non_keyword_args=False)
+async def group_call_command(message: types.Message, state: FSMContext, *args, **kwargs):
     await state.set_state(GroupInformStatesGroup.call)
-    await message.answer(enter_journal_name_message)
+    await message.answer(journal_name_chat_field_message)
+    logger.info(journal_name_logging_field_message)
 
 
 @commands_router.message(Command(commands=['leave_chat_delete_journal']),
                         F.chat.type.in_({'group', 'supergroup'}),
                         IsAdminFilter())
-async def leave_chat_delete_journal_command(message: types.Message):
+@log_track_frame(untracked_data=untracked_data, track_non_keyword_args=False)
+async def leave_chat_delete_journal_command(message: types.Message, *args, **kwargs):
     group_id = message.chat.id
 
-    logging.info(user_requested_bot_leave_chat_delete_journal_logging_info_message.format(message.from_user.id, group_id))
-
-    @database_sync_to_async
-    def delete_journal_got_by_external_id():
-        Journal.objects.get(external_id=group_id).delete()
-
-    await delete_journal_got_by_external_id()
-    logging.info(journal_deleted_logging_info_message.format(group_id))
-    await message.answer(journal_deleted_text)
+    await delete_journal(external_id=group_id)
+    await message.answer(journal_deletion_success_chat_info_message)
     await bot.leave_chat(group_id)
-    logging.info(group_leaved_logging_info_message.format(group_id))
+    logger.info(bot_leaved_logging_info_message)
 
 #TODO: reports should be able in both group and private chat
 
 #TODO: create a new_schedule_command
 
+#TODO: add an execute command for admin
+
+
+#TODO: add separate aftercommand-elements-entering-possibility mechanism

@@ -4,7 +4,7 @@ from aiogram.fsm.storage.memory import MemoryStorage
 #aiogram
 
 #aiogram_forms
-from aiogram_forms import dispatcher as forms_distpatcher
+from .forms.dispatcher import dispatcher as forms_dispatcher
 #aiogram_forms
 
 #django
@@ -31,6 +31,6 @@ journal_registration_subrouter = Router()
 registration_router.include_routers(journal_registration_subrouter)
 commands_router.include_routers(registration_router, journal_router)
 dp.include_routers(commands_router, presence_poll_router)
-forms_distpatcher.attach(dp)
+forms_dispatcher.attach(dp)
 
 
