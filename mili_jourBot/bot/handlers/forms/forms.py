@@ -96,7 +96,7 @@ def check_journal_exists(value: str):
     journal_attributes = {'name': value}
     if not Journal.objects.filter(**journal_attributes).exists():
         logger.error(
-            journal_is_registered_by_attributes_check_fail_logging_error_message(
+            journal_is_registered_by_attributes_check_fail_logging_error_message.format(
                 journal_attributes=journal_attributes
             )
         )
