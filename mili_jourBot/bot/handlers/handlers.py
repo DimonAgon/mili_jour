@@ -433,11 +433,11 @@ async def register_superuser_handler(message: types.Message, state: FSMContext, 
         await add_superuser(user_id)
 
     except Exception as e:
-        logging.error(superuser_registration_fail_logging_error_message)
+        logger.error(superuser_registration_fail_logging_error_message)
         await message.answer(registration_fail_chat_error_message)
         return
 
-    logger.error(superuser_registration_success_logging_info_message)
+    logger.info(superuser_registration_success_logging_info_message)
     await message.answer(superuser_registration_success_chat_message)
 
 async def request_key(chat_id: int, key: str) -> None:
