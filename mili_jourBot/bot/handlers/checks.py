@@ -13,12 +13,14 @@ import logging
 
 async def check_journal_set(state: FSMContext):
 
-    journal_set = await state.get_state() == SetJournalStatesGroup.set_journal
+    journal_set = (await state.get_data())['set_journal']
     if journal_set:
         logging.info(journal_set_check_success_logging_info_message)
 
     else:
         logging.info(journal_set_check_fail_logging_error_message)
+
+    return journal_set
 
 
 @database_sync_to_async
