@@ -635,7 +635,7 @@ async def last_report_command(
     date_string = last_report.date.strftime(date_format)
 
     await message.answer(
-        report_description_chat_info_message.format(f"{chat_messages.on_kw} {date_string}")
+        report_description_chat_info_message.format(report_parameters=f"{chat_messages.on_kw} {date_string}")
     )
 
     match ReportMode.Flag(flag):
@@ -697,7 +697,7 @@ async def on_date_report_command(
     summary = await report_summary(on_date_report, ReportMode.ON_DATE)
 
     await message.answer(
-        report_description_chat_info_message.format(f"{chat_messages.on_kw} {date_string}")
+        report_description_chat_info_message.format(report_parameters=f"{chat_messages.on_kw} {date_string}")
     )
 
     match ReportMode.Flag(flag):
