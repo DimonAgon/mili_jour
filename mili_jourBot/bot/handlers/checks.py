@@ -13,7 +13,12 @@ import logging
 
 async def check_journal_set(state: FSMContext):
 
-    journal_set = (await state.get_data())['set_journal']
+    try:
+        journal_set = bool((await state.get_data())['set_journal'])
+
+    except KeyError:
+        journal_set = False
+
     if journal_set:
         logging.info(journal_set_check_success_logging_info_message)
 
