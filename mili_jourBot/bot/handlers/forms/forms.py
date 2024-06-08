@@ -92,8 +92,8 @@ def validate_journal_name_available(value: str):
 
 
 @database_sync_to_async
-def check_journal_exists(value: str):
-    journal_attributes = {'name': value}
+def check_journal_is_registered_by_name(name: str):
+    journal_attributes = {'name': name}
     if not Journal.objects.filter(**journal_attributes).exists():
         logger.error(
             journal_is_registered_by_attributes_check_fail_logging_error_message.format(
@@ -145,7 +145,7 @@ class IsEnteredValidator:
 
         else:
             raise DjangoCoreValidationError(f"{has_not_been_entered_pp.format(something=self.field_name)}",
-                                            code='value')
+                                            code='name')
 
 
 journal_name_is_entered_validator = IsEnteredValidator("journal name")
@@ -163,7 +163,7 @@ class ProfileForm(Form):
         validators=[
             journal_name_is_entered_validator,
             validate_journal_format,
-            check_journal_exists,
+            check_journal_is_registered_by_name,
         ]
     )
     name = NamedTextField(

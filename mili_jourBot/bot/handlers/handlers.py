@@ -835,7 +835,7 @@ async def set_journal_handler(message: types.Message, state: FSMContext, *args, 
         return
 
     try:
-        await check_journal_exists(response)
+        await check_journal_is_registered_by_name(response)
 
     except ValidationError as e:
         error_message = e.message
