@@ -43,7 +43,6 @@ class RegisteredExternalIdFilter(BaseFilter):
     @log_track_frame('filter_registered_external_id', untracked_data=untracked_data)
     async def __call__(self, message: types.Message, command: CommandObject, *args, **kwargs) -> bool: #TODO: consider swapping operating
     #TODO:                                                                      a message to operating a telegram object
-        logger.info("")
 
         if self.use_chat_id:
             id_ = message.chat.id
@@ -110,7 +109,6 @@ class IsAdminFilter(BaseFilter): #TODO: add a middleware to check both is admin 
 
     @log_track_frame('filter_is_admin', untracked_data=untracked_data)
     async def __call__(self, message: types.Message, *args, **kwargs) -> bool:
-        logger.info("")
         
         chat_id = message.chat.id
         user_id = message.from_user.id
@@ -127,7 +125,6 @@ class IsAdminFilter(BaseFilter): #TODO: add a middleware to check both is admin 
 class IsSuperUserFilter(BaseFilter):
     @log_track_frame('filter_is_superuser', untracked_data=untracked_data)
     async def __call__(self, message: types.Message, *args, **kwargs) -> bool:
-        logger.info("")
 
         user_id = message.from_user.id
 
@@ -143,7 +140,6 @@ class IsSuperUserFilter(BaseFilter):
 class SuperuserCalledUserToDELETEFilter(BaseFilter):
     @log_track_frame('filter_super_user_called_user_to_delete', untracked_data=untracked_data)
     async def __call__(self, message: types.Message, command: CommandObject, state: FSMContext, *args, **kwargs):
-        logger.info("")
 
         user_id = message.from_user.id
 
@@ -197,7 +193,6 @@ class AftercommandFullCheck(BaseFilter): #TODO: pass all arguments to middleware
 
     @log_track_frame('filter_aftercommand_full_check', untracked_data=untracked_data)
     async def __call__(self, message: types.Message, command: CommandObject, *args, **kwargs) -> bool:
-        logger.info("")
 
         aftercommand = command.args
 
@@ -311,7 +306,6 @@ class AftercommandFullCheck(BaseFilter): #TODO: pass all arguments to middleware
 class NoCommandFilter(BaseFilter):
     @log_track_frame('filter_no_command', untracked_data=untracked_data)
     async def __call__(self, message: types.Message, *args, **kwargs) -> bool:
-        logger.info("")
 
         command_pattern_compiled = re.compile('\/.*')
 
@@ -321,6 +315,5 @@ class NoCommandFilter(BaseFilter):
 class PresencePollFilter(BaseFilter):
     @log_track_frame('filter_presence_poll', untracked_data=untracked_data)
     async def __call__(self, poll_answer: types.PollAnswer, *args, **kwargs) -> bool:
-        logger.info("")
 
         return await is_presence_poll(poll_answer.poll_id)
