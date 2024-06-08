@@ -57,7 +57,7 @@ import operator
 
 logger = handlers_logger
 
-untracked_data = {
+untracked_log_data = {
     'bot'             ,
     'event_from_user' ,
     'event_chat'      ,
@@ -84,7 +84,7 @@ journal_registration_subrouter.message.middleware(SuperuserSetJournal())
 prefixes = {'🗡', '/'}
 
 @commands_router.message(Command(commands='start')) #TODO add middleware to show help for superuser
-@log_track_frame(untracked_data=untracked_data, track_non_keyword_args=False)
+@log_track_frame(untracked_data=untracked_log_data, track_non_keyword_args=False)
 async def start_command(message: types.Message, *args, **kwargs):  # Self-presentation of the bot
     logger.info('')
 
@@ -92,7 +92,7 @@ async def start_command(message: types.Message, *args, **kwargs):  # Self-presen
 
 
 @commands_router.message(Command(commands='help', prefix=prefixes))
-@log_track_frame(untracked_data=untracked_data, track_non_keyword_args=False)
+@log_track_frame(untracked_data=untracked_log_data, track_non_keyword_args=False)
 async def help_command(message: types.Message, *args, **kwargs):
     logger.info('')
 
@@ -153,7 +153,7 @@ def poll_time_interval(mode, lesson=None, last_lesson=None): #TODO: set till_les
                                       mode_checking=True,
                                       allow_no_mode= True,
                                       additional_arguments_checker=lessons_validator))
-@log_track_frame(untracked_data=untracked_data, track_non_keyword_args=False)                                                                          #processing first two lessons written conjointly raise mode validation error
+@log_track_frame(untracked_data=untracked_log_data, track_non_keyword_args=False)                                                                          #processing first two lessons written conjointly raise mode validation error
 async def presence_command(message: types.Message, mode=default, additional_arguments=None, flag=None, *args, **kwargs): #TODO: modify L mode to send 'arrived' and 'left' polls to calculate presence data
     chat_id = message.chat.id
 
@@ -300,7 +300,7 @@ async def presence_command(message: types.Message, mode=default, additional_argu
 
 
 @commands_router.message(Command(commands='cancel', prefix=prefixes))
-@log_track_frame(untracked_data=untracked_data, track_non_keyword_args=False)
+@log_track_frame(untracked_data=untracked_log_data, track_non_keyword_args=False)
 async def cancel_command(message: types.Message, state: FSMContext, *args, **kwargs):
     current_state = await state.get_state()
     states_canceling_messages = {
@@ -352,14 +352,14 @@ async def cancel_command(message: types.Message, state: FSMContext, *args, **kwa
 @commands_router.message(AbsenceReasonStates.AbsenceReason, F.text.regexp(r'Т'),
                          NoCommandFilter(),
                          F.chat.type.in_({'private'}))
-@log_track_frame(untracked_data=untracked_data, track_non_keyword_args=False)
+@log_track_frame(untracked_data=untracked_log_data, track_non_keyword_args=False)
 async def absence_reason_handler_T(message: types.Message, forms: FormsManager, *args, **kwargs): #TODO: rename to "suggestion handler" type
     await forms.show('absenceform')
 
 @commands_router.message(AbsenceReasonStates.AbsenceReason, #TODO: rename to "suggestion handler" type
                          NoCommandFilter(),
                          F.text.regexp(r'Н'), F.chat.type.in_({'private'}))
-@log_track_frame(untracked_data=untracked_data, track_non_keyword_args=False)
+@log_track_frame(untracked_data=untracked_log_data, track_non_keyword_args=False)
 async def absence_reason_handler_H(message: types.Message, state: FSMContext, *args, **kwargs):
     await message.answer(absence_reason_share_on_canceling_chat_info_message)
     await state.clear()
@@ -367,7 +367,7 @@ async def absence_reason_handler_H(message: types.Message, state: FSMContext, *a
 @commands_router.message(AbsenceReasonStates.AbsenceReason, F.text.regexp(r'[^ТН]'), #TODO: rename to "suggestion handler" type
                          NoCommandFilter(),
                          F.chat.type.in_({'private'}))
-@log_track_frame(untracked_data=untracked_data, track_non_keyword_args=False)
+@log_track_frame(untracked_data=untracked_log_data, track_non_keyword_args=False)
 async def absence_reason_handler_invalid(message: types.Message, state: FSMContext, *args, **kwargs): #TODO: remove state argument
     await message.answer(absence_reason_share_suggestion_chat_field_message)
     logger.info(
@@ -375,7 +375,7 @@ async def absence_reason_handler_invalid(message: types.Message, state: FSMConte
     )
 
 @presence_poll_router.poll_answer(PresencePollFilter()) #TODO: add a flag for vote-answer mode, add an every-lesson mode
-@log_track_frame(untracked_data=untracked_data, track_non_keyword_args=False)
+@log_track_frame(untracked_data=untracked_log_data, track_non_keyword_args=False)
 async def presence_poll_answer_handler (poll_answer: types.poll_answer, state: FSMContext, *args, **kwargs):  #TODO: add an ability to re-answer
     is_present = poll_answer.option_ids == [PresencePollOptions.Present.value]
     user_id = poll_answer.user.id
@@ -398,7 +398,7 @@ async def presence_poll_answer_handler (poll_answer: types.poll_answer, state: F
 
 
 @commands_router.message(Command(commands=['absence_reason', 'ar'], prefix=prefixes), F.chat.type.in_({'private'}))
-@log_track_frame(untracked_data=untracked_data, track_non_keyword_args=False)
+@log_track_frame(untracked_data=untracked_log_data, track_non_keyword_args=False)
 async def absence_reason_command(message: types.Message, forms: FormsManager, *args, **kwargs):
     user_id = message.from_user.id
     #TODO: pass the lesson if lesson is none, then answer and return
@@ -417,7 +417,7 @@ async def absence_reason_command(message: types.Message, forms: FormsManager, *a
 
 
 @registration_router.message(SuperuserKeyStates.key, F.chat.type.in_({'private'}))
-@log_track_frame(untracked_data=untracked_data, track_non_keyword_args=False)
+@log_track_frame(untracked_data=untracked_log_data, track_non_keyword_args=False)
 async def register_superuser_handler(message: types.Message, state: FSMContext, *args, **kwargs):
     user_id = message.from_user.id
     authentic_key = await state.get_data()
@@ -447,7 +447,7 @@ async def request_key(chat_id: int, key: str) -> None:
 @registration_router.message(Command(commands='register_superuser', prefix=prefixes),
                          F.chat.type.in_({'private'}),
                          RegisteredExternalIdFilter(Superuser))
-@log_track_frame(untracked_data=untracked_data, track_non_keyword_args=False)
+@log_track_frame(untracked_data=untracked_log_data, track_non_keyword_args=False)
 async def register_superuser_command(message: types.Message, state: FSMContext, *args, **kwargs):
     user_id = message.from_user.id
 
@@ -462,7 +462,7 @@ async def register_superuser_command(message: types.Message, state: FSMContext, 
                              F.chat.type.in_({'private'}),
                              AftercommandFullCheck(allow_no_argument=True, modes=RegistrationMode, mode_checking=True),
                              RegisteredExternalIdFilter(Profile), SuperuserCalledUserToDELETEFilter())
-@log_track_frame(untracked_data=untracked_data, track_non_keyword_args=False)
+@log_track_frame(untracked_data=untracked_log_data, track_non_keyword_args=False)
 async def register_command(message: types.Message, forms: FormsManager, state: FSMContext, mode=None, *args, **kwargs):
     user_id = message.from_user.id
 
@@ -492,7 +492,7 @@ register_journal_command_filters_config = (Command(commands='register_journal',p
 
 
 @registration_router.message(JournalRegistrationStates.key, NoCommandFilter())
-@log_track_frame(untracked_data=untracked_data, track_non_keyword_args=False)
+@log_track_frame(untracked_data=untracked_log_data, track_non_keyword_args=False)
 async def register_journal_handler(message: types.Message, forms: FormsManager, state: FSMContext, *args, **kwargs):
     user_id = message.from_user.id
     chat_id = message.chat.id
@@ -525,7 +525,7 @@ async def register_journal_handler(message: types.Message, forms: FormsManager, 
 @journal_registration_subrouter.message(*register_journal_command_filters_config,
                          F.chat.type.in_({'group', 'supergroup'}),
                          IsAdminFilter())
-@log_track_frame(untracked_data=untracked_data, track_non_keyword_args=False)
+@log_track_frame(untracked_data=untracked_log_data, track_non_keyword_args=False)
 async def register_journal_command(
         message: types.Message    ,
         state: FSMContext         ,
@@ -553,7 +553,7 @@ today_report_command_filters_config = (Command(commands=['today_report', 'tr'], 
 
 @journal_router.message(*today_report_command_filters_config, F.chat.type.in_({'private'}), IsSuperUserFilter())
 @journal_router.message(*today_report_command_filters_config, F.chat.type.in_({'group', 'supergroup'}), IsAdminFilter())
-@log_track_frame(untracked_data=untracked_data, track_non_keyword_args=False)
+@log_track_frame(untracked_data=untracked_log_data, track_non_keyword_args=False)
 async def today_report_command(
         message: types.Message    ,
         flag=ReportMode.Flag.TEXT ,
@@ -611,7 +611,7 @@ last_report_command_filters_config = (Command(commands=['last_report', 'lr'], pr
 
 @journal_router.message(*last_report_command_filters_config, F.chat.type.in_({'private'}), IsSuperUserFilter())
 @journal_router.message(*last_report_command_filters_config, F.chat.type.in_({'group', 'supergroup'}), IsAdminFilter())
-@log_track_frame(untracked_data=untracked_data, track_non_keyword_args=False)
+@log_track_frame(untracked_data=untracked_log_data, track_non_keyword_args=False)
 async def last_report_command(
         message: types.Message    ,
         flag=ReportMode.Flag.TEXT ,
@@ -671,7 +671,7 @@ on_date_report_command_filters_config = (Command(commands=['on_date_report', 'od
                                                         flag_checking=True))
 @journal_router.message(*on_date_report_command_filters_config, F.chat.type.in_({'private'}), IsSuperUserFilter())
 @journal_router.message(*on_date_report_command_filters_config, F.chat.type.in_({'group', 'supergroup'}), IsAdminFilter())
-@log_track_frame(untracked_data=untracked_data, track_non_keyword_args=False)
+@log_track_frame(untracked_data=untracked_log_data, track_non_keyword_args=False)
 async def on_date_report_command(
         message: types.Message     ,
         additional_arguments=False ,
@@ -734,7 +734,7 @@ dossier_command_filters_config = (Command(commands='dossier', prefix=prefixes),
 
 @journal_router.message(*dossier_command_filters_config, F.chat.type.in_({'private'}), IsSuperUserFilter())
 @journal_router.message(*dossier_command_filters_config, F.chat.type.in_({'group', 'supergroup'}), IsAdminFilter())
-@log_track_frame(untracked_data=untracked_data, track_non_keyword_args=False)
+@log_track_frame(untracked_data=untracked_log_data, track_non_keyword_args=False)
 async def dossier_command(message: Message, flag=ReportMode.Flag.TEXT,set_journal: Journal=None, *args, **kwargs):
     group_id = message.chat.id if not set_journal else set_journal.external_id
 
@@ -757,7 +757,7 @@ async def dossier_command(message: Message, flag=ReportMode.Flag.TEXT,set_journa
 
 
 @journal_router.message(ReportRedoStatesGroup.redoing, NoCommandFilter())
-@log_track_frame(untracked_data=untracked_data, track_non_keyword_args=False)
+@log_track_frame(untracked_data=untracked_log_data, track_non_keyword_args=False)
 async def redo_report_handler(message: Message, state: FSMContext, set_journal: Journal=None, *args, **kwargs):
     group_id = message.chat.id if not set_journal else set_journal.external_id
     journal = await get_journal_async({'external_id': group_id}) if not set_journal else set_journal
@@ -802,7 +802,7 @@ redo_report_filters_config = (Command(commands=['redo_report', 'rr'], prefix=pre
 
 @journal_router.message(*redo_report_filters_config, F.chat.type.in_({'private'}), IsSuperUserFilter())
 @journal_router.message(*redo_report_filters_config, F.chat.type.in_({'group', 'supergroup'}), IsAdminFilter())
-@log_track_frame(untracked_data=untracked_data, track_non_keyword_args=False)
+@log_track_frame(untracked_data=untracked_log_data, track_non_keyword_args=False)
 async def redo_report_command(
         message: Message          ,
         state: FSMContext         ,
@@ -823,7 +823,7 @@ async def redo_report_command(
 
 
 @commands_router.message(SetJournalStatesGroup.setting_journal, NoCommandFilter(), F.chat.type.in_({'private'}))
-@log_track_frame(untracked_data=untracked_data, track_non_keyword_args=False)
+@log_track_frame(untracked_data=untracked_log_data, track_non_keyword_args=False)
 async def set_journal_handler(message: types.Message, state: FSMContext, *args, **kwargs):
     response = message.text
     try:
@@ -858,14 +858,14 @@ async def request_journal(chat_id: int):
 @commands_router.message(Command(commands=['set_journal', 'sj'], prefix=prefixes),
                          F.chat.type.in_({'private'}),
                          IsSuperUserFilter())
-@log_track_frame(untracked_data=untracked_data, track_non_keyword_args=False)
+@log_track_frame(untracked_data=untracked_log_data, track_non_keyword_args=False)
 async def set_journal_command(message: types.Message, state: FSMContext, *args, **kwargs):
     await request_journal(message.chat.id)
     await state.set_state(SetJournalStatesGroup.setting_journal)
 
 
 @commands_router.message(UserInformStatesGroup.receiver_id, NoCommandFilter(), F.chat.type.in_({'private'}))
-@log_track_frame(untracked_data=untracked_data, track_non_keyword_args=False)
+@log_track_frame(untracked_data=untracked_log_data, track_non_keyword_args=False)
 async def user_inform_handler(message: types.Message, state: FSMContext, *args, **kwargs):
     user_id = message.from_user.id
     interlocutor_id = await state.get_data()
@@ -873,7 +873,7 @@ async def user_inform_handler(message: types.Message, state: FSMContext, *args, 
     await state.update_data(receiver_id=user_id)
 
 @commands_router.message(UserInformStatesGroup.call, NoCommandFilter(), F.chat.type.in_({'private'}))
-@log_track_frame(untracked_data, track_non_keyword_args=False)
+@log_track_frame(untracked_log_data, track_non_keyword_args=False)
 async def user_call_handler(message: types.Message, state: FSMContext, *args, **kwargs):
     response = message.text
 
@@ -905,7 +905,7 @@ async def user_call_handler(message: types.Message, state: FSMContext, *args, **
 @commands_router.message(Command(commands=['call'], prefix=prefixes),
                          F.chat.type.in_({'private'}),
                          IsSuperUserFilter())
-@log_track_frame(untracked_data=untracked_data, track_non_keyword_args=False)
+@log_track_frame(untracked_data=untracked_log_data, track_non_keyword_args=False)
 async def call_command(message: types.Message, state: FSMContext, *args, **kwargs):
     await state.set_state(UserInformStatesGroup.call)
     await message.answer(profile_name_logging_field_message)
@@ -926,7 +926,7 @@ async def inform_all_journal_profiles_users_and_journal_group(journal, message_t
 
 
 @commands_router.message(GroupInformStatesGroup.receiver_id, NoCommandFilter(), F.chat.type.in_({'private'}))
-@log_track_frame(untracked_data=untracked_data, track_non_keyword_args=False)
+@log_track_frame(untracked_data=untracked_log_data, track_non_keyword_args=False)
 async def group_inform_handler(message: types.Message, state: FSMContext, *args, **kwargs):
     journal_external_id = await state.get_data()
     journal = await get_journal_async({'external_id': journal_external_id['receiver_id']})
@@ -934,7 +934,7 @@ async def group_inform_handler(message: types.Message, state: FSMContext, *args,
     await state.clear()
 
 @commands_router.message(GroupInformStatesGroup.call, NoCommandFilter(), F.chat.type.in_({'private'}))
-@log_track_frame(untracked_data=untracked_data, track_non_keyword_args=False)
+@log_track_frame(untracked_data=untracked_log_data, track_non_keyword_args=False)
 async def group_call_handler(message: types.Message, state: FSMContext, *args, **kwargs):
     response = message.text
 
@@ -969,7 +969,7 @@ async def group_call_handler(message: types.Message, state: FSMContext, *args, *
 @commands_router.message(Command(commands=['groupcall', 'gc'], prefix=prefixes),
                          F.chat.type.in_({'private'}),
                          IsSuperUserFilter())
-@log_track_frame(untracked_data=untracked_data, track_non_keyword_args=False)
+@log_track_frame(untracked_data=untracked_log_data, track_non_keyword_args=False)
 async def group_call_command(message: types.Message, state: FSMContext, *args, **kwargs):
     await state.set_state(GroupInformStatesGroup.call)
     await message.answer(journal_name_chat_field_message)
@@ -979,7 +979,7 @@ async def group_call_command(message: types.Message, state: FSMContext, *args, *
 @commands_router.message(Command(commands=['leave_chat_delete_journal']),
                         F.chat.type.in_({'group', 'supergroup'}),
                         IsAdminFilter())
-@log_track_frame(untracked_data=untracked_data, track_non_keyword_args=False)
+@log_track_frame(untracked_data=untracked_log_data, track_non_keyword_args=False)
 async def leave_chat_delete_journal_command(message: types.Message, *args, **kwargs):
     group_id = message.chat.id
 

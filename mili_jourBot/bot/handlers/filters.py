@@ -28,7 +28,7 @@ import re
 
 logger = handlers_logger
 
-untracked_data = {
+untracked_log_data = {
     'bot'
 }
 
@@ -40,7 +40,7 @@ class RegisteredExternalIdFilter(BaseFilter):
         self.model = model
         self.use_chat_id = use_chat_id
 
-    @log_track_frame('filter_registered_external_id', untracked_data=untracked_data)
+    @log_track_frame('filter_registered_external_id', untracked_data=untracked_log_data)
     async def __call__(self, message: types.Message, command: CommandObject, *args, **kwargs) -> bool: #TODO: consider swapping operating
     #TODO:                                                                      a message to operating a telegram object
 
@@ -107,7 +107,7 @@ class IsAdminFilter(BaseFilter): #TODO: add a middleware to check both is admin 
     required_auth_level = 'administrator'
     creator = 'creator'
 
-    @log_track_frame('filter_is_admin', untracked_data=untracked_data)
+    @log_track_frame('filter_is_admin', untracked_data=untracked_log_data)
     async def __call__(self, message: types.Message, *args, **kwargs) -> bool:
         
         chat_id = message.chat.id
@@ -123,7 +123,7 @@ class IsAdminFilter(BaseFilter): #TODO: add a middleware to check both is admin 
             return False
 
 class IsSuperUserFilter(BaseFilter):
-    @log_track_frame('filter_is_superuser', untracked_data=untracked_data)
+    @log_track_frame('filter_is_superuser', untracked_data=untracked_log_data)
     async def __call__(self, message: types.Message, *args, **kwargs) -> bool:
 
         user_id = message.from_user.id
@@ -138,7 +138,7 @@ class IsSuperUserFilter(BaseFilter):
 
 
 class SuperuserCalledUserToDELETEFilter(BaseFilter):
-    @log_track_frame('filter_super_user_called_user_to_delete', untracked_data=untracked_data)
+    @log_track_frame('filter_super_user_called_user_to_delete', untracked_data=untracked_log_data)
     async def __call__(self, message: types.Message, command: CommandObject, state: FSMContext, *args, **kwargs):
 
         user_id = message.from_user.id
@@ -191,7 +191,7 @@ class AftercommandFullCheck(BaseFilter): #TODO: pass all arguments to middleware
         self.additional_arguments_checker = additional_arguments_checker
         self.flag_checking = flag_checking
 
-    @log_track_frame('filter_aftercommand_full_check', untracked_data=untracked_data)
+    @log_track_frame('filter_aftercommand_full_check', untracked_data=untracked_log_data)
     async def __call__(self, message: types.Message, command: CommandObject, *args, **kwargs) -> bool:
 
         aftercommand = command.args
@@ -304,7 +304,7 @@ class AftercommandFullCheck(BaseFilter): #TODO: pass all arguments to middleware
 
 
 class NoCommandFilter(BaseFilter):
-    @log_track_frame('filter_no_command', untracked_data=untracked_data)
+    @log_track_frame('filter_no_command', untracked_data=untracked_log_data)
     async def __call__(self, message: types.Message, *args, **kwargs) -> bool:
 
         command_pattern_compiled = re.compile('\/.*')
@@ -313,7 +313,7 @@ class NoCommandFilter(BaseFilter):
 
 
 class PresencePollFilter(BaseFilter):
-    @log_track_frame('filter_presence_poll', untracked_data=untracked_data)
+    @log_track_frame('filter_presence_poll', untracked_data=untracked_log_data)
     async def __call__(self, poll_answer: types.PollAnswer, *args, **kwargs) -> bool:
 
         return await is_presence_poll(poll_answer.poll_id)
