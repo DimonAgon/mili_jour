@@ -418,7 +418,7 @@ async def absence_reason_command(message: types.Message, forms: FormsManager, *a
 
 @registration_router.message(SuperuserKeyStates.key, F.chat.type.in_({'private'}))
 @log_track_frame(untracked_data=untracked_log_data, track_non_keyword_args=False)
-async def register_superuser_handler(message: types.Message, state: FSMContext, *args, **kwargs):
+async def register_superuser_handler(message: types.Message, state: FSMContext, *args, **kwargs): #TODO: fix superuser multiple-registrations possibility
     user_id = message.from_user.id
     authentic_key = await state.get_data()
 
@@ -435,10 +435,12 @@ async def register_superuser_handler(message: types.Message, state: FSMContext, 
     except Exception as e:
         logger.error(superuser_registration_fail_logging_error_message)
         await message.answer(registration_fail_chat_error_message)
+        await state.clear()
         return
 
     logger.info(superuser_registration_success_logging_info_message)
     await message.answer(superuser_registration_success_chat_message)
+    await state.clear()
 
 async def request_key(chat_id: int, key: str) -> None:
     await bot.send_message(chat_id, key_field_chat_message)
