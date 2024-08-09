@@ -5,7 +5,6 @@ from bot.infrastructure.enums import PresencePollOptions
 
 from prettytable import PrettyTable
 
-
 #--------------------------------------------------------universal------------------------------------------------------
 
 #keywords
@@ -13,7 +12,7 @@ from prettytable import PrettyTable
     #particles
 negation_kw = "не"
 already_kw = "вже"
-yet_kw = "ще"
+yet_kw = "ще" #TODO: replace with "досі"
 on_kw = "на"
 under = "під"
 to_kw = "до"
@@ -23,6 +22,7 @@ from_kw = "від"
     #p̶a̶r̶t̶i̶c̶l̶e̶s̶
 
     #nouns
+name_nom_kw = "назва"; name_obj_kw = "назвою"
 id_kw = "ідентифікатор"
 you_nom_kw = "ви"; you_gen_kw = "вас"
 admin_kw = "адмін"
@@ -30,6 +30,7 @@ success_kw = "успіх"
 fail_kw = "помилка"
 initiation_kw = "ініціація"
 registration_nom_kw = "реєстрація"; registration_acc_kw = "реєстрацію"
+creation_kw = "створення"
 entering_input_kw = "ввід"
 specifying_input_kw = "вказання"
 key_kw = "ключ"
@@ -39,10 +40,10 @@ corrections_kw = "виправлення"
 entries_nom_kw = "записи "; entries_pos_kw = "записів"
 mode_kw = "режим"
 argument_kw = "аргумент"; arguments_kw = "аргументи"
-flag = "флаг"
+flag_kw = "флаг"
 object_kw = "об'єкт"
 id_kw = "ідентифікатор"
-date = "дата"
+date_kw = "дата"
 reference_kw = "посилання"; references_kw = "посилання"
 presence_nom_kw = "присутність"; presence_gen_kw = "присутності"; presence_acc_kw = "присутності"
 table_nom_kw = "таблиця"; table_acc_kw = "таблицю"
@@ -77,6 +78,7 @@ adj_present_mask_kw = "пристуній"; adj_present_fem_kw = "присутн
 adj_external_mask_kw = "зовнішній"; adj_external_fem_kw = "зовнішня"; adj_external_neut_kw = "зовнішнє"
 adj_additional_mask_kw = "додатковий"; adj_additional_fem_kw = "додаткова"; adj_additional_neut_kw = "додаткове"; adj_additional_plr_kw = "додаткові"
 adj_marked_mask_kw = "позначений"; adj_marked_fem_kw = "позначена"; adj_marked_neut_kw = "позначене"; adj_marked_plr_kw = "позначені"
+adj_current_mask_kw = "поточний"; adj_current_fem_kw = "поточна"; adj_current_neut_kw = "поточне";
     #a̶d̶j̶e̶c̶t̶i̶v̶e̶s̶
 
 of_group_kw = "взводу"
@@ -102,9 +104,12 @@ adv_recorded_kw = "внесено"
 adv_applied_kw = "звернено"
 adv_passed_kw = "передано"
 of_type_kw = "виду"
+adv_finished_kw = "завершено"
+adv_created_kw = "створено"
+adv_posted_kw = "опубліковано"
     #a̶d̶v̶e̶r̶b̶s
 
-specified_kwabbrv_kw = 'вказ.'
+specified_kwabbrv_kw = 'вказ.' #TODO: remove _kw from var-name
 
 #k̶e̶y̶w̶o̶r̶d̶s̶
 
@@ -216,9 +221,9 @@ profile_ordinal_chat_field_message = \
 
     #fail
 profile_registration_fail_chat_error_message = \
-    f"{profile_nom_kw} {negation_kw} {have_been_kw} {adv_registered_kw}"
+    f"{profile_nom_kw} {negation_kw} {have_been_kw} {adv_registered_kw}" #TODO: add fail_kw + ", " at start
 profile_deletion_fail_chat_error_message = \
-    f"{profile_nom_kw} {negation_kw} {have_been_kw} {adv_deleted_kw}"
+    f"{profile_nom_kw} {negation_kw} {have_been_kw} {adv_deleted_kw}" #TODO: add fail_kw at + ", " at start
 profile_is_registered_check_fail_chat_error_message = \
     f"{fail_kw}, {profile_nom_kw} {negation_kw} {have_been_kw} {adv_registered_kw}"
 profile_is_not_registered_by_attributes_check_fail_chat_error_message = \
@@ -316,12 +321,65 @@ journal_set_success_chat_info_message = \
 
 
 
+#--------------------------------------------------------subject--------------------------------------------------------
+
+#keywords
+
+    #nouns
+subject_nom_kw = "предмет"; subject_gen_kw = "предмету"; subjects_kw = "предмети"
+subject_name_nom_kw = "назва"; subject_name_acc_kw = "назву"
+    #n̶o̶u̶n̶s̶
+
+    #verbs
+    #v̶e̶r̶b̶s̶
+
+    #adjectives
+    #a̶d̶j̶e̶c̶t̶i̶v̶e̶s̶
+
+    #adverbs
+    #a̶d̶v̶e̶r̶b̶s
+
+#k̶e̶y̶w̶o̶r̶d̶s̶
+
+#phrases
+
+    #fields
+subject_name_chat_field_message = \
+    f"{enter_kw} {subject_name_acc_kw} {subject_gen_kw}"
+    #f̶i̶e̶l̶d̶s̶
+
+    #fail
+subject_creation_fail_chat_error_message = \
+    f"{fail_kw}, {subject_nom_kw} {negation_kw} {have_been_kw} {adv_created_kw}"
+subject_is_created_by_attributes_check_fail_chat_error_message = \
+    f"{fail_kw}, {subject_nom_kw} {on_kw} {specified_kwabbrv_kw} {'{subject_attributes}'} {yet_kw} {negation_kw} {have_been_kw} {adv_created_kw}"
+subject_is_not_created_by_attributes_check_fail_chat_error_message = \
+    f"{fail_kw}, {subject_nom_kw} {on_kw} {specified_kwabbrv_kw} {'{subject_attributes}'} {already_kw} {have_been_kw} {adv_created_kw}"
+    #f̶a̶i̶l̶
+
+    #notice
+    #n̶o̶t̶i̶c̶e
+
+    #success
+subject_creation_success_chat_info_message = \
+    f"{subject_nom_kw} {have_been_kw} {adv_created_kw}"
+
+    #s̶u̶c̶c̶e̶s̶s̶
+
+#p̶h̶r̶a̶s̶e̶s̶
+
+#--------------------------------------------------------s̶u̶b̶j̶e̶c̶t̶--------------------------------------------------------
+
+
+
+
 #---------------------------------------------------------lesson--------------------------------------------------------
 
 #keywords
 
     #nouns
 lesson_kw = "заняття"
+lessons_nom_kw = "заняття"; lessons_gen_kw = "занять"
     #n̶o̶u̶n̶s̶
 
     #verbs
@@ -342,6 +400,8 @@ lesson_sequence_kwc = "послідовність занять"
 #phrases
 
     #fields
+lesson_select_chat_field_message = \
+    f"{specify_kw} {subject_nom_kw} {lesson_kw} {'{lesson_attributes}'}"
     #f̶i̶e̶l̶d̶s̶
 
     #fail
@@ -360,6 +420,67 @@ lesson_time_skipped_chat_info_message = \
 #p̶h̶r̶a̶s̶e̶s̶
 
 #---------------------------------------------------------l̶e̶s̶s̶o̶n̶--------------------------------------------------------
+
+
+
+
+#--------------------------------------------------------schedule-------------------------------------------------------
+
+#keywords
+
+    #nouns
+schedule_nom_kw = "розклад"; schedule_gen_kw = "розкладу";
+schedules_kw = "розклади"
+    #n̶o̶u̶n̶s̶
+
+    #verbs
+    #v̶e̶r̶b̶s̶
+
+    #adjectives
+    #a̶d̶j̶e̶c̶t̶i̶v̶e̶s̶
+
+    #adverbs
+    #a̶d̶v̶e̶r̶b̶s
+
+#k̶e̶y̶w̶o̶r̶d̶s̶
+
+#phrases
+
+    #fields
+schedule_id_chat_field_message = \
+    f"{enter_kw} {id_kw} {schedule_gen_kw}"
+    #f̶i̶e̶l̶d̶s̶
+
+    #fail
+schedule_creation_fail_chat_error_message = \
+    f"{schedule_nom_kw} {negation_kw} {have_been_kw} {adv_created_kw}"
+schedule_is_created_by_attributes_check_fail_chat_error_message = \
+    f"{fail_kw}, {schedule_nom_kw} {on_kw} {specified_kwabbrv_kw} {'{schedule_attributes}'} {yet_kw} {negation_kw} {have_been_kw} {adv_created_kw}"
+schedule_is_not_empty_check_fail_chat_error_message = \
+    f"{fail_kw}, {schedule_nom_kw} {is_kw} порожній"
+current_schedule_post_fail_chat_error_message = \
+    f"{fail_kw}, {schedule_nom_kw} {negation_kw} {have_been_kw} {adv_posted_kw}"
+current_schedule_by_attributes_existence_check_fail_chat_error_message = \
+    f"{fail_kw}, {adj_current_mask_kw} {schedule_nom_kw} {yet_kw} {negation_kw} {have_been_kw} {adv_posted_kw}"
+    #f̶a̶i̶l̶
+
+    #notice
+schedule_building_instruction = \
+    f"{specify_kw} {subjects_kw} {to_kw} {lessons_gen_kw},\n вказати символ \"_\", за відсутності {lesson_kw}, за порядком,\n {specify_kw} \"{adv_finished_kw}\" при передчасному завершенні {schedule_gen_kw}"
+schedule_creation_on_cancel_chat_info_message = \
+    f"{creation_kw} {schedule_gen_kw} {negation_kw} {have_been_kw} {adv_finished_kw}"
+    #n̶o̶t̶i̶c̶e
+
+    #success
+schedule_creation_success_chat_info_message = \
+    f"{schedule_nom_kw} {'{schedule_attributes}'} {have_been_kw} {adv_created_kw}"
+current_schedule_post_success_chat_info_message = \
+    f"{schedule_nom_kw} {have_been_kw} {adv_posted_kw}"
+    #s̶u̶c̶c̶e̶s̶s̶
+
+#p̶h̶r̶a̶s̶e̶s̶
+
+#--------------------------------------------------------s̶c̶h̶e̶d̶u̶l̶e̶-------------------------------------------------------
 
 
 
@@ -448,7 +569,7 @@ redo_report_chat_field_message = \
 
     #fail
 report_table_format_validation_chat_error_message = \
-    f"{presence_table_acc_kwc} {negation_kw} {have_been_kw} {adv_entered_kw} {of_type_kw} ↑"
+    f"{presence_table_acc_kwc} {negation_kw} {have_been_kw} {adv_entered_kw} вищевказаного {of_type_kw}"
     #f̶a̶i̶l̶
 
     #notice
@@ -553,7 +674,7 @@ arguments_pass_check_fail_chat_error_message = \
 lessons_pass_check_fail_chat_error_message = \
     f"{fail_kw}, {expected_kw} {lesson_sequence_kwc}"
 date_pass_check_fail_chat_error_message = \
-    f"{fail_kw}, {expected_kw} {date}"
+    f"{fail_kw}, {expected_kw} {date_kw}"
 no_additional_arguments_check_fail_chat_error_message = \
     f"{fail_kw}, {lesson_sequence_kwc} {negation_kw} {expected_kw}"
 is_absent_check_fail_chat_error_message = \
@@ -612,6 +733,10 @@ HELPFUL_REPLY = \
                 "\n/last_report /lr– викликати останній звіт" \
                 "\n/on_date_report /odr– викликати звіт за датою," \
                 "\n" \
+                "\n/today_schedule /ts- викликати розклад за сьогоднійній день" \
+                "\n/last_schedule /ls- викликати останній розклад" \
+                "\n/on_date_shcedule /ods- викликати розклад за датою" \
+                "\n" \
                 "\n/dossier– викликати список студентів" \
                 "\n            флаги розділу:" \
                 "\n   {" \
@@ -622,6 +747,9 @@ HELPFUL_REPLY = \
                 "\n" \
                 "\n/redo_report /rr– переробити звіт, надавши відповідну таблицю поправок" \
                 "\n" \
+                "\n/create_subject- створити предмет" \
+                "\n/create_schedule- створити розклад" \
+                "\n/post_schedule- опублікувати розклад на вказану дату" \
                 "\n/set_journal /sj– відкрити журнал певного взводу" \
                 "\n" \
                 "\n/call- викликати студента за ім'ям," \
@@ -644,7 +772,7 @@ group_inform_chat_info_message = \
 data_input_on_canceling_chat_info_message = \
     f"{entering_input_kw} даних {have_been_kw} {adv_canceled_kw}"
 call_on_canceling_chat_info_message = \
-    "Прийняття повідомлень завершено"
+    "Прийняття повідомлень припинено"
 group_inform_on_canceling_chat_info_message = \
     f"Оповіщення {of_group_kw} {have_been_kw} скасовано"
 state_check_fail_chat_info_message = \
@@ -655,6 +783,8 @@ group_inform_to_receiver_chat_info_message = \
     "Об'ява:"
 report_description_chat_info_message = \
     f"{presence_table_nom_kwc}, {report_nom_kw} {'{report_parameters}'}"
+schedule_description_chat_info_message = \
+    f"{schedule_nom_kw} {'{schedule_parameters}'}"
     #n̶o̶t̶i̶c̶e
 
     #success
@@ -665,7 +795,7 @@ report_description_chat_info_message = \
 #tables
 report_example = PrettyTable()
 report_example.border = False
-report_example.field_names = ["Студент", "n(заняття)"]
+report_example.field_names = ["Студент", "№-заняття-n)"]
 row = ["Xxxxxxx", "?"]
 report_example.add_rows((row, row))
 report_example_text = str(report_example)

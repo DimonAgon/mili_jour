@@ -1,0 +1,1 @@
+messaging_pause = 0.47

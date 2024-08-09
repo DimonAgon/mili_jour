@@ -102,7 +102,7 @@ def check_journal_is_registered_by_name(name: str):
         )
         raise ValidationError(
             journal_is_registered_by_attributes_check_fail_chat_error_message.format(
-                journal_attributes=attributes_kw
+                journal_attributes=attributes_kw #TODO: change to chat_messages.attributes_kw
             ),
             code='name_in_db'
         )
@@ -335,3 +335,23 @@ class GroupInformStatesGroup(StatesGroup):
 class ReportRedoStatesGroup(StatesGroup):
     redoing = State()
     date: datetime.datetime = State()
+
+
+class SubjectRegistrationStatesGroup(StatesGroup):
+    subject_registration = State()
+    journal = State()
+
+    set_journal = State()
+
+
+class NewScheduleStatesGroup(StatesGroup):
+    lesson_ordinal = State()
+    lessons_ordinals_to_subjects_names = State()
+    complete = State()
+
+
+class PostScheduleStatesGroup(StatesGroup):
+    date = State()
+    schedule_id = State()
+
+    set_journal = State()

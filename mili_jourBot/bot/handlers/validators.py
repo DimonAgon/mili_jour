@@ -7,7 +7,7 @@ from channels.db import database_sync_to_async
 
 from aenum import Enum
 
-from ..infrastructure.Schedule import *
+from ..infrastructure.ScheduleTiming import *
 from ..infrastructure.enums import *
 
 from static_text import chat_messages
@@ -76,7 +76,7 @@ def validate_lesson(value):
             code=arguments_kw
         )
 
-    if value_integer in Schedule.lessons_intervals.keys():
+    if value_integer in ScheduleTiming.lessons_intervals.keys():
         return True
 
     else:
@@ -120,11 +120,13 @@ async def validate_during_lesson_presence(user_id): #TODO: rename to "validate_d
 
 
 def validate_report_format(value: str):
-
+    #pattern = report_rePattern #debug feature
     if not regex.fullmatch(pattern=report_rePattern, string=value):
 
         raise ValidationError(
-            report_table_format_validation_fail_logging_error_message.format(arguments=value),
+            report_table_format_validation_fail_logging_error_message.format(
+                arguments=value
+            ),
             code='regex_match'
         )
 

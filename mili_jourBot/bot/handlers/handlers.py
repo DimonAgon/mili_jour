@@ -1,5 +1,7 @@
+import enum
 import re
 
+import django.db.models
 import htmldocx
 from aiogram import F
 from aiogram import types
@@ -23,9 +25,10 @@ from ..db_actions import *
 from .filters import *
 from .middleware import *
 from ..infrastructure.enums import *
-from ..infrastructure.Schedule import *
+from ..infrastructure.ScheduleTiming import *
 from .validators import *
 from .checks import *
+from static_text.misc import *
 from static_text.utilities import *
 from static_text import chat_messages
 from static_text.chat_messages import *
@@ -35,6 +38,7 @@ from logging_native.utilis.frame_log_track.frame_log_track import log_track_fram
 from .logger import handlers_logger
 from misc.re_patterns import *
 from misc.exceptions import *
+from .misc import *
 
 import asyncio
 
@@ -54,6 +58,7 @@ from typing import Any
 
 import operator
 
+#TODO: unify code
 
 logger = handlers_logger
 
@@ -80,9 +85,11 @@ presence_poll_router.poll_answer.filter(PresencePollFilter())
 journal_router.message.middleware(SuperuserSetJournal())
 journal_registration_subrouter.message.middleware(SuperuserSetJournal())
 
+#TODO: check set-journal states impact robotability
 
-prefixes = {'🗡', '/'}
-
+prefixes = {'🗡', '/'} #TODO: move to a separate file prefixes.py
+#TODO: add pauses to messaging
+#TODO: simplify register commands' names-- remove "register" word
 @commands_router.message(Command(commands='start')) #TODO add middleware to show help for superuser
 @log_track_frame(untracked_data=untracked_log_data, track_non_keyword_args=False)
 async def start_command(message: types.Message, *args, **kwargs):  # Self-presentation of the bot
@@ -100,10 +107,11 @@ async def help_command(message: types.Message, *args, **kwargs):
     await message.reply(HELPFUL_REPLY)
 
 
-def poll_time_interval(mode, lesson=None, last_lesson=None): #TODO: set till_lesson instead of bot lesson and last_lesson
+#TODO: split to two different functions for each mode-group
+def poll_time_interval(mode, lesson: Lesson=None, last_lesson: Lesson=None): #TODO: set till_lesson instead of bot lesson and last_lesson
     now = timezone.localtime(timezone.now())
     if mode == PresenceMode.LIGHT_MODE:
-        last_lesson_time = Schedule.lessons_intervals[last_lesson]
+        last_lesson_time = ScheduleTiming.lessons_intervals[last_lesson.ordinal]
         if last_lesson_time.upper < now.time(): #TODO: add checker
             raise LessonSkippedException
 
@@ -113,7 +121,7 @@ def poll_time_interval(mode, lesson=None, last_lesson=None): #TODO: set till_les
     if not mode == PresenceMode.LIGHT_MODE: #TODO: fix too-early poll-time, should be recess before first lesson
         now_time = timezone.localtime(timezone.now()).time()
 
-        lesson_time_interval = Schedule.lessons_intervals[lesson]
+        lesson_time_interval = ScheduleTiming.lessons_intervals[lesson.ordinal]
         if lesson_time_interval.contains(now_time): start_time = (now + datetime.timedelta(seconds=1)).time()
         elif now_time < lesson_time_interval.lower:  start_time = lesson_time_interval.lower
         else:
@@ -148,24 +156,41 @@ def poll_time_interval(mode, lesson=None, last_lesson=None): #TODO: set till_les
 @commands_router.message(Command(commands=['presence', 'p'], prefix=prefixes),
                          F.chat.type.in_({'group', 'supergroup'}),
                          IsAdminFilter(),
-                         AftercommandFullCheck(allow_no_argument=False,
+                         AftercommandFullCheck(allow_no_argument=True,
                                       modes=PresenceMode,
                                       mode_checking=True,
                                       allow_no_mode= True,
-                                      additional_arguments_checker=lessons_validator))
-@log_track_frame(untracked_data=untracked_log_data, track_non_keyword_args=False)                                                                          #processing first two lessons written conjointly raise mode validation error
-async def presence_command(message: types.Message, mode=default, additional_arguments=None, flag=None, *args, **kwargs): #TODO: modify L mode to send 'arrived' and 'left' polls to calculate presence data
+                                      )
+                         )
+@log_track_frame(untracked_data=untracked_log_data, track_non_keyword_args=False)#processing first two lessons written conjointly raise mode validation error
+#TODO: configure superusage
+async def presence_command(message: types.Message, mode=default, flag=None, *args, **kwargs): #TODO: modify L mode to send 'arrived' and 'left' polls to calculate presence data
     chat_id = message.chat.id
-
-    lessons_string_list = additional_arguments
-
-    lessons = [int(e) for e in lessons_string_list]
-
-    lessons.sort()
-    unique_lessons = list(set(lessons))
-
+    journal = await get_journal_async({'external_id':chat_id})
     now = timezone.localtime(timezone.now())
     today = now.date()
+    current_schedule_attributes = {'date': today, 'journal': journal}
+    try:
+        current_schedule = await get_current_schedule_async(current_schedule_attributes)
+        logger.info(
+            current_schedule_by_attributes_existence_check_success_logging_info_message.format(
+                current_schedule_attributes=current_schedule_attributes
+            )
+        )
+
+    except CurrentSchedule.DoesNotExist:
+        logger.error(
+            current_schedule_by_attributes_existence_check_fail_logging_error_message.format(
+                current_schedule_attributes=current_schedule_attributes
+            )
+        )
+        await message.answer(current_schedule_by_attributes_existence_check_fail_chat_error_message)
+        return
+
+    schedule = current_schedule.schedule
+    lessons: django.db.models.QuerySet = schedule.lessons.all()
+    lessons.order_by('ordinal')
+
     date_format = NativeDateFormat.date_format
     today_string = today.strftime(date_format)
 
@@ -176,7 +201,7 @@ async def presence_command(message: types.Message, mode=default, additional_argu
                            'protect_content': True}
 
     if mode == PresenceMode.LIGHT_MODE:
-        last_lesson = unique_lessons[-1]
+        last_lesson = lessons[-1]
         try:
             poll__time_interval = poll_time_interval(mode, last_lesson=last_lesson)
 
@@ -186,30 +211,34 @@ async def presence_command(message: types.Message, mode=default, additional_argu
             return
 
         deadline = poll__time_interval.upper
+
         question = f"{today_string} {chat_messages.presence_kw}"
         poll_identifying_attributes = {'question': question}
         poll_configuration.update(poll_identifying_attributes)
 
     if not mode == PresenceMode.LIGHT_MODE:
-        await initiate_today_report(today, chat_id, unique_lessons, mode)
+        await initiate_today_report(today, journal, mode)
 
-        for lesson in unique_lessons:
-            await initiate_today_entries(today, chat_id, lesson)
+        for lesson in lessons:
+            lesson_name = f"{lesson.ordinal}-{lesson.subject.name}"
+
+            await initiate_today_entries(today, journal, lesson)
 
             try:
                 poll__time_interval = poll_time_interval(mode, lesson)
 
             except LessonSkippedException: #TODO: add checker
-                await message.answer(lesson_time_skipped_chat_info_message.format(lesson_attributes=lesson))
+                lesson_name = f"{lesson.ordinal}-{lesson.subject.name}"
+                await message.answer(lesson_time_skipped_chat_info_message.format(lesson_attributes=lesson_name))
                 logger.info(
-                    lesson_time_skipped_logging_info_message.format(lesson_attributes=lesson)
+                    lesson_time_skipped_logging_info_message.format(lesson_attributes=vars(lesson))
                 )
                 continue
 
             poll_time = poll__time_interval.lower
             deadline = poll__time_interval.upper
 
-            question = today_string + f" Заняття {str(lesson)}"
+            question = today_string + f" Заняття {lesson_name}"
             poll_identifying_attributes = {'question': question}
             poll_configuration.update(poll_identifying_attributes)
 
@@ -256,10 +285,10 @@ async def presence_command(message: types.Message, mode=default, additional_argu
         )
 
     else:
-        for lesson in unique_lessons:
-            await initiate_today_entries(today, chat_id, lesson)
+        for lesson in lessons:
+            await initiate_today_entries(today, journal, lesson)
 
-        await initiate_today_report(today, chat_id, unique_lessons, mode='L')
+        await initiate_today_report(today, journal, mode='L')
 
         logger.info(
             presence_poll_on_send_expectation_logging_info_message.format(
@@ -323,6 +352,11 @@ async def cancel_command(message: types.Message, state: FSMContext, *args, **kwa
             [
                 group_inform_on_canceling_chat_info_message,
                 group_inform_on_canceling_logging_info_message
+            ],
+        NewScheduleStatesGroup.lessons_ordinals_to_subjects_names:
+            [
+                schedule_creation_on_cancel_chat_info_message,
+                schedule_creation_on_cancel_logging_info_message
             ]
     }
 
@@ -549,7 +583,7 @@ async def register_journal_command(
     await state.update_data(key=key)
     await request_key(chat_id, key)
 #TODO: catch report commands if no group journal
-#TODO:classify report commands similar
+#TODO: make switches for report commands
 today_report_command_filters_config = (Command(commands=['today_report', 'tr'], prefix=prefixes),
                                        AftercommandFullCheck(allow_no_argument=True, modes=ReportMode, flag_checking=True))
 
@@ -738,6 +772,7 @@ dossier_command_filters_config = (Command(commands='dossier', prefix=prefixes),
 @journal_router.message(*dossier_command_filters_config, F.chat.type.in_({'group', 'supergroup'}), IsAdminFilter())
 @log_track_frame(untracked_data=untracked_log_data, track_non_keyword_args=False)
 async def dossier_command(message: Message, flag=ReportMode.Flag.TEXT,set_journal: Journal=None, *args, **kwargs):
+    #TODO: add dossier for profile, function will work depending on chat type
     group_id = message.chat.id if not set_journal else set_journal.external_id
 
     table = await get_journal_dossier(group_id)
@@ -758,6 +793,353 @@ async def dossier_command(message: Message, flag=ReportMode.Flag.TEXT,set_journa
             await message.answer_document(input_file)
 
 
+today_schedule_command_filters_config = (
+    Command(commands=['today_schedule', 'ts'], prefix=prefixes) ,
+    AftercommandFullCheck(
+        allow_no_argument=True,
+        modes=ReportMode,
+        allow_no_mode=True,
+        flag_checking=True,
+    )
+)
+@journal_router.message(*today_schedule_command_filters_config, F.chat.type.in_({'private'}), IsSuperUserFilter())
+@journal_router.message(*today_schedule_command_filters_config, F.chat.type.in_({'group', 'supergroup'}), IsAdminFilter())
+@log_track_frame(untracked_data=untracked_log_data, track_non_keyword_args=False)
+async def today_schedule__command(
+        message: Message                         ,
+        flag: enum.auto|str=ReportMode.Flag.TEXT , #TODO: check annotation accuracy
+        set_journal: Journal=None                ,
+        *args, **kwargs                          ,
+) -> None:
+    group_id = message.chat.id if not set_journal else set_journal.external_id
+    journal = set_journal if set_journal else await get_journal_async({'external_id': group_id})
+
+    today_current_schedule = await get_on_mode_journal_current_schedule(journal, ReportMode.TODAY)
+    today_current_schedule_schedule = today_current_schedule.schedule
+    today_current_schedule_schedule_table = make_schedule_table(today_current_schedule_schedule)
+
+    match ReportMode.Flag(flag):
+        case ReportMode.Flag.TEXT:
+            await message.answer(f"```{today_current_schedule_schedule_table}```", 'Markdown')
+
+        case ReportMode.Flag.DOCUMENT:
+            temporary_path = os.path.join(tempfile.gettempdir(), os.urandom(24).hex()) + '.docx'
+            document = docx.Document()
+            parser = htmldocx.HtmlToDocx()
+
+            table_html = today_current_schedule_schedule_table.get_html_string()
+            parser.add_html_to_document(table_html, document)
+            document.save(temporary_path)
+            input_file = types.FSInputFile(temporary_path)
+            await message.answer_document(input_file)
+
+
+last_schedule_command_filters_config = (
+    Command(commands=['last_schedule', 'ls'], prefix=prefixes) ,
+    AftercommandFullCheck(
+        allow_no_argument=True,
+        modes=ReportMode,
+        allow_no_mode=True,
+        flag_checking=True
+    )
+)
+@journal_router.message(*last_schedule_command_filters_config, F.chat.type.in_({'private'}), IsSuperUserFilter())
+@journal_router.message(*last_schedule_command_filters_config, F.chat.type.in_({'group', 'supergroup'}), IsAdminFilter())
+@log_track_frame(untracked_data=untracked_log_data, track_non_keyword_args=False)
+async def last_schedule__command(
+        message: Message                         ,
+        flag: enum.auto|str=ReportMode.Flag.TEXT , #TODO: check annotation accuracy
+        set_journal: Journal=None                ,
+        *args, **kwargs                          ,
+) -> None:
+    group_id = message.chat.id if not set_journal else set_journal.external_id
+    journal = set_journal if set_journal else await get_journal_async({'external_id': group_id})
+
+    last_current_schedule = await get_on_mode_journal_current_schedule(journal, ReportMode.LAST)
+    last_current_schedule_schedule = last_current_schedule.schedule
+    last_current_schedule_schedule_table = make_schedule_table(last_current_schedule_schedule)
+
+    await message.answer(
+        schedule_description_chat_info_message.format(
+            schedule_parameters=f"{chat_messages.on_kw} {last_current_schedule.date}"
+        )
+    )
+
+    match ReportMode.Flag(flag):
+        case ReportMode.Flag.TEXT:
+            await message.answer(f"```{last_current_schedule_schedule_table}```", 'Markdown', disable_notification=True)
+
+        case ReportMode.Flag.DOCUMENT:
+            temporary_path = os.path.join(tempfile.gettempdir(), os.urandom(24).hex()) + '.docx'
+            document = docx.Document()
+            parser = htmldocx.HtmlToDocx()
+
+            table_html = last_current_schedule_schedule_table.get_html_string()
+            parser.add_html_to_document(table_html, document)
+            document.save(temporary_path)
+            input_file = types.FSInputFile(temporary_path)
+            await message.answer_document(input_file, disable_notification=True)
+
+
+on_date_schedule_command_filters_config = (
+    Command(commands=['on_date_schedule', 'ods'], prefix=prefixes) ,
+    AftercommandFullCheck(
+        allow_no_argument=False,
+        modes=ReportMode,
+        allow_no_mode=True,
+        flag_checking=True,
+        additional_arguments_checker=date_validator
+    )
+)
+@journal_router.message(*on_date_schedule_command_filters_config, F.chat.type.in_({'private'}), IsSuperUserFilter())
+@journal_router.message(*on_date_schedule_command_filters_config, F.chat.type.in_({'group', 'supergroup'}), IsAdminFilter())
+@log_track_frame(untracked_data=untracked_log_data, track_non_keyword_args=False)
+async def on_date_schedule__command(
+        message: Message                         ,
+        flag: enum.auto|str=ReportMode.Flag.TEXT , #TODO: check annotation accuracy
+        additional_arguments: list[str]=None     ,
+        set_journal: Journal=None                ,
+        *args, **kwargs                          ,
+) -> None:
+    specified_date_string = additional_arguments[0]  # TODO: fix additional_arguments duplication
+    native_date_format = NativeDateFormat.date_format
+    date = datetime.datetime.strptime(specified_date_string, native_date_format).date()
+    group_id = message.chat.id if not set_journal else set_journal.external_id
+    journal = set_journal if set_journal else await get_journal_async({'external_id': group_id})
+
+    last_current_schedule = await get_on_mode_journal_current_schedule(journal, ReportMode.ON_DATE, date)
+    last_current_schedule_schedule = last_current_schedule.schedule
+    last_current_schedule_schedule_table = make_schedule_table(last_current_schedule_schedule)
+
+    match ReportMode.Flag(flag):
+        case ReportMode.Flag.TEXT:
+            await message.answer(f"```{last_current_schedule_schedule_table}```", 'Markdown')
+
+        case ReportMode.Flag.DOCUMENT:
+            temporary_path = os.path.join(tempfile.gettempdir(), os.urandom(24).hex()) + '.docx'
+            document = docx.Document()
+            parser = htmldocx.HtmlToDocx()
+
+            table_html = last_current_schedule_schedule_table.get_html_string()
+            parser.add_html_to_document(table_html, document)
+            document.save(temporary_path)
+            input_file = types.FSInputFile(temporary_path)
+            await message.answer_document(input_file)
+
+
+@journal_router.message(SubjectRegistrationStatesGroup.subject_registration, NoCommandFilter())
+@log_track_frame(untracked_data=untracked_log_data, track_non_keyword_args=False)
+async def subject_registration_handler(message: Message, state: FSMContext, set_journal: Journal=None):
+    subject_name = message.text
+
+    if not await check_subject_is_not_created(subject_name):
+        await message.answer(subject_is_not_created_by_attributes_check_fail_chat_error_message.format(
+            subject_attributes=chat_messages.name_obj_kw
+            )
+        )
+        return
+
+    try:
+        subject_attributes = {'name': subject_name, 'journal': set_journal}
+        await add_subject(subject_attributes)
+
+    except Exception: #TODO: define exception maintaining lack reason
+        await message.answer(subject_creation_fail_logging_error_message)
+        logging.error(subject_creation_fail_logging_error_message)
+        await state.clear()
+        return
+
+    logger.info(
+        subject_creation_success_logging_info_message.format(subject_attributes=subject_attributes)
+    )
+    await message.answer(subject_creation_success_chat_info_message)
+    await state.clear()
+
+
+add_subject_filters_config = {Command(commands=['create_subject'])}
+
+@journal_router.message(*add_subject_filters_config, F.chat.type.in_({'private'}), IsSuperUserFilter())
+@journal_router.message(*add_subject_filters_config, F.chat.type.in_({'group', 'supergroup'}), IsAdminFilter())
+@log_track_frame(untracked_data=untracked_log_data, track_non_keyword_args=False)
+async def create_subject_command(message: Message, state: FSMContext, set_journal: Journal=None, *args, **kwargs):
+
+    await message.answer(subject_name_chat_field_message)
+    logging.info(subject_name_logging_field_message)
+
+    await state.set_state(SubjectRegistrationStatesGroup.set_journal)
+    if set_journal:
+        await state.update_data(set_journal=set_journal)
+
+    else:
+        group_id = message.chat.id
+        journal_attributes = {'external_id': group_id}
+        journal = await get_journal_async(journal_attributes)
+        await state.update_data(set_journal=journal)
+
+    await state.set_state(SubjectRegistrationStatesGroup.subject_registration)
+
+
+@journal_router.message(PostScheduleStatesGroup.schedule_id, NoCommandFilter(), ScheduleExistsFilter())
+@log_track_frame(untracked_data=untracked_log_data, track_non_keyword_args=False)
+async def post_schedule_handler(message: Message, state: FSMContext):
+    try:
+        schedule = await get_schedule_async(id=message.text)
+        state_data = await state.get_data()
+        try:
+            set_journal = state_data['set_journal']
+            journal = set_journal
+
+        except KeyError:
+            journal = await get_journal_async({'external_id': message.chat.id})
+
+        date = state_data['date']
+        current_schedule_attributes = {"schedule": schedule, "journal": journal, "date": date}
+        await add_current_schedule(current_schedule_attributes)
+
+    except Exception:
+        logger.error(
+            current_schedule_post_fail_logging_error_message.format(
+                current_schedule_attributes=current_schedule_attributes
+            )
+        )
+        await message.answer(current_schedule_post_fail_chat_error_message)
+
+        await state.clear()
+
+        return
+
+    logger.info(
+        current_schedule_post_success_logging_info_message.format(
+            current_schedule_attributes=current_schedule_attributes
+        )
+    )
+    await message.answer(current_schedule_post_success_chat_info_message)
+
+    await state.clear()
+
+post_schedule_filters_config = (Command(commands=['post_schedule', 'ps']),
+                                AftercommandFullCheck(allow_no_argument=False,
+                                                      additional_arguments_checker=date_validator))
+
+@journal_router.message(*post_schedule_filters_config, F.chat.type.in_({'private'}), IsSuperUserFilter())
+@journal_router.message(*post_schedule_filters_config, F.chat.type.in_({'group', 'supergroup'}), IsAdminFilter())
+@log_track_frame(untracked_data=untracked_log_data, track_non_keyword_args=False)
+async def post_schedule_command(
+        message: Message           ,
+        state: FSMContext          ,
+        additional_arguments=False ,
+        set_journal: Journal=None  ,
+        *args                      ,
+        **kwargs
+):
+    date_string = additional_arguments[0]
+    date_format = NativeDateFormat.date_format
+    date = datetime.datetime.strptime(date_string, date_format).date()
+
+    await state.set_state(PostScheduleStatesGroup.date)
+    await state.update_data(date=date)
+
+    if set_journal:
+        journal = set_journal
+        await state.set_state(PostScheduleStatesGroup.set_journal)
+        await state.update_data(set_journal=journal)
+
+    await state.set_state(PostScheduleStatesGroup.schedule_id)
+    await message.answer(schedule_id_chat_field_message)
+
+@log_track_frame(untracked_data=untracked_log_data, track_non_keyword_args=False)
+async def schedule_completion_handler(message: Message, state: FSMContext, *args, **kwargs): #TODO: add schedule existence checking
+    state_data = await state.get_data()
+    try:
+        lessons_ordinals_to_subjects_names: dict = state_data["lessons_ordinals_to_subjects_names"]
+
+    except KeyError:
+        lessons_ordinals_to_subjects_names = {}
+
+    if not check_schedule_dict_is_not_empty(lessons_ordinals_to_subjects_names):
+        await message.answer(schedule_is_not_empty_check_fail_chat_error_message)
+
+    else:
+        try:
+            schedule = await add_schedule(lessons_ordinals_to_subjects_names)
+
+        except Exception as e:
+            raise e
+
+        await message.answer(
+            schedule_creation_success_chat_info_message.format(
+                schedule_attributes=schedule.id
+            )
+        )
+
+    await state.clear()
+
+
+@log_track_frame(untracked_data=untracked_log_data, track_non_keyword_args=False)
+@commands_router.message(NewScheduleStatesGroup.lesson_ordinal, NoCommandFilter())
+async def schedule_lesson_setting_suggest(message: Message, state: FSMContext, *args, **kwargs):
+    lesson_ordinal = (await state.get_data())['lesson_ordinal']
+    await message.answer(lesson_select_chat_field_message.format(lesson_attributes=lesson_ordinal))
+    logger.info(lesson_select_logging_field_message.format(lesson_attributes=lesson_ordinal))
+    await state.set_state(NewScheduleStatesGroup.lessons_ordinals_to_subjects_names)
+
+schedule_lesson_setting_handler_filters_config = (NewScheduleStatesGroup.lessons_ordinals_to_subjects_names, NoCommandFilter())
+
+@commands_router.message(*schedule_lesson_setting_handler_filters_config, SubjectExistsFilter())
+@commands_router.message(*schedule_lesson_setting_handler_filters_config, F.text.regexp(f'{void_symbol}'))
+@commands_router.message(*schedule_lesson_setting_handler_filters_config, F.text.regexp(f'{finish_word}'))
+@log_track_frame(untracked_data=untracked_log_data, track_non_keyword_args=False)
+async def schedule_lesson_setting_handler(message: Message, state: FSMContext, *args, **kwargs):
+    state_data = await state.get_data()
+    lesson_ordinal = state_data['lesson_ordinal']
+
+    scheduling_keyword = message.text
+
+    if scheduling_keyword == finish_word:
+        if lesson_ordinal == 1: #TODO: consider block importance
+            logger.error(schedule_is_not_empty_check_fail_logging_error_message)
+            await message.answer(schedule_is_not_empty_check_fail_chat_error_message)
+            await state.clear()
+            return
+
+        await schedule_completion_handler(message, state)
+        return
+
+    if scheduling_keyword != void_symbol:
+        lessons_ordinals_to_subjects_names = state_data['lessons_ordinals_to_subjects_names']
+        complete_lessons_ordinals_to_subjects_names = lessons_ordinals_to_subjects_names
+        complete_lessons_ordinals_to_subjects_names[lesson_ordinal] = scheduling_keyword
+        await state.update_data(lessons_ordinals_to_subjects_names=complete_lessons_ordinals_to_subjects_names)
+
+    if lesson_ordinal < ScheduleTiming.last_lesson_ordinal:
+        await state.set_state(NewScheduleStatesGroup.lesson_ordinal)
+        await state.update_data(lesson_ordinal=lesson_ordinal + 1)
+        await schedule_lesson_setting_suggest(message, state)
+
+    else:
+        await state.set_state(NewScheduleStatesGroup.complete)
+        await schedule_completion_handler(message, state)
+
+create_schedule_command_filters_config = (Command(commands=['create_schedule', 'ns'], prefix=prefixes), DummyFilter()) #TODO: consider dummy-filter
+
+@commands_router.message(*create_schedule_command_filters_config, F.chat.type.in_({'private'}), IsSuperUserFilter())
+@commands_router.message(*create_schedule_command_filters_config, F.chat.type.in_({'group', 'supergroup'}), IsAdminFilter())
+@log_track_frame(untracked_data=untracked_log_data, track_non_keyword_args=False)
+async def create_schedule_command(message: Message, state: FSMContext, *args, **kwargs):
+    await message.answer(schedule_building_instruction)
+    await state.update_data(lessons_ordinals_to_subjects_names={})
+    await state.set_state(NewScheduleStatesGroup.lesson_ordinal)
+    await state.update_data(lesson_ordinal=1)
+    await asyncio.sleep(messaging_pause)
+    await schedule_lesson_setting_suggest(message, state)
+
+
+@commands_router.message(Command(commands=['schedule', 's'], prefix=prefixes))
+@log_track_frame(untracked_data=untracked_log_data, track_non_keyword_args=False)
+async def schedule_command(message: Message, state: FSMContext, *args, **kwargs):
+    raise NotImplementedError
+
+
 @journal_router.message(ReportRedoStatesGroup.redoing, NoCommandFilter())
 @log_track_frame(untracked_data=untracked_log_data, track_non_keyword_args=False)
 async def redo_report_handler(message: Message, state: FSMContext, set_journal: Journal=None, *args, **kwargs):
@@ -767,30 +1149,31 @@ async def redo_report_handler(message: Message, state: FSMContext, set_journal: 
     try:
         data = await state.get_data()
         date = data['date']
-        string_date = str(date)
 
         slash_n_free_message_text = message.text.replace("\n", "")
 
-        if validate_report_format(slash_n_free_message_text):
-            if await validate_report_name_references(slash_n_free_message_text, journal): #TODO: change if to try
-                report = slash_n_free_message_text
-                report_headers_match = re.search(report_headers_rePattern, report)
-                lessons_string = report_headers_match.group(2)
-                lessons_string_split: list = lessons_string.split()
-                lessons: list = [int(l) for l in lessons_string_split]
-                report_rows = regex.finditer(report_row_rePattern, report)
-                for row_match in report_rows:
-                    await redo_entries_by_report_row(row_match, group_id, date, lessons)
+        try:
+            validate_report_format(slash_n_free_message_text)
 
-                logger.info(report_redo_success_logging_info_message)
-                await message.answer(report_redo_success_chat_info_message)
+        except Exception:
+            await message.answer(report_table_format_validation_chat_error_message)
+            return
 
-            else:
-                await message.answer(report_table_name_references_validation_fail_chat_error_message)
-                return
+        if await validate_report_name_references(slash_n_free_message_text, journal): #TODO: change if to try
+            report = slash_n_free_message_text
+            report_headers_match = re.search(report_headers_rePattern, report)
+            lessons_ordinals_string = report_headers_match.group(2)
+            lessons_ordinals_string_split: list = lessons_ordinals_string.split()
+            lessons_ordinals: list = [int(l) for l in lessons_ordinals_string_split]
+            report_rows = regex.finditer(report_row_rePattern, report)
+            for row_match in report_rows:
+                await redo_entries_by_report_row(row_match, group_id, date, lessons_ordinals)
+
+            logger.info(report_redo_success_logging_info_message)
+            await message.answer(report_redo_success_chat_info_message)
 
         else:
-            await message.answer(report_table_format_validation_chat_error_message)
+            await message.answer(report_table_name_references_validation_fail_chat_error_message)
             return
 
     except Exception as e:
@@ -799,7 +1182,7 @@ async def redo_report_handler(message: Message, state: FSMContext, set_journal: 
 redo_report_filters_config = (Command(commands=['redo_report', 'rr'], prefix=prefixes),
                               AftercommandFullCheck(
                                   allow_no_argument=False,
-                                  allow_no_mode=False,
+                                  allow_no_mode=False, #TODO: check-fix
                                   additional_arguments_checker=date_validator))  #TODO: add flags (show_current, get example)
 
 @journal_router.message(*redo_report_filters_config, F.chat.type.in_({'private'}), IsSuperUserFilter())
@@ -860,7 +1243,7 @@ async def request_journal(chat_id: int):
 @commands_router.message(Command(commands=['set_journal', 'sj'], prefix=prefixes),
                          F.chat.type.in_({'private'}),
                          IsSuperUserFilter())
-@log_track_frame(untracked_data=untracked_log_data, track_non_keyword_args=False)
+@log_track_frame(untracked_data=untracked_log_data, track_non_keyword_args=False) #TODO: add journal name at journal-set-logging-message
 async def set_journal_command(message: types.Message, state: FSMContext, *args, **kwargs):
     await request_journal(message.chat.id)
     await state.set_state(SetJournalStatesGroup.setting_journal)
@@ -990,9 +1373,6 @@ async def leave_chat_delete_journal_command(message: types.Message, *args, **kwa
     await bot.leave_chat(group_id)
     logger.info(bot_leaved_logging_info_message)
 
-#TODO: reports should be able in both group and private chat
-
-#TODO: create a new_schedule_command
 
 #TODO: add an execute command for admin
 

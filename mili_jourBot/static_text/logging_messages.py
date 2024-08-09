@@ -1,4 +1,4 @@
-
+#TODO: rename all by-attributes-checks to include "existence" in their names
 #--------------------------------------------------------universal------------------------------------------------------
 
 #keywords
@@ -32,6 +32,7 @@ data_kw = "data"
 field_kw = "field"
 initiation_kw = "initiation"
 registration_kw = "registration"
+creation_kw = "creation"
 presence_kw = "presence"
 key_kw = "key"
 time_kw = "time"
@@ -105,6 +106,7 @@ existing_kw = "existing"
 synthesized_kw = "synthesized"
 expected_kw = "expected"
 registered_kw = "registered"
+created_kw = "created"
 noted_kw = "noted"
 specified_kw = "specified"
 requested_kw = "requested"
@@ -129,6 +131,8 @@ added_kw = "added"
 identified_kw = "identified"
 suggested_kw = "suggested"
 informed_kw = "informed"
+finished_kw = "finished"
+posted_kw = "posted"
 
     #adjectives
 private_kw = "private"
@@ -143,6 +147,8 @@ second_kw = "second"
 external_kw = "external"
 additional_kw = "additional"
 all_kw = "all"
+empty_kw = "empty"
+current_kw = "current"
     #a̶d̶j̶e̶c̶t̶i̶v̶e̶s̶
 
 second_kw = "second"
@@ -291,7 +297,7 @@ profile_ordinal_logging_field_message = \
 
     #fail
 profile_registration_fail_logging_error_message = \
-    f"{profile_kw} {has_kw} {not_kw} {been_kw} {registered_kw}"
+    f"{profile_kw} {has_kw} {not_kw} {been_kw} {registered_kw}" #TODO: add profile attributes
 profile_deletion_fail_logging_error_message = \
     f"{profile_kw} {'{profile_attributes}'} {has_kw} {not_kw} {been_kw} {deleted_kw}"
 profile_existence_check_fail_logging_error_message = \
@@ -419,6 +425,61 @@ journal_set_check_success_logging_info_message = \
 
 
 
+#--------------------------------------------------------subject--------------------------------------------------------
+
+#keywords
+
+    #nouns
+subject_kw = "subject"; subjects_kw = "subjects"
+subject_name_kw = "name"
+    #n̶o̶u̶n̶s̶
+
+    #verbs
+    #v̶e̶r̶b̶s̶
+
+    #adjectives
+    #a̶d̶j̶e̶c̶t̶i̶v̶e̶s̶
+
+    #adverbs
+    #a̶d̶v̶e̶r̶b̶s
+
+#k̶e̶y̶w̶o̶r̶d̶s̶
+
+#phrases
+
+    #fields
+subject_name_logging_field_message = \
+    f"{subject_kw} {subject_name_kw} {requested_kw}"
+    #f̶i̶e̶l̶d̶s̶
+
+    #fail
+subject_creation_fail_logging_error_message = \
+    f"{subject_kw} {'{subject_attributes}'} {has_kw} {not_kw} {been_kw} {created_kw}"
+subject_is_created_by_attributes_check_fail_logging_error_message = \
+    f"{subject_kw} {on_kw} {specified_kw} {'{subject_attributes}'} {has_kw} {not_kw} {been_kw} {created_kw} {yet_kw}"
+subject_is_not_created_by_attributes_check_fail_logging_error_message = \
+    f"{subject_kw} {on_kw} {specified_kw} {'{subject_attributes}'} {has_kw} {already_kw} {been_kw} {created_kw}"
+    #f̶a̶i̶l̶
+
+    #notice
+    #n̶o̶t̶i̶c̶e
+
+    #success
+subject_creation_success_logging_info_message = \
+    f"{subject_kw} {'{subject_attributes}'} {has_kw} {been_kw} {created_kw}"
+subject_is_created_by_attributes_check_success_logging_info_message = \
+    f"{subject_kw} {on_kw} {specified_kw} {'{subject_attributes}'} {has_kw} {already_kw} {been_kw} {created_kw}"
+subject_is_not_created_by_attributes_check_success_logging_info_message = \
+    f"{subject_kw} {on_kw} {specified_kw} {'{subject_attributes}'} {has_kw} {not_kw} {been_kw} {created_kw} {yet_kw}"
+    #s̶u̶c̶c̶e̶s̶s̶
+
+#p̶h̶r̶a̶s̶e̶s̶
+
+#--------------------------------------------------------s̶u̶b̶j̶e̶c̶t̶--------------------------------------------------------
+
+
+
+
 #---------------------------------------------------------lesson--------------------------------------------------------
 
 #keywords
@@ -441,6 +502,8 @@ lesson_kw = "lesson"
 #phrases
 
     #fields
+lesson_select_logging_field_message = \
+    f"{lesson_kw} {'{lesson_attributes}'} {subject_kw} {requested_kw}"
     #f̶i̶e̶l̶d̶s̶
 
 
@@ -462,6 +525,70 @@ during_lesson_check_fail_logging_error_message = \
 #p̶h̶r̶a̶s̶e̶s
 
 #---------------------------------------------------------l̶e̶s̶s̶o̶n̶--------------------------------------------------------
+
+
+
+
+#--------------------------------------------------------schedule-------------------------------------------------------
+
+#keywords
+
+    #nouns
+schedule_kw = "schedule"; schedules_kw = "schedules"
+    #n̶o̶u̶n̶s̶
+
+    #verbs
+    #v̶e̶r̶b̶s̶
+
+    #adjectives
+    #a̶d̶j̶e̶c̶t̶i̶v̶e̶s̶
+
+    #adverbs
+    #a̶d̶v̶e̶r̶b̶s
+
+#k̶e̶y̶w̶o̶r̶d̶s̶
+
+#phrases
+
+    #fields
+schedule_id_logging_field_message = \
+    f"{schedule_kw} {id_kw} {requested_kw}"
+    #f̶i̶e̶l̶d̶s̶
+
+    #fail
+schedule_creation_fail_logging_error_message = \
+    f"{schedule_kw} {has_kw} {not_kw} {been_kw} {created_kw}"
+schedule_is_not_empty_check_fail_logging_error_message = \
+    f"{schedule_kw} {is_kw} {empty_kw}"
+schedule_is_created_by_attributes_check_fail_logging_error_message = \
+    f"{schedule_kw} {on_kw} {specified_kw} {'{schedule_attributes}'} {has_kw} {not_kw} {been_kw} {created_kw} {yet_kw}"
+current_schedule_post_fail_logging_error_message = \
+    f"{current_kw}-{schedule_kw} {'{current_schedule_attributes}'} {has_kw} {not_kw} {been_kw} {posted_kw}"
+current_schedule_by_attributes_existence_check_fail_logging_error_message = \
+    f"{current_kw}-{schedule_kw} {'{current_schedule_attributes}'} {has_kw} {not_kw} {been_kw} {posted_kw} {yet_kw}"
+    #f̶a̶i̶l̶
+
+    #notice
+schedule_creation_on_cancel_logging_info_message = \
+    f"{schedule_kw} {creation_kw} {has_kw} {not_kw} {been_kw} {finished_kw}"
+    #n̶o̶t̶i̶c̶e
+
+    #success
+schedule_creation_success_logging_info_message = \
+    f"{schedule_kw} {has_kw} {been_kw} {created_kw}"
+schedule_is_not_empty_check_success_logging_error_message = \
+    f"{schedule_kw} {'{schedule_attributes}'} {is_kw} {not_kw} {empty_kw}"
+schedule_is_created_by_attributes_check_success_logging_info_message = \
+    f"{schedule_kw} {on_kw} {specified_kw} {'{schedule_attributes}'} {has_kw} {already_kw} {been_kw} {created_kw}"
+current_schedule_post_success_logging_info_message = \
+    f"{current_kw}-{schedule_kw} {'{current_schedule_attributes}'} {has_kw} {been_kw} {posted_kw}"
+current_schedule_by_attributes_existence_check_success_logging_info_message = \
+    f"{current_kw}-{schedule_kw} {'{current_schedule_attributes}'} {has_kw} {been_kw} {already_kw} {posted_kw}"
+    #s̶u̶c̶c̶e̶s̶s̶
+
+#p̶h̶r̶a̶s̶e̶s̶
+
+#--------------------------------------------------------s̶c̶h̶e̶d̶u̶l̶e̶-------------------------------------------------------
 
 
 
@@ -802,7 +929,7 @@ group_inform_on_canceling_logging_info_message = \
 state_check_fail_logging_info_message = \
     f"{state_kw} {has_kw} {not_kw} {been_kw} {set_kw}, {or_kw} {has_kw} {been_kw} {canceled_kw}"
 statuses_amended_logging_info_message = \
-    f"{statuses_kw} {amended_kw}"
+    f"{statuses_kw} {amended_kw}" #TODO: consider moving to success-subdivision
     #n̶o̶t̶i̶c̶e
 
     #success
@@ -851,3 +978,4 @@ field_validation_success_info_message = f"{field_kw} {'{field_attributes}'} {has
 
 #-----------------------------------------------------m̶i̶s̶c̶e̶l̶l̶a̶n̶e̶o̶u̶s̶-----------------------------------------------------
 
+#TODO: leave entering type for field messages (something_field_message = "something requested" -> "something entering requested")

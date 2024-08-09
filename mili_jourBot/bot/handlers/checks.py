@@ -49,3 +49,38 @@ def is_presence_poll(poll_id): #TODO: consider consider name
         return True
 
     logging.info(is_presence_poll_check_fail_logging_error_message.format(poll_attributes=poll_attributes))
+
+@log_track_frame(total=False)
+def check_schedule_dict_is_not_empty(lessons_ordinals_to_subjects_names: dict):
+    is_empty = bool(lessons_ordinals_to_subjects_names)
+    if is_empty:
+        logging.error(schedule_is_not_empty_check_fail_logging_error_message)
+        return True
+
+    else:
+        logging.info(
+            schedule_is_not_empty_check_success_logging_error_message.format(
+                schedule_attributes=lessons_ordinals_to_subjects_names
+            )
+        )
+        return False
+
+@log_track_frame(total=False)
+@database_sync_to_async
+def check_subject_is_not_created(subject_name):
+    subject_attributes = {'name': subject_name}
+    is_created = Subject.objects.filter(name=subject_name).exists()
+    if not is_created:
+        logging.info(
+            subject_is_not_created_by_attributes_check_success_logging_info_message.format(
+                subject_attributes=subject_attributes
+            )
+        )
+        return True
+
+    else:
+        logging.error(
+            subject_is_not_created_by_attributes_check_fail_logging_error_message.format(
+                subject_attributes=subject_attributes
+            )
+        )

@@ -1,6 +1,6 @@
 
 import re, regex
-
+#TODO: compile patterns
 name_rePattern = "\p{Lu}\p{Ll}+"
 full_name_rePattern = "{}\s{}(?:[-]{})?".format(name_rePattern, name_rePattern, name_rePattern) #for any language
 journal_rePattern = "(?!0)\d{3}"

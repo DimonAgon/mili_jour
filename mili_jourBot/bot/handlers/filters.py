@@ -1,3 +1,6 @@
+import asyncio
+import logging
+
 import aiogram
 from aiogram.filters import BaseFilter, CommandObject
 from aiogram import types
@@ -22,9 +25,12 @@ from static_text.chat_messages import *
 from static_text.logging_messages import *
 from logging_native.utilis.frame_log_track.frame_log_track import log_track_frame
 from .logger import handlers_logger
+from ..models import Subject
+from .misc import *
 
 import re
 
+#TODO: unify code
 
 logger = handlers_logger
 
@@ -33,6 +39,7 @@ untracked_log_data = {
 }
 
 
+#TODO: add success filtering
 class RegisteredExternalIdFilter(BaseFilter):
     key = "in_db"
 
@@ -101,6 +108,84 @@ class RegisteredExternalIdFilter(BaseFilter):
             )
 
         return True
+
+
+class SubjectExistsFilter(BaseFilter):
+    key = "in_db"
+
+    async def __call__(self, message: types.Message, set_journal_group_id=None) -> bool:
+        @database_sync_to_async
+        def is_registered_by_name_subject() -> bool:
+            return Subject.objects.filter(name=message.text).exists()
+
+        subject_attributes = {'name': message.text}
+
+        if await is_registered_by_name_subject():
+            logger.info(
+                subject_is_created_by_attributes_check_success_logging_info_message.format(
+                    subject_attributes=subject_attributes
+                )
+            )
+            return True
+
+        else:
+            await message.answer(
+                subject_is_created_by_attributes_check_fail_chat_error_message.format(
+                    subject_attributes=chat_messages.name_obj_kw
+                )
+            )
+            logger.error(
+                subject_is_created_by_attributes_check_fail_logging_error_message.format(
+                    subject_attributes=subject_attributes
+                )
+            )
+
+            await asyncio.sleep(messaging_pause)
+            await message.answer(subject_name_chat_field_message)
+            logger.info(subject_name_logging_field_message)
+
+class ScheduleExistsFilter(BaseFilter):
+    key = "in_db"
+
+    async def __call__(self, message: types.Message, set_journal_group_id=None) -> bool:
+        @database_sync_to_async
+        def is_registered_by_id_schedule() -> bool:
+            return Schedule.objects.filter(id=message.text).exists()
+
+        schedule_attributes = {'id': message.text}
+
+        if await is_registered_by_id_schedule():
+            logger.info(
+                schedule_is_created_by_attributes_check_success_logging_info_message.format(
+                    schedule_attributes=schedule_attributes
+                )
+            )
+            return True
+
+        else:
+            await message.answer(
+                schedule_is_created_by_attributes_check_fail_chat_error_message.format(
+                    schedule_attributes=chat_messages.id_obj_kw
+                )
+            )
+            logger.error(
+                schedule_is_created_by_attributes_check_fail_logging_error_message.format(
+                    schedule_attributes=schedule_attributes
+                )
+            )
+
+            await asyncio.sleep(messaging_pause)
+            await message.answer(
+                schedule_id_chat_field_message.format(
+                    schedule_attributes=""
+                )
+            )
+            logger.info(
+                schedule_id_logging_field_message.format(
+                    schedule_attributes=""
+                )
+            )
+
 
 class IsAdminFilter(BaseFilter): #TODO: add a middleware to check both is admin or is superuser rights when is admin checking
     key = 'is_admin'
@@ -317,3 +402,8 @@ class PresencePollFilter(BaseFilter):
     async def __call__(self, poll_answer: types.PollAnswer, *args, **kwargs) -> bool:
 
         return await is_presence_poll(poll_answer.poll_id)
+
+
+class DummyFilter(BaseFilter):
+    async def __call__(self, *args, **kwargs) -> True:
+        return True

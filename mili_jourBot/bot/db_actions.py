@@ -1,11 +1,13 @@
-
+import copy
 import logging
 
 import re
 
+import django.db.models
+
 from .models import *
 from .forms import *
-from .infrastructure.Schedule import *
+from .infrastructure.ScheduleTiming import *
 from .infrastructure.enums import *
 from misc.re_patterns import *
 from logging_native.utilis.frame_log_track.frame_log_track import log_track_frame
@@ -23,6 +25,8 @@ import prettytable
 import regex #TODO: swap regex to re, where possible
 
 #TODO: replace all async get- and delete- functions with universals
+
+#TODO: unify code
 
 @log_track_frame(total=False)
 @database_sync_to_async
@@ -79,6 +83,75 @@ def add_journal_entry(initial):
 
 @log_track_frame(total=False)
 @database_sync_to_async
+def add_subject(data):
+    name = data['name']
+    journal = data['journal']
+
+    subject_filter_query = Subject.objects.filter(name=name)
+    if subject_filter_query.exists():
+        subject = subject_filter_query.first()
+        subject.journals.add(journal.id)
+    else:
+        subject = Subject.objects.create(name=name)
+
+    subject.save()
+
+
+@log_track_frame(total=False)
+def add_lesson(subject, ordinal: int) -> Lesson:
+    lesson_attributes = {'subject': subject, 'ordinal': ordinal}
+    lesson_filter_query = Lesson.objects.filter(subject=subject, ordinal=ordinal)
+    if not lesson_filter_query.exists():
+        new_lesson = Lesson.objects.create(**lesson_attributes)
+        new_lesson.save()
+
+        return new_lesson
+
+    else:
+        return lesson_filter_query.first()
+
+@log_track_frame(total=False)
+@database_sync_to_async
+def add_schedule(lessons_ordinals_to_subjects_names: dict):
+    new_schedule = Schedule.objects.create()
+    for lesson_ordinal, subject_name in lessons_ordinals_to_subjects_names.items():
+        subject = Subject.objects.get(name=subject_name)
+        new_lesson = add_lesson(subject, lesson_ordinal)
+        new_schedule.lessons.add(new_lesson.id)
+
+    new_schedule.save()
+    return new_schedule
+
+
+@database_sync_to_async
+def get_schedule_async(**schedule_attributes):
+    schedule = Schedule.objects.get(**schedule_attributes)
+    return schedule
+
+
+@log_track_frame(total=False)
+@database_sync_to_async
+def add_current_schedule(attributes: dict):
+    current_schedule_defining_attributes = copy.copy(attributes); schedule = current_schedule_defining_attributes.pop('schedule')
+    filter_query = CurrentSchedule.objects.filter(**current_schedule_defining_attributes)
+    if not filter_query.exists():
+        new_current_schedule = CurrentSchedule.objects.create(**attributes)
+        new_current_schedule.save()
+
+    else:
+        old_current_schedule = filter_query.first()
+        if not old_current_schedule.schedule == schedule:
+            setattr(old_current_schedule, 'schedule', schedule)
+            old_current_schedule.save()
+
+
+@database_sync_to_async
+def get_current_schedule_async(attributes: dict):
+    current_schedule = CurrentSchedule.objects.get(**attributes)
+    return current_schedule
+
+
+@database_sync_to_async
 def get_journal_async(data):
     journal = Journal.objects.get(**data)
     return journal
@@ -100,8 +173,7 @@ def get_all_journal_profiles(journal):
 @log_track_frame(total=False)
 @database_sync_to_async
 #TODO: redo to on-date entries initiation
-def initiate_today_entries(today, group_id, lesson): #TODO: fix on less lessons reinitiation bug
-    journal = Journal.objects.get(external_id=group_id)
+def initiate_today_entries(today: datetime.date, journal: Journal, lesson: Lesson): #TODO: fix on less lessons reinitiation bug
     try: report_parameters = ReportParameters.objects.get(journal=journal, date=today)
     except Exception: pass
     profiles = Profile.objects.filter(journal=journal)
@@ -131,13 +203,20 @@ def process_user_on_lesson_presence(is_present, user_id):
     now_time = now.time()
     now_date = now.date()
 
-    lesson = Schedule.lesson_match(now_time)
-    if not lesson:
-        after_recess_time = (now + Schedule.recess).time()
-        lesson = Schedule.lesson_match(after_recess_time) #If user voted during recess
-
     profile = Profile.objects.get(external_id=user_id)
     journal = profile.journal
+    current_schedule = CurrentSchedule.objects.get(journal=journal, date=now_date)
+    schedule = current_schedule.schedule
+    lessons: django.db.models.QuerySet = schedule.lessons.all()
+    lesson_ordinal = ScheduleTiming.lesson_intervals_match(now_time)
+    lesson_query = lessons.filter(ordinal=lesson_ordinal)
+
+    if not lesson_query.exists():
+        after_recess_time = (now + ScheduleTiming.recess).time()
+        lesson_ordinal = ScheduleTiming.lesson_intervals_match(after_recess_time) #If user voted during recess
+
+    lesson = lesson_query.first()
+
     report = ReportParameters.objects.get(date=now_date, journal=journal)
     mode = report.mode
 
@@ -149,10 +228,12 @@ def process_user_on_lesson_presence(is_present, user_id):
         if is_present:
             corresponding_entry.is_present = True
             corresponding_entry.save()
+            ...
 
         else:
             corresponding_entry.is_present = False
             corresponding_entry.save()
+            ...
 
     else:
         profile_entries = JournalEntry.objects.filter(profile=profile)
@@ -181,7 +262,7 @@ def amend_statuses(date, group_id):
 
     for profile in journal_profiles:
         on_date_profile_entries = JournalEntry.objects.filter(date=date, profile=profile)
-        ordered_on_date_profile_entries = on_date_profile_entries.order_by('-lesson')
+        ordered_on_date_profile_entries = on_date_profile_entries.order_by('-lesson__ordinal')
 
         most_relevant_status = None
 
@@ -200,7 +281,7 @@ def on_lesson_presence_check(user_id): #TODO: move to checks.py
         profile = Profile.objects.get(external_id=user_id)
         now = timezone.localtime(timezone.now())
         today = now.date()
-        current_lesson = Schedule.lesson_match(now.time())
+        current_lesson = ScheduleTiming.lesson_intervals_match(now.time())
         on_lesson_entry = JournalEntry.objects.get(profile=profile, lesson=current_lesson, date=today)
         presence = on_lesson_entry.is_present
 
@@ -216,7 +297,7 @@ def set_status(data, user_id, lesson=None): #TODO: if today status: status = tod
     today = now.date()
     now_time = now.time()
     status = data['status']
-    current_lesson = Schedule.lesson_match(now_time)
+    current_lesson = ScheduleTiming.lesson_intervals_match(now_time)
     report_parameters = ReportParameters.objects.get(journal=journal, date=today)
     mode = report_parameters.mode
     if mode == PresenceMode.LIGHT_MODE:
@@ -232,34 +313,17 @@ def set_status(data, user_id, lesson=None): #TODO: if today status: status = tod
 
 @log_track_frame(total=False)
 @database_sync_to_async
-def initiate_today_report(today, group_id, lessons, mode=default):
-    journal = Journal.objects.get(external_id=group_id)
+def initiate_today_report(today: datetime.date, journal: Journal, mode=default):
+    report_parameters_attributes = {'journal': journal, 'date': today, 'mode': mode}
+    today_report_parameters_query = ReportParameters.objects.filter(**report_parameters_attributes)
+    if not today_report_parameters_query.exists():
+        ReportParameters.objects.create(**report_parameters_attributes)
 
-    if not ReportParameters.objects.filter(date=today, journal=journal, lessons=lessons, mode=mode).exists():
-
-        if ReportParameters.objects.filter(date=today, journal=journal).exists():
-            if ReportParameters.objects.filter(date=today, journal=journal, mode=mode).exists():
-                corresponding_report = ReportParameters.objects.get(date=today, journal=journal)
-                corresponding_report.lessons = lessons
-                corresponding_report.save()
-
-            if ReportParameters.objects.filter(date=today, journal=journal, lessons=lessons).exists():
-                corresponding_report = ReportParameters.objects.get(date=today, journal=journal)
-                corresponding_report.mode = mode
-                corresponding_report.save()
-
-            else:
-                corresponding_report = ReportParameters.objects.get(date=today, journal=journal)
-                corresponding_report.lessons = lessons
-                corresponding_report = ReportParameters.objects.get(date=today, journal=journal)
-                corresponding_report.mode = mode
-                corresponding_report.save()
-
-        else:
-            journal = Journal.objects.get(external_id=group_id)
-            report = ReportParameters.objects.create(journal=journal, date=today, lessons=lessons, mode=mode)
-            report.save()
-
+    else: \
+defining_report_parameters_attributes = report_parameters_attributes; del defining_report_parameters_attributes['mode']; \
+        today_report_parameters = today_report_parameters_query.first(); \
+        today_report_parameters.mode = mode; \
+        today_report_parameters.save()
 
 
 @log_track_frame(total=False)
@@ -268,8 +332,11 @@ def report_table(report) -> Type[prettytable.PrettyTable]:
     journal = report.journal
     report_date = report.date
     entries = JournalEntry.objects.filter(journal=journal, date=report_date)
-    lessons = report.lessons_integer_list
-    headers = ["Студент"] + [l for l in lessons]
+    current_schedule = CurrentSchedule.objects.get(journal=journal, date=report_date)
+    schedule = current_schedule.schedule
+    lessons = schedule.lessons.all()
+    lessons.order_by("ordinal")
+    headers = ["Студент"] + [str(l) for l in lessons]
     table = prettytable.PrettyTable(headers)
     table.border = False
 
@@ -316,13 +383,20 @@ def filled_absence_cell(entries):
 
     return absence_cell
 
-def summary_row(wp_mode, report_mode, lesson, entries, journal_strength, report_date=None, today=None, now_time=None):
-
+def summary_row(
+        report_mode: Enum,
+        lesson: Lesson,
+        entries: django.db.models.QuerySet[JournalEntry],
+        journal_strength,
+        report_date: datetime.date=None,
+        today: datetime.date=None,
+        now_time: datetime.time=None
+) -> list:
     lesson_entries = entries.filter(lesson=lesson)
 
     absence_cell = []
 
-    lesson_time_interval = Schedule.lessons_intervals[lesson]
+    lesson_time_interval = ScheduleTiming.lessons_intervals[lesson.ordinal]
     lesson_start_time = lesson_time_interval.lower
     lesson_end_time = lesson_time_interval.upper
 
@@ -356,7 +430,7 @@ def summary_row(wp_mode, report_mode, lesson, entries, journal_strength, report_
         else:
             presence_indicator = '?'
 
-    return [lesson, journal_strength, presence_indicator, "\n".join(absence_cell)]
+    return [str(lesson), journal_strength, presence_indicator, "\n".join(absence_cell)]
 #TODO: add full table creation, separate full and narrow tables creation
 #TODO: add documentary table creation
 @log_track_frame(total=False)
@@ -366,8 +440,10 @@ def report_summary(report, report_mode) -> Type[prettytable.PrettyTable]:
     journal_strength = journal.strength
     report_date = report.date
     entries = JournalEntry.objects.filter(journal=journal, date=report_date)
-    lessons = report.lessons_integer_list
-    wp_mode = report.mode #TODO COSMETICAL: use WhoSPresent(report.mode) instead
+    current_schedule = CurrentSchedule.objects.get(journal=journal, date=report_date)
+    schedule = current_schedule.schedule
+    lessons = schedule.lessons.all()
+    lessons.order_by("ordinal")
     headers = ["Зан.", "Сп.", "Пр.", "Відсутні"]
     summary = prettytable.PrettyTable(headers)
 
@@ -378,15 +454,16 @@ def report_summary(report, report_mode) -> Type[prettytable.PrettyTable]:
     today = now.date()
 
     for lesson in lessons:
-        lesson_row = summary_row(wp_mode, report_mode, lesson, ordered_entries, journal_strength, report_date, today, now_time)
+        lesson_row = summary_row(report_mode, lesson, ordered_entries, journal_strength, report_date, today, now_time)
         summary.add_row(lesson_row)
 
     return summary
 
 
 @log_track_frame(total=False)
-@database_sync_to_async
-def get_on_mode_report(group_id, mode, specified_date: datetime=None) -> Type[ReportParameters]:
+@database_sync_to_async                       #TODO: add "journal" to function name
+def get_on_mode_report(group_id, mode, specified_date: datetime=None) -> Type[ReportParameters]: #TODO: consider using journal #TODO: reannotate return type
+                                            #TODO: consider move to get_journal_...-functions
     journal = Journal.objects.get(external_id=group_id)
 
     match mode:
@@ -406,7 +483,7 @@ def get_on_mode_report(group_id, mode, specified_date: datetime=None) -> Type[Re
 
 @log_track_frame(total=False)
 @database_sync_to_async
-def redo_entries_by_report_row(report_row_match: Type[re.Match], group_id, date, lessons: List[int]):
+def redo_entries_by_report_row(report_row_match: Type[re.Match], group_id, date, lessons_ordinals: List[int]):
     name_part = report_row_match.group(1)
     report_marks = report_row_match.group(2)
     report_marks_split: list = report_marks.split()
@@ -421,8 +498,12 @@ def redo_entries_by_report_row(report_row_match: Type[re.Match], group_id, date,
         None
 
     if target_profile:
-        on_date_profile_entries = JournalEntry.objects.filter(profile=target_profile, date=date).order_by('lesson')
-        on_date_profile_lessons_entries: list = [entry for entry in on_date_profile_entries if entry.lesson in lessons]
+        on_date_profile_entries = JournalEntry.objects.filter(profile=target_profile, date=date).order_by('lesson__ordinal')
+        on_date_profile_lessons_entries: list = [
+            entry
+            for entry in on_date_profile_entries
+            if entry.lesson.ordinal in lessons_ordinals
+        ]
         for mark, lesson_entry in zip(report_marks_split, on_date_profile_lessons_entries):
             if mark == '·':
                 lesson_entry.is_present = True
@@ -433,7 +514,7 @@ def redo_entries_by_report_row(report_row_match: Type[re.Match], group_id, date,
             lesson_entry.save()
 
 
-@log_track_frame(total=False)
+@log_track_frame(total=False) #TODO: consider moving to handlers.py
 async def get_journal_dossier(group_id): #TODO: check (it somehow works)
     journal = Journal.objects.get(external_id=group_id)
     headers = ["№", "Ім'я"]
@@ -442,6 +523,54 @@ async def get_journal_dossier(group_id): #TODO: check (it somehow works)
         table.add_row([profile.ordinal, profile.name])
 
     return table
+
+
+@log_track_frame(total=False)
+def make_schedule_table(schedule: Schedule):
+    schedule_table_headers = ["№", "Предмет"]
+    schedule_table = prettytable.PrettyTable(schedule_table_headers)
+    schedule_lessons = schedule.lessons.all()
+    schedule_uninscribed_lessons = schedule_lessons
+    schedule_uninscribed_lessons_list = list(schedule_uninscribed_lessons)
+    for inscribed_lesson_ordinal in range(1, ScheduleTiming.last_lesson_ordinal):
+        for lesson in schedule_uninscribed_lessons_list:
+            if lesson.ordinal == inscribed_lesson_ordinal:
+                on_ordinal_schedule_lesson = lesson
+                break
+        else:
+            on_ordinal_schedule_lesson = None
+
+        if on_ordinal_schedule_lesson:
+            schedule_uninscribed_lessons_list.remove(on_ordinal_schedule_lesson)
+            lesson_subject_name = on_ordinal_schedule_lesson.subject.name
+
+        else:
+            lesson_subject_name = "_"
+
+        lesson_row = [inscribed_lesson_ordinal, lesson_subject_name]
+        schedule_table.add_row(lesson_row)
+
+    return schedule_table
+
+
+@log_track_frame(total=False) #TODO: consider moving to handlers.py
+async def get_on_mode_journal_current_schedule(journal: Journal, mode, specified_date: datetime.date=None):
+    all_journal_current_schedules = CurrentSchedule.objects.filter(journal=journal)
+
+    match mode:
+        case ReportMode.TODAY:
+            today_date = datetime.datetime.today()
+            corresponding_current_schedule = all_journal_current_schedules.get(date=today_date)
+
+        case ReportMode.LAST:
+            corresponding_current_schedule = \
+                all_journal_current_schedules.order_by('date')[len(all_journal_current_schedules) - 1]
+            date = corresponding_current_schedule.date
+
+        case ReportMode.ON_DATE:
+             corresponding_current_schedule = all_journal_current_schedules.get(date=specified_date)
+
+    return corresponding_current_schedule
 
 
 @log_track_frame(total=False)
