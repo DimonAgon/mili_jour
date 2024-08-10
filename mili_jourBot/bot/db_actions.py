@@ -27,6 +27,7 @@ import regex #TODO: swap regex to re, where possible
 #TODO: replace all async get- and delete- functions with universals
 
 #TODO: unify code
+#TODO: annotate all
 
 @log_track_frame(total=False)
 @database_sync_to_async
@@ -166,7 +167,7 @@ def get_profile_async(data) -> Profile:
 
 @log_track_frame(total=False)
 @database_sync_to_async
-def get_all_journal_profiles(journal):
+def get_all_journal_profiles(journal): #TODO: annotate
     return Profile.objects.filter(journal=journal)
 
 
@@ -328,9 +329,9 @@ defining_report_parameters_attributes = report_parameters_attributes; del defini
 
 @log_track_frame(total=False)
 @database_sync_to_async
-def report_table(report) -> Type[prettytable.PrettyTable]:
-    journal = report.journal
-    report_date = report.date
+def make_report_table(report_parameters: ReportParameters) -> Type[prettytable.PrettyTable]:
+    journal = report_parameters.journal
+    report_date = report_parameters.date
     entries = JournalEntry.objects.filter(journal=journal, date=report_date)
     current_schedule = CurrentSchedule.objects.get(journal=journal, date=report_date)
     schedule = current_schedule.schedule

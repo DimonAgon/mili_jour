@@ -45,7 +45,7 @@ class Journal(models.Model):
         ordering = ['-name']
 
 
-class ReportParameters(models.Model):
+class ReportParameters(models.Model): #TODO: consider renaming to "report-details"
     journal = models.ForeignKey(to='Journal', on_delete=models.CASCADE, verbose_name="Журнал")
     date = models.DateField()
     mode = models.CharField(max_length=12, choices=PresenceMode.choices, default=default)

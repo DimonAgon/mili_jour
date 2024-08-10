@@ -747,6 +747,7 @@ HELPFUL_REPLY = \
                 "\n" \
                 "\n/redo_report /rr– переробити звіт, надавши відповідну таблицю поправок" \
                 "\n" \
+                "\n/allreport /all_reports- викликати єдиний файл зі звітами" \
                 "\n/create_subject- створити предмет" \
                 "\n/create_schedule- створити розклад" \
                 "\n/post_schedule- опублікувати розклад на вказану дату" \

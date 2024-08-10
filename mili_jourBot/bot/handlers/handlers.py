@@ -2,7 +2,7 @@ import enum
 import re
 
 import django.db.models
-import htmldocx
+import htmldocx #TODO: move down
 from aiogram import F
 from aiogram import types
 from aiogram.filters import Command, CommandObject
@@ -605,7 +605,7 @@ async def today_report_command(
         await message.answer(report_parameters_check_fail_chat_error_message)
         return
 
-    table = await report_table(today_report)
+    table = await make_report_table(today_report)
     summary = await report_summary(today_report, ReportMode.TODAY)
 
     date_format = NativeDateFormat.date_format
@@ -664,7 +664,7 @@ async def last_report_command(
         await message.answer(report_parameters_check_fail_chat_error_message)
         return
 
-    table = await report_table(last_report)
+    table = await make_report_table(last_report)
     summary = await report_summary(last_report, ReportMode.LAST)
 
     date_format = NativeDateFormat.date_format
@@ -729,7 +729,7 @@ async def on_date_report_command(
         await message.answer(report_parameters_check_fail_chat_error_message)
         return
 
-    table = await report_table(on_date_report)
+    table = await make_report_table(on_date_report)
     summary = await report_summary(on_date_report, ReportMode.ON_DATE)
 
     await message.answer(
@@ -760,6 +760,35 @@ async def on_date_report_command(
             document.save(temp_path)
             input_file = types.FSInputFile(temp_path)
             await message.answer_document(input_file, disable_notification=True)
+
+
+all_reports__command_filters_config = (Command(commands=('allreport', 'all_reports'), prefix=prefixes), )
+@journal_router.message(*all_reports__command_filters_config, F.chat.type.in_({'private'}), IsSuperUserFilter())
+@journal_router.message(*all_reports__command_filters_config, F.chat.type.in_({'group', 'supergroup'}), IsAdminFilter())
+@log_track_frame(untracked_data=untracked_log_data, track_non_keyword_args=False)
+async def allreport_command(message: Message, set_journal: Journal=None, *args, **kwargs): #TODO: consider making an analogue uni-table
+    group_id = message.chat.id
+    journal = set_journal if set_journal else await get_journal_async({'external_id': group_id})
+    all_journal_report_parameters = ReportParameters.objects.filter(journal=journal)
+
+    allreport_temporary_filepath = os.path.join(tempfile.gettempdir(), os.urandom(24).hex()) + '.docx'
+    allreport_document = docx.Document()
+    html_to_docx__parser = htmldocx.HtmlToDocx()
+
+    for report_parameters in all_journal_report_parameters:
+        report_table = await make_report_table(report_parameters)
+        if report_table:
+            report_table_html = report_table.get_html_string()
+            html_to_docx__parser.add_html_to_document(f"<center>{report_parameters.date}</center>", allreport_document)
+            html_to_docx__parser.add_html_to_document(report_table_html, allreport_document)
+            html_to_docx__parser.add_html_to_document("<span></span><span></span>   ", allreport_document)
+
+    allreport_document.save(allreport_temporary_filepath)
+
+    input_file = types.FSInputFile(allreport_temporary_filepath)
+    await message.answer_document(input_file)
+
+    allreport_document._body.clear_content()
 
 
 dossier_command_filters_config = (Command(commands='dossier', prefix=prefixes),
