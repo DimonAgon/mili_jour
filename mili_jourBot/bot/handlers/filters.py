@@ -204,7 +204,7 @@ class IsAdminFilter(BaseFilter): #TODO: add a middleware to check both is admin 
             return True
 
         else:
-            await message.answer(is_superuser_check_fail_chat_error_message)
+            await message.answer(is_admin_check_fail_chat_error_message)
             return False
 
 class IsSuperUserFilter(BaseFilter):
