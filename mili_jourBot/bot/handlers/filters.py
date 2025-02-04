@@ -392,7 +392,7 @@ class NoCommandFilter(BaseFilter):
     @log_track_frame('filter_no_command', untracked_data=untracked_log_data)
     async def __call__(self, message: types.Message, *args, **kwargs) -> bool:
 
-        command_pattern_compiled = re.compile('\/.*')
+        command_pattern_compiled = re.compile(r'\/.*')
 
         return not command_pattern_compiled.fullmatch(message.text)
 
